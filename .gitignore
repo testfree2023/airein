@@ -48,6 +48,7 @@ contract-cache/
 /.claude/config/
 /.claude/self-learning/
 /.claude/contract-cache/
+/.claude/logs/
 
 # ── Playwright MCP 运行时产物（截图 / 页面快照 / 控制台日志）──────
 .playwright-mcp/
