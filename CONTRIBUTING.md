@@ -26,8 +26,17 @@ bash test/run-all.sh   # 确认全绿
    - 铁律：[`rules/00-iron-rules.md`](rules/00-iron-rules.md)
 3. **TDD**：先写失败测试（RED）→ 实现（GREEN）→ 重构。`scripts/lib/*.js` 变更必须有对应 `test/test-*.js`。
 4. **跑全量测试**：`bash test/run-all.sh` 必须全绿
-5. **Commit**：Conventional Commits（`feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:` / `perf:` / `ci:`）。**永不 `--no-verify`**。
+5. **Commit**：见下方「[Commit message 规范](#commit-message-规范)」。**永不 `--no-verify`**。
 6. **PR**：描述背景、方案、测试方式、回滚方式
+
+### Commit message 规范
+
+公开 commit message 是写给陌生贡献者的工程记录，只写**专业的事实（what + why）**：
+
+- **DO**：改动做了什么、为什么这样改、影响范围。例：`fix: doc-file-warning 豁免 .claude/self-learning 路径，解除对自学习缓冲的误拦`。
+- **DON'T**：不写内部沟通 / 博弈措辞（如「打脸」「(绝对承诺)」「目标 + 现状」这类私下讨论术语），不写会随时间腐烂的过程笔记——私下讨论留 PR / 对话，不进 commit。
+- **Trailer 策略**：airein 公开提交**不加 `Co-Authored-By` trailer**。git 作者署名即维护者；如需说明 AI 协作，放 PR 描述，不挂每条 commit 的幽灵共同作者。
+- 格式：`<type>: <description>`（Conventional Commits），body 用要点列 what / why。
 
 ## 不可妥协的约束
 
