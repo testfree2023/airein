@@ -30,7 +30,7 @@ function isAllowedDocPath(filePath) {
     return true;
   }
 
-  if (/\.claude\/(commands|plans|projects)\//.test(normalized)) {
+  if (/\.claude\/(commands|plans|projects|self-learning)\//.test(normalized)) {
     return true;
   }
 

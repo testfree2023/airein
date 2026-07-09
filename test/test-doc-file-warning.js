@@ -67,6 +67,11 @@ describe('doc-file-warning: path allowlist', suite => {
     const r = runDocWarn(path.join(projectRoot(), 'rules', '00-iron-rules.md'));
     assertEqual(r.exitCode, 0, 'rules/*.md allowed');
   });
+
+  suite.test('allows .claude/self-learning/*.md (self-learning buffer)', () => {
+    const r = runDocWarn(path.join(projectRoot(), '.claude', 'self-learning', 'pending.md'));
+    assertEqual(r.exitCode, 0, '.claude/self-learning allowed');
+  });
 });
 
 process.exit(printSummary());
