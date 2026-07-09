@@ -1,0 +1,41 @@
+{
+  "testCoverage": {
+    "minRatio": 0.3,
+    "minSourceFiles": 2,
+    "functionThreshold": 3
+  },
+  "blocking": {
+    "testFailure": true,
+    "lowCoverage": true,
+    "buildFailure": true,
+    "untestedSource": true
+  },
+  "flowControl": {
+    "perTaskReview": false,
+    "worktreeIsolation": false
+  },
+  "testGuard": {
+    "enabled": true,
+    "mode": "strict"
+  },
+  "approvalGuard": {
+    "mode": "console-confirm"
+  },
+  "planGate": {
+    "mode": "advisory",
+    "exemptPaths": ["docs/", ".claude/", "scripts/hooks/", "test/"],
+    "requireActiveTask": true
+  },
+  "planWorkflow": {
+    "enforceGrilling": true,
+    "pipeline": "auto"
+  },
+  "languageProfiles": {
+    "active": []
+  },
+  "aireinLog": {
+    "enabled": true,
+    "level": "info",
+    "retentionDays": 7
+  }
+}

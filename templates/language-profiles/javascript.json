@@ -1,0 +1,25 @@
+{
+  "$schema": "airein-language-profile-v1",
+  "name": "javascript",
+  "role": "fullstack",
+  "version": "1.0.0",
+  "description": "JavaScript and JSX language profile",
+  "extensions": [".js", ".jsx"],
+  "testPatterns": ["^test-", "\\.test\\.", "\\.spec\\."],
+  "testNameTemplates": ["{base}.test{ext}", "{base}.spec{ext}", "test-{base}{ext}", "test_{base}{ext}"],
+  "debugPatterns": ["console\\.log", "console\\.debug"],
+  "importPatterns": {
+    ".js": ["import .* from", "require\\("],
+    ".jsx": ["import .* from", "require\\("]
+  },
+  "exportPatterns": {
+    ".js": ["export\\s+", "module\\.exports"],
+    ".jsx": ["export\\s+", "module\\.exports"]
+  },
+  "buildCommands": [
+    { "cmd": "npm run build", "configFile": "package.json" }
+  ],
+  "testCommands": [
+    { "cmd": "npm test", "configFile": "package.json" }
+  ]
+}

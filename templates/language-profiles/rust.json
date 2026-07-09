@@ -1,0 +1,23 @@
+{
+  "$schema": "airein-language-profile-v1",
+  "name": "rust",
+  "role": "backend",
+  "version": "1.0.0",
+  "description": "Rust language profile",
+  "extensions": [".rs"],
+  "testPatterns": [],
+  "testNameTemplates": [],
+  "debugPatterns": ["println!"],
+  "importPatterns": {
+    ".rs": ["^use "]
+  },
+  "exportPatterns": {
+    ".rs": ["pub\\s+"]
+  },
+  "buildCommands": [
+    { "cmd": "cargo check", "configFile": "Cargo.toml" }
+  ],
+  "testCommands": [
+    { "cmd": "cargo test", "configFile": "Cargo.toml" }
+  ]
+}

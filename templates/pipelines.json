@@ -1,0 +1,45 @@
+{
+  "defaultComplexity": "m-feature",
+  "definitions": {
+    "s-feature": {
+      "label": "S-Feature",
+      "description": "小型项目新功能 —— 适合快速迭代、小范围变更，仅需需求梳理后直接开发",
+      "docs": ["requirements", "tasks"]
+    },
+    "s-bugfix": {
+      "label": "S-Bugfix",
+      "description": "小型项目缺陷修复 —— 适合明确问题的小型修复，直接进入任务阶段",
+      "docs": ["tasks"]
+    },
+    "m-feature": {
+      "label": "M-Feature",
+      "description": "中型项目新功能 —— 标准开发流程：需求分析、技术设计、任务拆分",
+      "docs": ["requirements", "design", "tasks"]
+    },
+    "m-bugfix": {
+      "label": "M-Bugfix",
+      "description": "中型项目缺陷修复 —— 需要需求分析和任务拆分，但无需完整设计阶段",
+      "docs": ["requirements", "tasks"]
+    },
+    "m-urgent": {
+      "label": "M-Urgent",
+      "description": "中型项目紧急需求 —— 跳过仪式性文档，直接进入任务开发",
+      "docs": ["tasks"]
+    },
+    "l-feature": {
+      "label": "L-Feature",
+      "description": "大型项目新功能 —— 完整工程流程：需求、设计（含架构/规范/数据库/安全/部署）、测试计划、任务拆分",
+      "docs": ["requirements", "design", "test-plan", "deployment", "tasks"]
+    },
+    "l-bugfix": {
+      "label": "L-Bugfix",
+      "description": "大型项目缺陷修复 —— 需求梳理、设计分析、测试计划和任务拆分",
+      "docs": ["requirements", "design", "test-plan", "tasks"]
+    },
+    "hotfix": {
+      "label": "Hotfix",
+      "description": "紧急修复（不限项目规模）—— 生产环境紧急修复，直接进入任务开发，跳过所有仪式性文档",
+      "docs": ["tasks"]
+    }
+  }
+}

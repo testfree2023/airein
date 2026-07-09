@@ -1,0 +1,29 @@
+{
+  "$schema": "airein-language-profile-v1",
+  "name": "java",
+  "role": "backend",
+  "version": "1.0.0",
+  "description": "Java language profile (Maven/Gradle)",
+  "extensions": [".java"],
+  "testPatterns": ["Test\\.java$", "IT\\.java$"],
+  "testNameTemplates": ["{base}Test{ext}", "{base}IT{ext}"],
+  "debugPatterns": ["System\\.out\\.print", "System\\.err\\.print"],
+  "importPatterns": {
+    ".java": ["^import "]
+  },
+  "exportPatterns": {
+    ".java": ["public\\s+(class|interface|enum|record)"]
+  },
+  "buildCommands": [
+    { "cmd": "mvn compile -q", "configFile": "pom.xml" },
+    { "cmd": "./gradlew compileJava", "configFile": "build.gradle" }
+  ],
+  "testCommands": [
+    { "cmd": "mvn test -q", "configFile": "pom.xml" },
+    { "cmd": "./gradlew test", "configFile": "build.gradle" }
+  ],
+  "conventions": {
+    "sourceDirectory": "src/main/java",
+    "testDirectory": "src/test/java"
+  }
+}

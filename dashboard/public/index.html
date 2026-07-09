@@ -1,0 +1,3135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Airein Dashboard</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg-card: #f8f9fa;
+  --bg-hover: #e9ecef;
+  --text: #212529;
+  --text-muted: #6c757d;
+  --border: #dee2e6;
+  --primary: #0d6efd;
+  --primary-hover: #0b5ed7;
+  --success: #198754;
+  --warning: #ffc107;
+  --danger: #dc3545;
+  --info: #0dcaf0;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.1);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "SF Mono", "Fira Code", "Consolas", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a2e;
+    --bg-card: #16213e;
+    --bg-hover: #0f3460;
+    --text: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --border: #2a2a4a;
+    --primary: #4dabf7;
+    --primary-hover: #339af0;
+    --success: #51cf66;
+    --warning: #ffd43b;
+    --danger: #ff6b6b;
+    --info: #22b8cf;
+    --shadow: 0 1px 3px rgba(0,0,0,.3);
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
+
+/* Layout */
+.layout { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* Top Bar */
+.topbar {
+  background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+  color: #fff;
+  padding: 0 1.5rem;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+.topbar-left { display: flex; align-items: center; gap: .75rem; }
+.topbar-brand { font-weight: 700; font-size: 1.1rem; letter-spacing: -.02em; }
+.topbar-version { font-size: .75rem; opacity: .8; background: rgba(255,255,255,.2); padding: .15rem .4rem; border-radius: 4px; }
+.topbar-right { display: flex; align-items: center; gap: 1rem; font-size: .85rem; }
+.topbar-link { color: rgba(255,255,255,.8); text-decoration: none; }
+.topbar-link:hover { color: #fff; }
+
+/* Main layout wrapper */
+.layout-wrapper { display: flex; margin-top: 50px; min-height: calc(100vh - 50px); }
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 50px;
+  bottom: 0;
+  z-index: 100;
+}
+.sidebar-nav-section {
+  padding: .75rem 1rem .5rem;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.sidebar-nav { flex: 1; padding: 0 0 1rem; overflow-y: auto; }
+.sidebar-nav a {
+  display: flex; align-items: center; gap: .6rem;
+  color: var(--text-muted); text-decoration: none;
+  padding: .5rem 1rem; font-size: .85rem;
+  transition: all .15s;
+}
+.sidebar-nav a:hover { color: var(--text); background: var(--bg-hover); }
+.sidebar-nav a.active { color: var(--primary); background: var(--bg-hover); font-weight: 600; }
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+}
+.sidebar-footer select {
+  width: 100%; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); padding: .3rem .5rem;
+  border-radius: var(--radius); font-size: .85rem;
+}
+
+/* Main content */
+.main-wrapper { flex: 1; margin-left: 240px; display: flex; flex-direction: column; }
+.header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: .75rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 50px; z-index: 90;
+}
+.header-title h1 { font-size: 1.1rem; margin: 0; font-weight: 600; }
+.header-meta { font-size: .85rem; color: var(--text-muted); }
+.header-actions { display: flex; gap: .5rem; align-items: center; }
+
+/* Main */
+main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .topbar { padding: 0 1rem; }
+  .topbar-version { display: none; }
+  .sidebar { width: 60px; }
+  .sidebar-nav-section, .sidebar-nav span, .sidebar-footer { display: none; }
+  .main-wrapper { margin-left: 60px; }
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  box-shadow: var(--shadow);
+  transition: box-shadow .2s;
+}
+.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+.card h3 { margin-bottom: .5rem; }
+.card .meta { font-size: .85rem; color: var(--text-muted); }
+
+/* Grid */
+.grid { display: grid; gap: 1rem; }
+.grid-2 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: .15rem .5rem;
+  border-radius: 12px;
+  font-size: .75rem;
+  font-weight: 600;
+}
+.badge-simple, .badge-s-feature, .badge-s-bugfix { background: #e3f2fd; color: #1565c0; }
+.badge-medium, .badge-m-feature, .badge-m-bugfix, .badge-m-urgent { background: #fff3e0; color: #e65100; }
+.badge-complex, .badge-l-feature, .badge-l-bugfix { background: #fce4ec; color: #c62828; }
+.badge-hotfix { background: #f3e5f5; color: #6a1b9a; }
+.badge-approved { background: #e8f5e9; color: #2e7d32; }
+.badge-pending { background: #fff8e1; color: #f57f17; }
+.badge-none { background: #f5f5f5; color: #757575; }
+.badge-completed { background: #e8f5e9; color: #2e7d32; }
+.badge-in_progress { background: #fff3e0; color: #e65100; }
+@media (prefers-color-scheme: dark) {
+  .badge-simple, .badge-s-feature, .badge-s-bugfix { background: #1a3a5c; color: #90caf9; }
+  .badge-medium, .badge-m-feature, .badge-m-bugfix, .badge-m-urgent { background: #3e2723; color: #ffab91; }
+  .badge-complex, .badge-l-feature, .badge-l-bugfix { background: #3e1a1a; color: #ef9a9a; }
+  .badge-hotfix { background: #2a1a3a; color: #ce93d8; }
+  .badge-approved { background: #1b3a1b; color: #a5d6a7; }
+  .badge-pending { background: #3e3a1a; color: #fff176; }
+  .badge-none { background: #2a2a2a; color: #999; }
+  .badge-completed { background: #1b3a1b; color: #a5d6a7; }
+  .badge-in_progress { background: #3e2723; color: #ffab91; }
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: .4rem .8rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: .85rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn:hover { background: var(--bg-hover); }
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+.btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-sm { padding: .2rem .5rem; font-size: .8rem; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Steps / Pipeline */
+.pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 1rem 0;
+}
+.pipeline .step {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .8rem;
+  border-radius: var(--radius);
+  font-size: .85rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.pipeline .step.approved { border-color: var(--success); color: var(--success); }
+.pipeline .step.current { border-color: var(--primary); color: var(--primary); font-weight: 600; }
+.pipeline .arrow { color: var(--text-muted); margin: 0 .3rem; font-size: 1.2rem; }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 1rem;
+}
+.tabs .tab {
+  padding: .5rem 1rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: .9rem;
+  color: var(--text-muted);
+}
+.tabs .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tabs .tab:hover { color: var(--text); }
+
+/* Markdown content */
+.md-content h1 { font-size: 1.5rem; margin: 1rem 0 .5rem; }
+.md-content h2 { font-size: 1.25rem; margin: .8rem 0 .4rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+.md-content h3 { font-size: 1.1rem; margin: .6rem 0 .3rem; }
+.md-content p { margin: .4rem 0; }
+.md-content ul { padding-left: 1.5rem; margin: .4rem 0; }
+.md-content li { margin: .2rem 0; }
+.md-content code { background: var(--bg); padding: .1rem .3rem; border-radius: 3px; font-family: var(--mono); font-size: .9em; }
+.md-content pre { background: var(--bg); padding: .8rem; border-radius: var(--radius); overflow-x: auto; margin: .5rem 0; }
+.md-content pre code { background: none; padding: 0; }
+.md-content blockquote { border-left: 3px solid var(--primary); padding-left: .8rem; margin: .5rem 0; color: var(--text-muted); }
+.md-content table { border-collapse: collapse; width: 100%; margin: .5rem 0; }
+.md-content th, .md-content td { border: 1px solid var(--border); padding: .3rem .6rem; text-align: left; }
+.md-content th { background: var(--bg); }
+.md-content strong { font-weight: 700; }
+.md-content em { font-style: italic; }
+.md-content hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+
+/* Editor textarea */
+.editor {
+  width: 100%;
+  min-height: 70vh;       /* tall enough for most docs without manual dragging */
+  font-family: var(--mono);
+  font-size: .9rem;
+  padding: .8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+}
+
+/* Form */
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; font-weight: 600; margin-bottom: .3rem; font-size: .9rem; }
+.form-group .hint { font-size: .8rem; color: var(--text-muted); }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: .4rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: .9rem;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.form-row { display: flex; gap: 1rem; }
+.form-row .form-group { flex: 1; }
+
+/* Toggle switch */
+.toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle .slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: var(--border); border-radius: 24px; transition: .3s;
+}
+.toggle .slider:before {
+  content: ""; position: absolute; height: 18px; width: 18px;
+  left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s;
+}
+.toggle input:checked + .slider { background: var(--primary); }
+.toggle input:checked + .slider:before { transform: translateX(20px); }
+
+/* Empty state */
+.empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+.empty .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 1rem; right: 1rem; padding: .6rem 1rem;
+  border-radius: var(--radius); color: #fff; font-size: .9rem;
+  z-index: 1000; opacity: 0; transition: opacity .3s;
+}
+.toast.show { opacity: 1; }
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  main { padding: 1rem; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .form-row { flex-direction: column; }
+  .pipeline { flex-wrap: wrap; gap: .3rem; }
+  .pipeline .arrow { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-brand">⚡ Airein</span>
+      <span class="topbar-version">v0.1.0</span>
+    </div>
+    <div class="topbar-right">
+      <a href="https://github.com/testfree2023/airein" target="_blank" class="topbar-link">GitHub</a>
+      <span style="opacity:.5">|</span>
+      <span data-i18n="topbar.tagline">AI-Powered Project Quality Framework</span>
+    </div>
+  </div>
+
+  <div class="layout-wrapper">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <a href="#/" data-nav><span>🏠</span> <span data-i18n="nav.projects">Projects</span></a>
+        <a href="#/templates" data-nav><span>📄</span> <span data-i18n="nav.templates">Templates</span></a>
+        <a href="#/logs" data-nav><span>📋</span> <span data-i18n="nav.logs">Logs</span></a>
+        <a href="#/health" data-nav><span>💚</span> <span data-i18n="nav.health">Health</span></a>
+        <div style="flex:1"></div>
+        <a href="https://github.com/testfree2023/airein/blob/main/README.md" target="_blank"><span>📖</span> <span data-i18n="nav.docs">Docs</span></a>
+        <a href="https://github.com/testfree2023/airein/issues" target="_blank"><span>🐛</span> <span data-i18n="nav.issues">Issues</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <select id="project-select"><option value="">Select project...</option></select>
+      </div>
+    </aside>
+
+    <div class="main-wrapper">
+      <header class="header">
+        <div class="header-title">
+          <h1 id="page-title" data-i18n="nav.projects">Projects</h1>
+          <div class="header-meta" id="page-meta"></div>
+        </div>
+        <div class="header-actions">
+          <button id="locale-toggle" class="btn btn-sm" onclick="setLocale(locale==='zh'?'en':'zh')">中文</button>
+        </div>
+      </header>
+      <main id="app"></main>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- Shared pure-logic modules (also node-testable). Loaded before main script. -->
+<script src="doc-links.js"></script>
+
+<script>
+// ── State ──────────────────────────────────────
+var state = {
+  projects: [],
+  currentProject: null,
+  plans: [],
+  currentPlan: null,
+  templates: [],
+  projectDocs: [],
+  config: null
+};
+
+// ── i18n ───────────────────────────────────────
+var I18N = {
+  en: {
+    'pageTitle': 'Airein Dashboard',
+    'nav.brand': 'Airein',
+    'nav.projects': 'Projects',
+    'nav.templates': 'Templates',
+    'nav.logs': 'Logs',
+    'nav.health': 'Health',
+    'nav.selectProject': 'Select project...',
+    'nav.langToggle': '中文',
+    'error.pageNotFound': 'Page not found',
+    'error.projectNotFound': 'Project not found',
+    'error.saveFailed': 'Save failed',
+    'error.createFailed': 'Create failed',
+    'error.selectProjectFirst': 'Please select a project first',
+    'error.noPlans': 'No plans found for this project',
+    'common.back': '← Back',
+    'common.view': 'View',
+    'common.edit': 'Edit',
+    'common.save': 'Save',
+    'common.saving': 'Saving...',
+    'common.saved': 'Saved',
+    'common.loading': 'Loading',
+    'common.creating': 'Creating...',
+    'projects.heading': 'Projects',
+    'projects.emptyHeading': 'No projects found',
+    'projects.emptyBody': 'Projects using Airein will appear here automatically.',
+    'projects.emptyHint': 'Run /init-project in Claude Code to initialize your project.',
+    'projects.planCount': '{count} plans',
+    'projectDashboard.noPlans': 'No plans yet',
+    'projectDashboard.newPlan': '+ New Plan',
+    'projectDashboard.config': 'Config',
+    'projectDashboard.documents': 'Documents',
+    'projectDashboard.newDoc': '+ New Doc',
+    'projectDashboard.plans': 'Plans',
+    'docs.emptyState': 'No project documents yet. Create one from a template.',
+    'docs.rootDirectory': '(root)',
+    'docs.fileMeta': '{size} bytes · {modified}',
+    'docEdit.saving': 'Saving...',
+    'docEdit.saved': 'Saved',
+    'docEdit.saveFailed': 'Save failed',
+    'newDoc.blankDocument': '(blank document)',
+    'newDoc.heading': 'New Project Document',
+    'newDoc.documentPath': 'Document Path',
+    'newDoc.docsPrefix': 'docs/',
+    'newDoc.pathPlaceholder': 'prd.md',
+    'newDoc.pathHint': 'Use subdirectories like knowledge/architecture.md',
+    'newDoc.startFromTemplate': 'Start from Template',
+    'newDoc.content': 'Content',
+    'newDoc.createDocument': 'Create Document',
+    'newDoc.errorPathRequired': 'Document path is required',
+    'newDoc.errorInvalidPath': 'Invalid path',
+    'newDoc.errorPlansPath': 'Cannot create docs inside plans/',
+    'newDoc.documentCreated': 'Document created',
+    'newDoc.creating': 'Creating...',
+    'planDetail.archived': 'archived',
+    'planDetail.archive': 'Archive',
+    'planDetail.archiveConfirm': 'Archive this plan? This marks it as archived.',
+    'planDetail.archiveFailed': 'Archive failed: {error}',
+    'planDetail.migrate': 'Convert to directory format',
+    'planDetail.migrateConfirm': 'Convert this single-file plan to directory format (P{NNN}-{slug}/progress.md)? Content is preserved byte-for-byte. The move is irreversible outside a git repo (in git, restorable via git checkout).',
+    'planDetail.migrateFailed': 'Migration failed: {error}',
+    'planDetail.completed': 'completed',
+    'newPlan.selectProject': 'Select a project first',
+    'newPlan.sizeSmall': 'Small',
+    'newPlan.sizeMedium': 'Medium',
+    'newPlan.sizeLarge': 'Large',
+    'newPlan.sizeEmergency': 'Emergency',
+    'newPlan.heading': 'Create New Plan',
+    'newPlan.planName': 'Plan Name',
+    'newPlan.namePlaceholder': 'e.g. Add user authentication',
+    'newPlan.priority': 'Priority',
+    'newPlan.pipeline': 'Pipeline',
+    'newPlan.createPlan': 'Create Plan',
+    'newPlan.errorNameRequired': 'Name is required',
+    'newPlan.creating': 'Creating...',
+    'templates.emptyHeading': 'No templates found',
+    'templates.heading': 'Templates',
+    'templates.addNew': '+ Add New',
+    'templates.fileMeta': '{size} bytes · {modified}',
+    'templates.searchPlaceholder': 'Search templates...',
+    'templates.noResults': 'No matching templates found',
+    'templates.categoryAll': 'All Templates',
+    'templates.categoryProjectDocs': 'Project Docs',
+    'templates.categoryPlanDocs': 'Plan Docs',
+    'templates.categoryLanguageProfiles': 'Language Profiles',
+    'templates.categoryConfig': 'Config Files',
+    'templates.categoryRules': 'Rules',
+    'newTemplate.heading': 'New Template: {dir}/',
+    'newTemplate.filename': 'Filename',
+    'newTemplate.content': 'Content',
+    'newTemplate.createTemplate': 'Create Template',
+    'newTemplate.errorFilenameRequired': 'Filename is required',
+    'newTemplate.errorInvalidFilename': 'Invalid filename',
+    'newTemplate.templateCreated': 'Template created: {path}',
+    'config.heading': 'Configuration: {name}',
+    'config.saveConfiguration': 'Save Configuration',
+    'config.viewLogs': 'View Logs',
+    'config.saving': 'Saving...',
+    'config.configurationSaved': 'Configuration saved',
+    'config.testGuard': 'Test Guard',
+    'config.approvalGuard': 'Approval Guard',
+    'config.planGate': 'Plan Gate',
+    'config.testCoverage': 'Test Coverage',
+    'config.blocking': 'Blocking',
+    'config.flowControl': 'Flow Control',
+    'config.aireinLog': 'Airein Log',
+    'config.enabled': 'Enabled',
+    'config.mode': 'Mode',
+    'config.requireActiveTask': 'Require Active Task',
+    'config.minRatio': 'Min Ratio',
+    'config.minSourceFiles': 'Min Source Files',
+    'config.functionThreshold': 'Function Threshold',
+    'config.blockOnTestFailure': 'Block on Test Failure',
+    'config.blockOnLowCoverage': 'Block on Low Coverage',
+    'config.blockOnBuildFailure': 'Block on Build Failure',
+    'config.blockOnUntestedSource': 'Block on Untested Source',
+    'config.selfLearning': 'Self-Learning',
+    'config.promotionThreshold': 'Promotion Threshold',
+    'config.perTaskReview': 'Per-Task Review',
+    'config.worktreeIsolation': 'Worktree Isolation',
+    'config.level': 'Level',
+    'config.retentionDays': 'Retention Days',
+    'config.defaultHint': 'Default: {value}',
+    'config.customized': '(customized)',
+    'config.languageProfiles': 'Language Profiles',
+    'config.langProfilesHint': 'Activate the languages this project uses. Profiles are defined globally.',
+    'config.activeLanguages': 'Active Languages',
+    'config.saveActiveLanguages': 'Save Active Languages',
+    'config.addGlobalProfile': '⚙ Add Global Profile',
+    'config.langProfilesLoadFailed': 'Failed to load language profiles',
+    'config.activeLanguagesSaved': 'Active languages saved: {languages}',
+    'config.planWorkflow': 'Plan Workflow',
+    'config.pipeline': 'Pipeline',
+    'config.pipelineAuto': 'Auto (default m-feature)',
+    'config.pipelineHint': 'Choose a pipeline for plan phases, or auto-match by complexity',
+    'config.enforceGrilling': 'Enforce Grilling',
+    'config.enforceGrillingHint': 'Require brainstorming phase before first plan document',
+    'planCard.tasksProgress': 'Tasks: {done}/{total} ({pct}%)',
+    'planCard.grilling': 'grilling',
+    'planCard.status.in_progress': 'In Progress',
+    'planCard.status.completed': 'Completed',
+    'planCard.status.archived': 'Archived',
+    'planCard.status.pending': 'Pending',
+    'projectDashboard.activePlan': 'Active Plan',
+    'projectDashboard.viewProgress': 'View Progress',
+    'projectDashboard.taskProgress': 'Task Progress',
+    'pipeline.communication': 'Communication',
+    'planFilter.allStatus': 'All Status',
+    'planFilter.inProgress': 'In Progress',
+    'planFilter.completed': 'Completed',
+    'planFilter.allPriority': 'All Priority',
+    'planFilter.noResults': 'No plans match the filter',
+    'approval.approvePhase': 'Approve {phase}',
+    'approval.approving': 'Approving...',
+    'logs.heading': 'Logs',
+    'logs.level': 'Level',
+    'logs.allLevels': 'All Levels',
+    'logs.noLogs': 'No logs available',
+    'logs.summary': 'Total: {total} | Showing: {showing}',
+    'logs.autoRefresh': 'Auto-refresh',
+    'health.heading': 'Dashboard Service Health',
+    'health.status': 'Status',
+    'health.healthy': 'Healthy',
+    'health.version': 'Version',
+    'health.uptime': 'Uptime',
+    'health.platform': 'Platform',
+    'health.recentErrors': 'Recent Errors',
+    'health.error': 'Error loading health data',
+    'approval.phaseApproved': '{phase} approved',
+    'approval.approvalFailed': 'Approval failed',
+    'progress.heading': 'Progress: {plan}',
+    'progress.pageTitle': 'Task Progress',
+    'progress.overallProgress': 'Overall Progress',
+    'progress.completed': 'Completed',
+    'progress.inProgress': 'In Progress',
+    'progress.pending': 'Pending',
+    'progress.noTasks': 'No tasks found',
+    'progress.dependsOn': 'Depends: ',
+    'error.invalidProgressRef': 'Invalid progress reference',
+    'topbar.tagline': 'AI-Powered Project Quality Framework',
+    'nav.section.main': 'Main',
+    'nav.section.project': 'Project',
+    'nav.section.resources': 'Resources',
+    'nav.progress': 'Progress',
+    'nav.config': 'Config',
+    'nav.docs': 'Docs',
+    'nav.issues': 'Issues'
+  },
+  zh: {
+    'pageTitle': 'Airein 仪表盘',
+    'nav.brand': 'Airein',
+    'nav.projects': '项目',
+    'nav.templates': '模板',
+    'nav.logs': '日志',
+    'nav.health': '健康',
+    'nav.selectProject': '选择项目...',
+    'nav.langToggle': 'EN',
+    'error.pageNotFound': '页面未找到',
+    'error.projectNotFound': '项目未找到',
+    'error.saveFailed': '保存失败',
+    'error.createFailed': '创建失败',
+    'error.selectProjectFirst': '请先选择一个项目',
+    'error.noPlans': '该项目没有找到计划',
+    'common.back': '← 返回',
+    'common.view': '查看',
+    'common.edit': '编辑',
+    'common.save': '保存',
+    'common.saving': '保存中...',
+    'common.saved': '已保存',
+    'common.loading': '加载中',
+    'common.creating': '创建中...',
+    'projects.heading': '项目',
+    'projects.emptyHeading': '没有找到项目',
+    'projects.emptyBody': '使用 Airein 的项目会自动显示在这里。',
+    'projects.emptyHint': '在 Claude Code 中运行 /init-project 初始化项目。',
+    'projects.planCount': '{count} 个计划',
+    'projectDashboard.noPlans': '暂无计划',
+    'projectDashboard.newPlan': '+ 新建计划',
+    'projectDashboard.config': '配置',
+    'projectDashboard.documents': '项目文档',
+    'projectDashboard.newDoc': '+ 新建文档',
+    'projectDashboard.plans': '计划',
+    'projectDashboard.activePlan': '活跃计划',
+    'projectDashboard.viewProgress': '查看进度',
+    'projectDashboard.taskProgress': '任务进度',
+    'docs.emptyState': '暂无项目文档。可从模板创建。',
+    'docs.rootDirectory': '(根目录)',
+    'docs.fileMeta': '{size} 字节 · {modified}',
+    'docEdit.saving': '保存中...',
+    'docEdit.saved': '已保存',
+    'docEdit.saveFailed': '保存失败',
+    'newDoc.blankDocument': '(空文档)',
+    'newDoc.heading': '新建项目文档',
+    'newDoc.documentPath': '文档路径',
+    'newDoc.docsPrefix': 'docs/',
+    'newDoc.pathPlaceholder': 'prd.md',
+    'newDoc.pathHint': '使用子目录如 knowledge/architecture.md',
+    'newDoc.startFromTemplate': '从模板创建',
+    'newDoc.content': '内容',
+    'newDoc.createDocument': '创建文档',
+    'newDoc.errorPathRequired': '文档路径不能为空',
+    'newDoc.errorInvalidPath': '路径无效',
+    'newDoc.errorPlansPath': '不能在 plans/ 目录下创建',
+    'newDoc.documentCreated': '文档已创建',
+    'newDoc.creating': '创建中...',
+    'planDetail.archived': '已归档',
+    'planDetail.archive': '归档',
+    'planDetail.archiveConfirm': '确定归档该计划？此操作将标记为已归档。',
+    'planDetail.archiveFailed': '归档失败: {error}',
+    'planDetail.migrate': '转为目录格式',
+    'planDetail.migrateConfirm': '将该单文件 plan 转为目录格式（P{NNN}-{slug}/progress.md）？内容原样保留。非 git 项目下不可逆（git 项目可用 git checkout 恢复）。',
+    'planDetail.migrateFailed': '迁移失败: {error}',
+    'planDetail.completed': '已完成',
+    'newPlan.selectProject': '请先选择项目',
+    'newPlan.sizeSmall': '小型项目',
+    'newPlan.sizeMedium': '中型项目',
+    'newPlan.sizeLarge': '大型项目',
+    'newPlan.sizeEmergency': '紧急',
+    'newPlan.heading': '创建新计划',
+    'newPlan.planName': '计划名称',
+    'newPlan.namePlaceholder': '例如: 添加用户认证',
+    'newPlan.priority': '优先级',
+    'newPlan.pipeline': '流水线',
+    'newPlan.createPlan': '创建计划',
+    'newPlan.errorNameRequired': '名称不能为空',
+    'newPlan.creating': '创建中...',
+    'templates.emptyHeading': '没有找到模板',
+    'templates.heading': '模板',
+    'templates.addNew': '+ 新建',
+    'templates.fileMeta': '{size} 字节 · {modified}',
+    'templates.searchPlaceholder': '搜索模板...',
+    'templates.noResults': '没有找到匹配的模板',
+    'templates.categoryAll': '全部模板',
+    'templates.categoryProjectDocs': '项目文档',
+    'templates.categoryPlanDocs': '计划文档',
+    'templates.categoryLanguageProfiles': '语言配置',
+    'templates.categoryConfig': '配置文件',
+    'templates.categoryRules': '规则文件',
+    'newTemplate.heading': '新建模板: {dir}/',
+    'newTemplate.filename': '文件名',
+    'newTemplate.content': '内容',
+    'newTemplate.createTemplate': '创建模板',
+    'newTemplate.errorFilenameRequired': '文件名不能为空',
+    'newTemplate.errorInvalidFilename': '文件名无效',
+    'newTemplate.templateCreated': '模板已创建: {path}',
+    'config.heading': '配置: {name}',
+    'config.saveConfiguration': '保存配置',
+    'config.viewLogs': '查看日志',
+    'config.saving': '保存中...',
+    'config.configurationSaved': '配置已保存',
+    'config.testGuard': '测试守卫',
+    'config.approvalGuard': '审批守卫',
+    'config.planGate': '计划门禁',
+    'config.testCoverage': '测试覆盖',
+    'config.blocking': '阻断规则',
+    'config.flowControl': '流程控制',
+    'config.aireinLog': '日志',
+    'config.enabled': '启用',
+    'config.mode': '模式',
+    'config.requireActiveTask': '要求活跃任务',
+    'config.minRatio': '最低比率',
+    'config.minSourceFiles': '最少源文件',
+    'config.functionThreshold': '函数阈值',
+    'config.blockOnTestFailure': '测试失败时阻止',
+    'config.blockOnLowCoverage': '覆盖率低时阻止',
+    'config.blockOnBuildFailure': '构建失败时阻止',
+    'config.blockOnUntestedSource': '未测源文件时阻止',
+    'config.selfLearning': '自学习',
+    'config.promotionThreshold': '晋升阈值',
+    'config.perTaskReview': '每任务审查',
+    'config.worktreeIsolation': 'Worktree 隔离',
+    'config.level': '级别',
+    'config.retentionDays': '保留天数',
+    'config.defaultHint': '默认: {value}',
+    'config.customized': '(已自定义)',
+    'config.languageProfiles': '语言配置',
+    'config.langProfilesHint': '激活本项目使用的语言。配置文件在全局模板中定义。',
+    'config.activeLanguages': '已激活语言',
+    'config.saveActiveLanguages': '保存激活语言',
+    'config.addGlobalProfile': '⚙ 添加全局配置',
+    'config.langProfilesLoadFailed': '加载语言配置失败',
+    'config.activeLanguagesSaved': '已保存激活语言: {languages}',
+    'config.planWorkflow': '计划工作流',
+    'config.pipeline': '流水线',
+    'config.pipelineAuto': '自动 (默认 m-feature)',
+    'config.pipelineHint': '选择计划阶段流水线，或按复杂度自动匹配',
+    'config.enforceGrilling': '强制讨论阶段',
+    'config.enforceGrillingHint': '在第一份计划文档前要求讨论阶段',
+    'planCard.tasksProgress': '任务: {done}/{total} ({pct}%)',
+    'planCard.grilling': '讨论中',
+    'planCard.status.in_progress': '进行中',
+    'planCard.status.completed': '已完成',
+    'planCard.status.archived': '已归档',
+    'planCard.status.pending': '待开始',
+    'pipeline.communication': '讨论',
+    'planFilter.allStatus': '全部状态',
+    'planFilter.inProgress': '进行中',
+    'planFilter.completed': '已完成',
+    'planFilter.allPriority': '全部优先级',
+    'planFilter.noResults': '没有匹配的计划',
+    'approval.approvePhase': '审批 {phase}',
+    'approval.approving': '审批中...',
+    'logs.heading': '日志',
+    'logs.level': '级别',
+    'logs.allLevels': '全部级别',
+    'logs.noLogs': '暂无日志',
+    'logs.summary': '总计: {total} | 显示: {showing}',
+    'logs.autoRefresh': '自动刷新',
+    'health.heading': 'Dashboard 服务健康',
+    'health.status': '状态',
+    'health.healthy': '正常运行',
+    'health.version': '版本',
+    'health.uptime': '运行时间',
+    'health.platform': '平台',
+    'health.recentErrors': '最近错误',
+    'health.error': '加载健康数据出错',
+    'approval.phaseApproved': '{phase} 已审批',
+    'approval.approvalFailed': '审批失败',
+    'progress.heading': '任务进展: {plan}',
+    'progress.pageTitle': '任务进展',
+    'progress.overallProgress': '总体进度',
+    'progress.completed': '已完成',
+    'progress.inProgress': '进行中',
+    'progress.pending': '待开始',
+    'progress.noTasks': '没有找到任务',
+    'progress.dependsOn': '依赖: ',
+    'error.invalidProgressRef': '无效的进度引用',
+    'topbar.tagline': 'AI 驱动的项目质量框架',
+    'nav.section.main': '主要',
+    'nav.section.project': '项目',
+    'nav.section.resources': '资源',
+    'nav.progress': '进展',
+    'nav.config': '配置',
+    'nav.docs': '文档',
+    'nav.issues': '问题'
+  }
+};
+
+var locale = localStorage.getItem('airein-locale') || 'zh';
+
+function t(key, params) {
+  var val = (I18N[locale] && I18N[locale][key]) || I18N.en[key] || key;
+  if (params) {
+    Object.keys(params).forEach(function(k) {
+      var safe = String(params[k]).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      val = val.split('{' + k + '}').join(safe);
+    });
+  }
+  return val;
+}
+
+// Apply translations to every element tagged with data-i18n="key".
+// Called on init and on every locale switch. Safer than hand-picking elements.
+function applyI18n() {
+  document.documentElement.lang = locale;
+  document.title = t('pageTitle');
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (key) el.textContent = t(key);
+  });
+  // Project select placeholder (option has no data-i18n attribute)
+  var sel = document.getElementById('project-select');
+  if (sel && sel.options[0] && !sel.options[0].value) sel.options[0].textContent = t('nav.selectProject');
+  updateLangToggle();
+}
+
+function setLocale(l) {
+  locale = l;
+  localStorage.setItem('airein-locale', l);
+  applyI18n();
+  route();
+}
+
+function updateLangToggle() {
+  var btn = document.getElementById('locale-toggle');
+  if (btn) btn.textContent = t('nav.langToggle');
+}
+
+// ── API ────────────────────────────────────────
+function api(method, path, body) {
+  var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch('/api' + path, opts).then(function(res) { return res.json(); });
+}
+
+// ── Router ─────────────────────────────────────
+function route() {
+  var hash = location.hash.slice(1) || '/';
+  var $app = document.getElementById('app');
+
+  window.scrollTo(0, 0);
+
+  if (hash === '/') return renderProjectList($app);
+  if (hash === '/templates') return renderTemplateList($app);
+  if (hash.indexOf('/templates/') === 0) return renderTemplateEdit($app, decodeURIComponent(hash.slice('/templates/'.length)));
+  if (hash === '/logs') return renderLogs($app);
+  if (hash === '/health') return renderHealthPage($app);
+  if (hash.indexOf('/progress/') === 0) return renderProgress($app, decodeURIComponent(hash.slice('/progress/'.length)));
+  if (hash === '/config/current' || hash === '/config/current/') {
+    // Handle "current" reference for config
+    if (!state.currentProject) {
+      $app.innerHTML = '<div class="empty"><div class="icon">&#128560;</div><p>' + t('error.selectProjectFirst') + '</p></div>';
+      return;
+    }
+    return renderConfig($app, '/projects/' + state.currentProject.id + '/config');
+  }
+  if (hash.indexOf('/projects/') === 0 && hash.indexOf('/config') > -1) return renderConfig($app, hash);
+  if (hash.indexOf('/projects/') === 0 && hash.indexOf('/plans/new') > -1) return renderNewPlan($app, hash);
+  if (hash.indexOf('/projects/') === 0 && hash.indexOf('/docs-new') > -1) return renderNewProjectDoc($app, hash);
+  if (hash.indexOf('/projects/') === 0 && hash.indexOf('/docs/') > -1) return renderProjectDocEdit($app, hash);
+  if (hash.indexOf('/projects/') === 0 && hash.indexOf('/ai-docs') > -1) return renderAIDocsDetail($app, hash);
+  if (hash.indexOf('/projects/') === 0 && hash.indexOf('/plans/') > -1) return renderPlanDetail($app, hash);
+  if (hash.indexOf('/projects/') === 0) return renderProjectDashboard($app, decodeURIComponent(hash.slice('/projects/'.length)));
+
+  $app.innerHTML = '<div class="empty"><div class="icon">&#128560;</div><p>' + t('error.pageNotFound') + '</p></div>';
+}
+
+// ── Renderers ──────────────────────────────────
+
+function renderProjectList($app) {
+  if (!state.projects.length) {
+    api('GET', '/projects').then(function(ps) { state.projects = ps || []; renderProjectList($app); });
+    return;
+  }
+  var ps = state.projects;
+  updateProjectSelect();
+
+  // P027: Clear header meta when leaving project page
+  var headerMeta = document.getElementById('page-meta');
+  if (headerMeta) headerMeta.innerHTML = '';
+
+  if (!ps.length) {
+    $app.innerHTML = '<div class="empty"><div class="icon">&#128193;</div>' +
+      '<h3>' + t('projects.emptyHeading') + '</h3><p style="margin-top:.5rem">' + t('projects.emptyBody') + '</p>' +
+      '<p style="margin-top:.5rem;font-size:.85rem">' + t('projects.emptyHint') + '</p></div>';
+    return;
+  }
+
+  $app.innerHTML = '<h2 style="margin-bottom:1rem">' + t('projects.heading') + '</h2>' +
+    '<div class="grid grid-2">' +
+    ps.map(function(p) {
+      var badges = (p.techStack || []).map(function(ts) { return '<span class="badge badge-simple">' + esc(ts) + '</span>'; }).join(' ');
+      return '<a href="#/projects/' + esc(p.id) + '" class="card" style="text-decoration:none;color:inherit">' +
+        '<h3>' + esc(p.name) + '</h3>' +
+        '<div class="meta">' + esc(p.path) + '</div>' +
+        '<div style="margin-top:.5rem">' + badges + ' <span class="badge badge-medium">' + t('projects.planCount', {count: p.planCount}) + '</span></div>' +
+      '</a>';
+    }).join('') + '</div>';
+}
+
+function renderProjectDashboard($app, projectId) {
+  findProject(projectId).then(function(project) {
+    if (!project) { $app.innerHTML = '<div class="empty"><p>' + t('error.projectNotFound') + '</p></div>'; return; }
+
+    state.currentProject = project;
+    updateProjectSelect(project.id);
+    updateNavActive('projects');
+
+    // P027 I2: Update header with project switcher
+    var headerMeta = document.getElementById('page-meta');
+    if (headerMeta) {
+      var projectSwitcherOptions = state.projects.map(function(p) {
+        var selected = p.id === project.id ? ' selected' : '';
+        return '<option value="' + esc(p.id) + '"' + selected + '>' + esc(p.name) + '</option>';
+      }).join('');
+      headerMeta.innerHTML = '<select id="header-project-switcher" style="padding:.2rem .5rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:.85rem;margin-left:.5rem">' +
+        '<option value="">切换项目...</option>' +
+        projectSwitcherOptions +
+      '</select>';
+
+      // Add event handler
+      var headerProjectSwitcher = document.getElementById('header-project-switcher');
+      if (headerProjectSwitcher) {
+        headerProjectSwitcher.onchange = function() {
+          var newProjectId = headerProjectSwitcher.value;
+          if (newProjectId) {
+            location.hash = '#/projects/' + encodeURIComponent(newProjectId);
+          }
+        };
+      }
+    }
+
+    var plansPromise = api('GET', '/projects/' + project.id + '/plans');
+    var docsPromise = api('GET', '/projects/' + project.id + '/docs');
+    var adrsPromise = api('GET', '/adrs'); // P025: ADR 关系数据
+
+    Promise.all([plansPromise, docsPromise, adrsPromise]).then(function(results) {
+      state.plans = results[0] || [];
+      state.projectDocs = results[1] || [];
+      state.adrs = results[2] || [];
+
+      // P025: 按优先级排序计划列表（P1 > P2 > P3 > P4）
+      state.plans.sort(function(a, b) {
+        var priorityOrder = { 'P1': 1, 'P2': 2, 'P3': 3, 'P4': 4 };
+        var pa = priorityOrder[a.priority || 'P2'] || 2;
+        var pb = priorityOrder[b.priority || 'P2'] || 2;
+        return pa - pb;
+      });
+
+      var docCards = renderDocCards(state.projectDocs, project.id, state.adrs, state.plans);
+
+      $app.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+          '<div><h2>' + esc(project.name) + '</h2><div class="meta">' + esc(project.path) + '</div></div>' +
+          '<div><a href="#/projects/' + esc(project.id) + '/config" class="btn">' + t('projectDashboard.config') + '</a></div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">' +
+          '<h3 style="margin:0">' + t('projectDashboard.documents') + '</h3>' +
+        '</div>' +
+        docCards +
+        '<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);text-align:center">' +
+          '<a href="#/projects/' + esc(project.id) + '/docs/docs/roadmap.md" class="btn" style="font-size:.85rem">📝 记录变更</a>' +
+        '</div>';
+
+      // Setup doc group toggle event listeners
+      setupDocGroupToggles();
+    });
+  });
+}
+
+// Setup document group toggle event listeners
+function setupDocGroupToggles() {
+  document.querySelectorAll('.doc-group-toggle').forEach(function(toggle) {
+    toggle.onclick = function() {
+      var groupId = toggle.getAttribute('data-group');
+      var content = document.getElementById(groupId);
+      var icon = toggle.querySelector('.toggle-icon');
+      if (content) {
+        var isHidden = content.style.display === 'none';
+        content.style.display = isHidden ? 'block' : 'none';
+        if (icon) icon.textContent = isHidden ? '▼' : '▶';
+      }
+    };
+  });
+}
+
+// ── Project Docs ────────────────────────────────────────
+
+function renderDocCards(docs, projectId, adrs, plans) {
+  if (!docs.length) {
+    return '<div class="empty" style="padding:2rem"><p>' + t('docs.emptyState') + '</p></div>';
+  }
+
+  // P028: Semantic 3-category grouping
+  var groups = {
+    'ai-docs': [],
+    'archived-docs': [],  // 4 核心文档：需求、设计、测试、部署
+    'plan-docs': {}       // 按计划 ID 分组
+  };
+
+  // 4 核心文档识别规则（标准命名）
+  var isCoreDoc = function(path) {
+    var p = path.toLowerCase();
+    var filename = path.split('/').pop();
+
+    // 需求文档：requirements.md（唯一）
+    if (p === 'docs/requirements.md' || filename === 'requirements.md') return true;
+
+    // 设计文档：design.md + 所有 design-*.md 子文档
+    if (p === 'docs/design.md' || filename === 'design.md') return true;
+    if (p.indexOf('docs/design-') === 0) return true;  // design-architecture.md, design-conventions.md, etc.
+
+    // 测试文档：test-plan.md（唯一）
+    if (p === 'docs/test-plan.md' || filename === 'test-plan.md') return true;
+
+    // 部署文档：deployment.md（唯一）
+    if (p === 'docs/deployment.md' || filename === 'deployment.md') return true;
+
+    return false;
+  };
+
+  docs.forEach(function(d) {
+    var path = d.path;
+    var filename = d.path.split('/').pop();
+    var pathLower = path.toLowerCase();
+
+    // Category 1: AI 基础文档（用户写的项目级 AI 配置）
+    // 注意：MEMORY.md 在 CC memory 中，不在项目根目录
+    if (filename === 'CLAUDE.md' ||
+        filename === 'quality.json' || filename === 'pipelines.json') {
+      groups['ai-docs'].push(d);
+    }
+    // Category 3: 计划文档（docs/plans/）- 按计划 ID 分组
+    else if (pathLower.indexOf('docs/plans/') === 0) {
+      // 提取 plan ID (如 P001-airein-v2-ecc-enhancement)
+      var planId = d.path.match(/docs\/plans\/([^\/]+)/);
+      if (planId) {
+        var pid = planId[1];
+        if (!groups['plan-docs'][pid]) {
+          groups['plan-docs'][pid] = { docs: [], plan: null };
+        }
+        groups['plan-docs'][pid].docs.push(d);
+        // 查找计划信息
+        if (!groups['plan-docs'][pid].plan && plans) {
+          groups['plan-docs'][pid].plan = plans.find(function(p) { return p.id === pid; });
+        }
+      }
+    }
+    // Category 2a: 4 核心文档
+    else if (isCoreDoc(path)) {
+      groups['archived-docs'].push(d);
+    }
+    // Fallback: 不显示（roadmap、adr、conventions、memory 等系统文档）
+  });
+
+  // P025: ADR 关系映射
+  var adrMap = {};
+  if (adrs) {
+    adrs.forEach(function(a) {
+      adrMap[a.id] = a;
+    });
+  }
+
+  // Category labels
+  var categoryLabels = {
+    'ai-docs': '🤖 AI 基础文档',
+    'archived-docs': '📁 归档文档',
+    'plan-docs': '📋 计划文档'
+  };
+
+  var groupCounter = 0;
+  var html = '';
+
+  // AI 基础文档 - 聚合展示（单个卡片，无折叠）
+  if (groups['ai-docs'].length) {
+    html += '<div style="margin-bottom:1rem">' +
+      '<div class="grid grid-1">' +
+        '<a href="#/projects/' + esc(projectId) + '/ai-docs" class="card" style="text-decoration:none;color:inherit">' +
+          '<h3>🤖 AI 基础文档</h3>' +
+          '<div style="font-size:.85rem;color:var(--text-muted)">' +
+            'CLAUDE.md + rules/ 依赖文件聚合页面' +
+          '</div>' +
+        '</a>' +
+      '</div></div>';
+  }
+
+  // 归档文档（4 核心文档：需求、设计、测试、部署）
+  if (groups['archived-docs'].length) {
+    var groupId = 'doc-group-' + (groupCounter++);
+    html += '<div style="margin-bottom:1rem">' +
+      '<h4 class="doc-group-toggle" style="margin-bottom:.4rem;font-size:.85rem;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:.25rem" data-group="' + esc(groupId) + '">' +
+        '<span class="toggle-icon">▶</span> ' + categoryLabels['archived-docs'] + ' <span style="color:var(--text-muted);font-size:.75rem">(' + groups['archived-docs'].length + ')</span>' +
+      '</h4>' +
+      '<div id="' + esc(groupId) + '" class="doc-group-content" style="display:none">' +
+      '<div class="grid grid-2">' +
+      groups['archived-docs'].map(renderDocCard.bind(null, projectId, adrs, adrMap, true)).join('') +
+      '</div></div></div>';
+  }
+
+  // 计划文档 - 按计划分组，再按活跃/归档
+  var planIds = Object.keys(groups['plan-docs']);
+  if (planIds.length) {
+    // 分离活跃和归档计划
+    var activePlanIds = [];
+    var archivedPlanIds = [];
+
+    planIds.forEach(function(pid) {
+      var planData = groups['plan-docs'][pid];
+      var plan = planData.plan;
+      if (plan && (plan.status === 'archived' || plan.status === 'completed')) {
+        archivedPlanIds.push(pid);
+      } else {
+        activePlanIds.push(pid);
+      }
+    });
+
+    // 活跃计划
+    if (activePlanIds.length) {
+      html += '<div style="margin-bottom:1rem">' +
+        '<h4 class="doc-group-toggle" style="margin-bottom:.4rem;font-size:.85rem;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:.25rem" data-group="plan-active-group">' +
+          '<span class="toggle-icon">▶</span> 活跃计划 <span style="color:var(--text-muted);font-size:.75rem">(' + activePlanIds.length + ')</span>' +
+        '</h4>' +
+        '<div id="plan-active-group" class="doc-group-content" style="display:none">' +
+        '<div class="grid grid-2">';
+
+      activePlanIds.forEach(function(pid) {
+        var planData = groups['plan-docs'][pid];
+        var plan = planData.plan;
+        var planId = plan ? plan.id : pid;
+        var planTitle = plan ? plan.title : pid;
+        var status = plan ? plan.status : 'unknown';
+        var complexity = plan ? plan.complexity : '';
+
+        html += '<a href="#/projects/' + esc(projectId) + '/plans/' + esc(planId) + '" class="card" style="text-decoration:none;color:block">' +
+          '<div style="display:flex;justify-content:space-between;align-items:start">' +
+            '<div>' +
+              '<h3>' + esc(planId) + '</h3>' +
+              '<div style="font-size:.85rem;color:var(--text-muted)">' + esc(planTitle) + '</div>' +
+            '</div>' +
+            '<div style="text-align:right">' +
+              '<span class="badge badge-' + status + '" style="font-size:.7rem">' + esc(status) + '</span>' +
+              (complexity ? '<div style="font-size:.7rem;color:var(--text-muted);margin-top:.25rem">' + esc(complexity) + '</div>' : '') +
+            '</div>' +
+          '</div>' +
+          '</a>';
+      });
+
+      html += '</div></div></div>';
+    }
+
+    // 归档计划
+    if (archivedPlanIds.length) {
+      html += '<div style="margin-bottom:1rem">' +
+        '<h4 class="doc-group-toggle" style="margin-bottom:.4rem;font-size:.85rem;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:.25rem" data-group="plan-archived-group">' +
+          '<span class="toggle-icon">▶</span> 归档计划 <span style="color:var(--text-muted);font-size:.75rem">(' + archivedPlanIds.length + ')</span>' +
+        '</h4>' +
+        '<div id="plan-archived-group" class="doc-group-content" style="display:none">' +
+        '<div class="grid grid-2">';
+
+      archivedPlanIds.forEach(function(pid) {
+        var planData = groups['plan-docs'][pid];
+        var plan = planData.plan;
+        var planId = plan ? plan.id : pid;
+        var planTitle = plan ? plan.title : pid;
+        var status = plan ? plan.status : 'unknown';
+        var complexity = plan ? plan.complexity : '';
+
+        html += '<a href="#/projects/' + esc(projectId) + '/plans/' + esc(planId) + '" class="card" style="text-decoration:none;color:block">' +
+          '<div style="display:flex;justify-content:space-between;align-items:start">' +
+            '<div>' +
+              '<h3>' + esc(planId) + '</h3>' +
+              '<div style="font-size:.85rem;color:var(--text-muted)">' + esc(planTitle) + '</div>' +
+            '</div>' +
+            '<div style="text-align:right">' +
+              '<span class="badge badge-' + status + '" style="font-size:.7rem">' + esc(status) + '</span>' +
+              (complexity ? '<div style="font-size:.7rem;color:var(--text-muted);margin-top:.25rem">' + esc(complexity) + '</div>' : '') +
+            '</div>' +
+          '</div>' +
+          '</a>';
+      });
+
+      html += '</div></div></div>';
+    }
+  }
+
+  return html;
+}
+
+// 辅助函数：渲染单个文档卡片
+function renderDocCard(projectId, adrs, adrMap, isAdr, d) {
+  var filename = d.path.split('/').pop();
+  var card = '<a href="#/projects/' + esc(projectId) + '/docs/' + esc(d.path) + '" class="card" style="text-decoration:none;color:inherit">';
+
+  // P025: ADR 显示关系链
+  if (isAdr && adrs && d.path.indexOf('adr/') === 0) {
+    var adrId = d.path.replace('adr/', '').replace('.md', '');
+    var adr = adrMap[adrId];
+
+    card += '<div style="display:flex;justify-content:space-between;align-items:start">';
+    card += '<div><h3>' + esc(filename) + '</h3>';
+
+    if (adr) {
+      var relations = [];
+      if (adr.supersedes) {
+        var target = adrs.find(function(a) { return a.num === adr.supersedes; });
+        if (target) {
+          relations.push('<span style="font-size:.75rem;color:var(--warning,#ff9800)">→ ' + esc(target.id) + '</span>');
+        }
+      }
+      if (adr.status) {
+        var statusColor = adr.status === 'accepted' ? 'var(--success)' : 'var(--text-muted)';
+        relations.push('<span class="badge badge-simple" style="font-size:.7rem;color:' + statusColor + '">' + esc(adr.status) + '</span>');
+      }
+      if (relations.length) {
+        card += '<div style="margin:.25rem 0">' + relations.join(' ') + '</div>';
+      }
+    }
+
+    card += '</div>';
+    if (adr && adr.date) {
+      card += '<div style="font-size:.75rem;color:var(--text-muted)">' + esc(adr.date) + '</div>';
+    }
+    card += '</div>';
+  } else {
+    card += '<h3>' + esc(filename) + '</h3>';
+  }
+
+  card += '<div class="meta">' + t('docs.fileMeta', {size: d.size, modified: d.modified}) + '</div>';
+  card += '</a>';
+  return card;
+}
+
+function renderProjectDocEdit($app, hash) {
+  var parts = hash.replace('/projects/', '').split('/docs/');
+  var projectId = decodeURIComponent(parts[0]);
+  var docPath = decodeURIComponent(parts[1] || '');
+
+  findProject(projectId).then(function(project) {
+    if (!project) { $app.innerHTML = '<div class="empty"><p>' + t('error.projectNotFound') + '</p></div>'; return; }
+
+    var apiPath = '/projects/' + project.id + '/docs/' + docPath.split('/').map(encodeURIComponent).join('/');
+    api('GET', apiPath).then(function(doc) {
+      if (doc.error) { $app.innerHTML = '<div class="empty"><p>' + esc(doc.error) + '</p></div>'; return; }
+
+      $app.innerHTML =
+        '<div style="margin-bottom:1rem"><a href="#/projects/' + esc(project.id) + '" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+        '<h2 style="margin-bottom:1rem">' + esc(docPath) + '</h2>' +
+        '<div style="display:flex;gap:.5rem;margin-bottom:.5rem">' +
+          '<button class="btn btn-sm" id="btn-view">' + t('common.view') + '</button>' +
+          '<button class="btn btn-sm" id="btn-edit">' + t('common.edit') + '</button>' +
+          '<button class="btn btn-sm btn-primary" id="btn-save" style="display:none">' + t('common.save') + '</button>' +
+        '</div>' +
+        '<div id="doc-rendered" class="md-content">' + renderMd(doc.content) + '</div>' +
+        '<div id="doc-edit-container" style="display:none;gap:1rem">' +
+          '<textarea id="doc-editor" class="editor" style="flex:1;min-height:70vh"></textarea>' +
+          '<div id="doc-preview" class="md-content" style="flex:1;min-height:70vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius);padding:1rem;background:var(--bg)"></div>' +
+        '</div>';
+
+      var btnView = document.getElementById('btn-view');
+      var btnEdit = document.getElementById('btn-edit');
+      var btnSave = document.getElementById('btn-save');
+      var rendered = document.getElementById('doc-rendered');
+      var editContainer = document.getElementById('doc-edit-container');
+      var editor = document.getElementById('doc-editor');
+      var preview = document.getElementById('doc-preview');
+
+      // Set initial values
+      editor.value = doc.content || '';
+      preview.innerHTML = renderMd(doc.content || '');
+
+      // Real-time preview on input
+      editor.addEventListener('input', function() {
+        preview.innerHTML = renderMd(editor.value);
+      });
+
+      btnView.onclick = function() {
+        rendered.style.display = '';
+        editContainer.style.display = 'none';
+        btnSave.style.display = 'none';
+        btnView.disabled = true;
+        btnEdit.disabled = false;
+      };
+      btnEdit.onclick = function() {
+        rendered.style.display = 'none';
+        editContainer.style.display = 'flex';
+        btnSave.style.display = '';
+        btnView.disabled = false;
+        btnEdit.disabled = true;
+        autoGrowTextarea(editor);
+      };
+      btnSave.onclick = function() {
+        btnSave.disabled = true;
+        btnSave.textContent = t('common.saving');
+        api('PUT', apiPath, { content: editor.value }).then(function(result) {
+          if (result.ok) {
+            toast(t('common.saved'), 'success');
+            rendered.innerHTML = renderMd(editor.value);
+            btnView.click();
+          } else {
+            toast(result.error || t('error.saveFailed'), 'error');
+          }
+          btnSave.disabled = false;
+          btnSave.textContent = t('common.save');
+        });
+      };
+      btnView.click();
+    });
+  });
+}
+
+function renderNewProjectDoc($app, hash) {
+  var projectId = hash.replace('/projects/', '').split('/docs-new')[0];
+  projectId = decodeURIComponent(projectId);
+
+  findProject(projectId).then(function(project) {
+    if (!project) { $app.innerHTML = '<div class="empty"><p>' + t('error.projectNotFound') + '</p></div>'; return; }
+
+    api('GET', '/templates').then(function(templates) {
+      var docTemplates = (templates || []).filter(function(tpl) {
+        return tpl.path.indexOf('docs/') === 0 || tpl.path.indexOf('knowledge/') === 0;
+      });
+
+      var templateOptions = '<option value="">' + t('newDoc.blankDocument') + '</option>' +
+        docTemplates.map(function(tpl) {
+          var label = tpl.path.replace('docs/', '');
+          return '<option value="' + esc(tpl.path) + '">' + esc(label) + '</option>';
+        }).join('');
+
+      $app.innerHTML =
+        '<div style="margin-bottom:1rem"><a href="#/projects/' + esc(project.id) + '" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+        '<h2 style="margin-bottom:1rem">' + t('newDoc.heading') + '</h2>' +
+        '<div class="card">' +
+          '<div class="form-group"><label>' + t('newDoc.documentPath') + '</label>' +
+            '<div style="display:flex;gap:.5rem;align-items:center">' +
+              '<span class="hint">' + t('newDoc.docsPrefix') + '</span>' +
+              '<input id="doc-path" placeholder="' + t('newDoc.pathPlaceholder') + '" style="width:300px">' +
+            '</div>' +
+            '<div class="hint">' + t('newDoc.pathHint') + '</div>' +
+          '</div>' +
+          '<div class="form-group"><label>' + t('newDoc.startFromTemplate') + '</label>' +
+            '<select id="doc-template">' + templateOptions + '</select>' +
+          '</div>' +
+          '<div class="form-group"><label>' + t('newDoc.content') + '</label>' +
+            '<textarea id="doc-editor" class="editor" rows="20"></textarea>' +
+          '</div>' +
+          '<button class="btn btn-primary" id="btn-create">' + t('newDoc.createDocument') + '</button>' +
+        '</div>';
+
+      var templateSelect = document.getElementById('doc-template');
+      var editorEl = document.getElementById('doc-editor');
+      var pathInput = document.getElementById('doc-path');
+
+      templateSelect.onchange = function() {
+        if (!templateSelect.value) { editorEl.value = ''; return; }
+        api('GET', '/templates/' + templateSelect.value).then(function(tpl) {
+          editorEl.value = tpl.content || '';
+          var filename = templateSelect.value.split('/').pop();
+          pathInput.value = filename;
+        });
+      };
+
+      document.getElementById('btn-create').onclick = function() {
+        var docPathVal = (pathInput.value || '').trim();
+        if (!docPathVal) { toast(t('newDoc.errorPathRequired'), 'error'); return; }
+        if (/\.\./.test(docPathVal)) { toast(t('newDoc.errorInvalidPath'), 'error'); return; }
+        if (docPathVal.indexOf('plans/') === 0 || docPathVal.indexOf('plans\\') === 0) {
+          toast(t('newDoc.errorPlansPath'), 'error'); return;
+        }
+
+        var btn = document.getElementById('btn-create');
+        btn.disabled = true;
+        btn.textContent = t('common.creating');
+        var apiPath = '/projects/' + project.id + '/docs/' + docPathVal.split('/').map(encodeURIComponent).join('/');
+        api('PUT', apiPath, { content: editorEl.value }).then(function(result) {
+          if (result.ok) {
+            toast(t('newDoc.documentCreated'), 'success');
+            location.hash = '#/projects/' + project.id + '/docs/' + docPathVal;
+          } else {
+            toast(result.error || t('error.createFailed'), 'error');
+            btn.disabled = false;
+            btn.textContent = t('newDoc.createDocument');
+          }
+        });
+      };
+    });
+  });
+}
+
+// AI 基础文档详情页（CLAUDE.md + 依赖文件聚合展示）
+function renderAIDocsDetail($app, hash) {
+  var parts = hash.replace('/projects/', '').split('/ai-docs');
+  var projectId = decodeURIComponent(parts[0]);
+
+  findProject(projectId).then(function(project) {
+    if (!project) { $app.innerHTML = '<div class="empty"><p>' + t('error.projectNotFound') + '</p></div>'; return; }
+
+    updateProjectSelect(project.id);
+
+    // Load CLAUDE.md
+    api('GET', '/projects/' + project.id + '/docs/CLAUDE.md').then(function(result) {
+      if (result.error) {
+        $app.innerHTML = '<div class="empty"><p>' + esc(result.error) + '</p></div>';
+        return;
+      }
+
+      var claudeContent = result.content;
+
+      // Rules files mentioned in CLAUDE.md (L0 指令)
+      var rulesFiles = [
+        { name: 'rules/00-iron-rules.md', label: '00-iron-rules' },
+        { name: 'rules/10-architecture.md', label: '10-architecture' },
+        { name: 'rules/20-workflow.md', label: '20-workflow' }
+      ];
+
+      // Important project docs
+      var projectFiles = [
+        { name: 'memory/session-state.md', label: 'session-state' }
+      ];
+
+      // Self-learning docs
+      var selfLearningFiles = [
+        { name: 'cc-/self-learning-archive.md', label: 'self-learning-archive' }
+      ];
+
+      // Load all files
+      var loadedFiles = {
+        'CLAUDE.md': claudeContent,
+        'rules/00-iron-rules.md': null,
+        'rules/10-architecture.md': null,
+        'rules/20-workflow.md': null,
+        'memory/session-state.md': null,
+        'cc-/self-learning-archive.md': null
+      };
+
+      var loadPromises = rulesFiles.map(function(file) {
+        return api('GET', '/projects/' + project.id + '/docs/' + file.name)
+          .then(function(result) {
+            if (!result.error) {
+              loadedFiles[file.name] = result.content;
+            }
+          })
+          .catch(function() {});
+      }).concat(projectFiles.map(function(file) {
+        return api('GET', '/projects/' + project.id + '/docs/' + file.name)
+          .then(function(result) {
+            if (!result.error) {
+              loadedFiles[file.name] = result.content;
+            }
+          })
+          .catch(function() {});
+      })).concat(selfLearningFiles.map(function(file) {
+        return api('GET', '/projects/' + project.id + '/docs/' + file.name)
+          .then(function(result) {
+            if (!result.error) {
+              loadedFiles[file.name] = result.content;
+            }
+          })
+          .catch(function() {});
+      }));
+
+      Promise.all(loadPromises).then(function() {
+        // Create file entries for tabs (filter out failed loads)
+        // Order: CLAUDE.md → rules/ → self-learning → session-state
+        var fileEntries = [
+          { key: 'CLAUDE.md', label: 'CLAUDE.md' }
+        ];
+
+        // Add rules files
+        rulesFiles.forEach(function(f) {
+          if (loadedFiles[f.name]) {
+            fileEntries.push({ key: f.name, label: f.label });
+          }
+        });
+
+        // Add self-learning (second to last)
+        if (loadedFiles['cc-/self-learning-archive.md']) {
+          fileEntries.push({ key: 'cc-/self-learning-archive.md', label: 'self-learning-archive' });
+        }
+
+        // Add session-state (last)
+        if (loadedFiles['memory/session-state.md']) {
+          fileEntries.push({ key: 'memory/session-state.md', label: 'session-state' });
+        }
+
+        $app.innerHTML =
+          '<header style="margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">' +
+            '<a href="#/projects/' + esc(project.id) + '" style="font-size:.85rem;color:var(--text-muted);text-decoration:none;display:inline-flex;align-items:center;gap:.25rem">' +
+              '<span>←</span> <span>返回</span>' +
+            '</a>' +
+            '<h1 style="margin:.5rem 0">AI 基础文档</h1>' +
+            '<div style="font-size:.85rem;color:var(--text-muted)">' +
+              'CLAUDE.md + session-state + self-learning + rules/ L0 指令（' + (fileEntries.length - 1) + ' 个文件）' +
+            '</div>' +
+          '</header>' +
+          '<div class="doc-tabs" style="display:flex;gap:.25rem;margin-bottom:1rem;overflow-x:auto">' +
+            fileEntries.map(function(entry, i) {
+              return '<button class="doc-tab ' + (i === 0 ? 'active' : '') + '" data-doc="' + esc(entry.key) + '">' +
+                '<code style="font-size:.75rem">' + esc(entry.label) + '</code>' +
+              '</button>';
+            }).join('') +
+          '</div>' +
+          '<div class="doc-content" style="background:var(--card-bg);padding:1rem;border-radius:4px;min-height:300px">' +
+            fileEntries.map(function(entry, i) {
+              var content = loadedFiles[entry.key] || '// 文件加载失败';
+              return '<div class="doc-pane" data-pane="' + esc(entry.key) + '" style="display:' + (i === 0 ? 'block' : 'none') + '">' +
+                '<pre style="white-space:pre-wrap;word-break:break-word;font-size:.85rem">' + esc(content) + '</pre>' +
+              '</div>';
+            }).join('') +
+          '</div>';
+
+        // Setup tab switching
+        var tabs = $app.querySelectorAll('.doc-tab');
+        var panes = $app.querySelectorAll('.doc-pane');
+        tabs.forEach(function(tab) {
+          tab.onclick = function() {
+            var docName = this.getAttribute('data-doc');
+            tabs.forEach(function(t) { t.classList.remove('active'); });
+            panes.forEach(function(p) {
+              p.style.display = p.getAttribute('data-pane') === docName ? 'block' : 'none';
+            });
+            this.classList.add('active');
+          };
+        });
+      });
+    });
+  });
+}
+
+function renderPlanDetail($app, hash) {
+  var parts = hash.replace('/projects/', '').split('/plans/');
+  var projectId = decodeURIComponent(parts[0]);
+  var planId = decodeURIComponent(parts[1]);
+
+  findProject(projectId).then(function(project) {
+    if (!project) { $app.innerHTML = '<div class="empty"><p>' + t('error.projectNotFound') + '</p></div>'; return; }
+
+    api('GET', '/projects/' + project.id + '/plans/' + planId).then(function(plan) {
+      if (plan.error) { $app.innerHTML = '<div class="empty"><p>' + esc(plan.error) + '</p></div>'; return; }
+
+      state.currentPlan = plan;
+      updateProjectSelect(project.id);
+
+      var approval = plan.approval || {};
+      var complexity = plan.complexity || 'simple';
+      var isSingleFile = !!plan.singleFile;
+      // 单文件 plan（legacy/手动建，无 progress.md / approval 流程）：不显示 pipeline 与审批按钮，
+      // 不显示 doc tabs，直接只读渲染整个 .md 全文（目录式保存逻辑不适用，故只读）。
+      var steps = isSingleFile ? '' : buildPipelineSteps(plan, approval);
+
+      // Build doc tabs: single-file → 无 tab（全文只读）; else pipeline docs ∩ existingDocs
+      var docTabs = isSingleFile
+        ? []
+        : ['progress'].concat(plan.pipeline || []).filter(function(d) { return (plan.existingDocs || []).indexOf(d) > -1; });
+
+      var archiveBtn = '';
+      if (plan.status === 'archived') {
+        archiveBtn = ' <span class="badge badge-completed">' + t('planDetail.archived') + '</span>';
+      } else if (plan.completed) {
+        archiveBtn = ' <button class="btn btn-sm btn-primary" id="btn-archive">' + t('planDetail.archive') + '</button>';
+      }
+      var singleFileBadge = isSingleFile ? ' <span class="badge">单文件 plan</span>' : '';
+      var migrateBtn = isSingleFile ? ' <button class="btn btn-sm btn-primary" id="btn-migrate">' + t('planDetail.migrate') + '</button>' : '';
+
+      $app.innerHTML =
+        '<div style="margin-bottom:1rem"><a href="#/projects/' + esc(project.id) + '" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+        '<h2>' + esc(plan.title || planId) + '</h2>' +
+        '<div style="margin:.5rem 0"><span class="badge badge-' + complexity + '">' + complexity + '</span>' + singleFileBadge + ' ' +
+        (plan.completed ? '<span class="badge badge-completed">' + t('planDetail.completed') + '</span>' : '') + archiveBtn + migrateBtn + '</div>' +
+        '<div class="pipeline">' + steps + '</div>' +
+        (isSingleFile ? '' : ('<div style="margin:.5rem 0" id="approval-btns">' + approvalButtons(complexity, approval, planId, project.id, plan.pipeline, plan.existingDocs) + '</div>')) +
+        '<div class="tabs" id="doc-tabs">' +
+          docTabs.map(function(d, i) { return '<div class="tab' + (i === 0 ? ' active' : '') + '" data-doc="' + d + '">' + capitalize(d) + '</div>'; }).join('') +
+        '</div>' +
+        '<div id="doc-content" style="position:relative"></div>';
+
+      // Wire tabs (single-file plan: 无 tabs，直接只读渲染全文)
+      var currentDoc = docTabs[0];
+      if (isSingleFile) {
+        var sfCont = document.getElementById('doc-content');
+        if (sfCont) sfCont.innerHTML = '<div class="md-content">' + renderMd(plan.content || '') + '</div>';
+      } else {
+        renderDocView(plan, currentDoc, planId, project.id, plan[currentDoc + '_subDocs']);
+
+        document.querySelectorAll('#doc-tabs .tab').forEach(function(tab) {
+          tab.onclick = function() {
+            document.querySelectorAll('#doc-tabs .tab').forEach(function(tab) { tab.classList.remove('active'); });
+            tab.classList.add('active');
+            currentDoc = tab.dataset.doc;
+            renderDocView(plan, currentDoc, planId, project.id, plan[currentDoc + '_subDocs']);
+          };
+        });
+      }
+
+      // Wire archive button
+      var archiveBtnEl = document.getElementById('btn-archive');
+      if (archiveBtnEl) {
+        archiveBtnEl.onclick = function() {
+          if (!confirm(t('planDetail.archiveConfirm'))) return;
+          archiveBtnEl.disabled = true;
+          api('POST', '/projects/' + project.id + '/plans/' + planId + '/archive').then(function(result) {
+            if (result.error) { alert(t('planDetail.archiveFailed', {error: result.error})); archiveBtnEl.disabled = false; return; }
+            route();
+          });
+        };
+      }
+
+      // Wire migrate button (single-file → directory format, P030)
+      var migrateBtnEl = document.getElementById('btn-migrate');
+      if (migrateBtnEl) {
+        migrateBtnEl.onclick = function() {
+          if (!confirm(t('planDetail.migrateConfirm'))) return;
+          migrateBtnEl.disabled = true;
+          api('POST', '/projects/' + project.id + '/plans/' + planId + '/migrate').then(function(result) {
+            if (result.error) { alert(t('planDetail.migrateFailed', {error: result.error})); migrateBtnEl.disabled = false; return; }
+            // Migrated → reload; planId unchanged, now resolves as directory format.
+            route();
+          });
+        };
+      }
+
+      // P028: Setup auto-refresh for plan detail page
+      setupPlanDetailAutoRefresh(project.id, planId);
+    });
+  });
+}
+
+function renderSubDocTabs(subDocs, docName, planId, projectId) {
+  if (!subDocs || !subDocs.length) return '';
+  // Tab label strips the parent prefix (design-database → database);
+  // data-doc keeps the full filename for the API call.
+  var prefix = docName + '-';
+  function label(name) {
+    return name.indexOf(prefix) === 0 ? name.slice(prefix.length) : name;
+  }
+  return '<div class="subdoc-tabs" style="display:flex;gap:.25rem;margin-bottom:.5rem;flex-wrap:wrap">' +
+    '<button class="btn btn-sm btn-primary subdoc-tab" data-doc="' + esc(docName) + '">' + esc(docName) + '</button>' +
+    subDocs.map(function(sd) {
+      return '<button class="btn btn-sm subdoc-tab" data-doc="' + esc(sd) + '" title="' + esc(sd) + '">' + esc(label(sd)) + '</button>';
+    }).join('') +
+  '</div>';
+}
+
+function renderDocView(plan, docName, planId, projectId, subDocs) {
+  var content = plan[docName] || '';
+  var currentSubDoc = docName;  // mutable: tracks the doc currently displayed/edited
+  var cont = document.getElementById('doc-content');
+  if (!cont) return;
+  cont.innerHTML =
+    '<div style="display:flex;gap:.5rem;margin-bottom:.5rem">' +
+      '<button class="btn btn-sm" id="btn-view">' + t('common.view') + '</button>' +
+      '<button class="btn btn-sm" id="btn-edit">' + t('common.edit') + '</button>' +
+      '<button class="btn btn-sm btn-primary" id="btn-save" style="display:none">' + t('common.save') + '</button>' +
+    '</div>' +
+    renderSubDocTabs(subDocs, docName, planId, projectId) +
+    '<div id="doc-rendered" class="md-content">' + renderMd(content) + '</div>' +
+    '<div id="doc-edit-container" style="display:none;gap:1rem">' +
+      '<textarea id="doc-editor" class="editor" style="flex:1;min-height:70vh"></textarea>' +
+      '<div id="doc-preview" class="md-content" style="flex:1;min-height:70vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius);padding:1rem;background:var(--bg)"></div>' +
+    '</div>';
+
+  // Set initial editor value
+  document.getElementById('doc-editor').value = content;
+  document.getElementById('doc-preview').innerHTML = renderMd(content);
+
+  // Wire sub-doc tab clicks
+  var tabs = cont.querySelectorAll('.subdoc-tab');
+  tabs.forEach(function(tab) {
+    tab.onclick = function() {
+      var targetDoc = tab.getAttribute('data-doc');
+      if (targetDoc === currentSubDoc) return;
+      api('GET', '/projects/' + projectId + '/plans/' + planId + '/' + targetDoc).then(function(result) {
+        if (result.content !== undefined) {
+          tabs.forEach(function(tab) { tab.classList.remove('btn-primary'); });
+          tab.classList.add('btn-primary');
+          document.getElementById('doc-rendered').innerHTML = renderMd(result.content);
+          var ed = document.getElementById('doc-editor');
+          ed.value = result.content;
+          document.getElementById('doc-preview').innerHTML = renderMd(result.content);
+          if (ed.style.display !== 'none') autoGrowTextarea(ed);
+          currentSubDoc = targetDoc;
+        }
+      });
+    };
+  });
+
+  var btnView = document.getElementById('btn-view');
+  var btnEdit = document.getElementById('btn-edit');
+  var btnSave = document.getElementById('btn-save');
+  var rendered = document.getElementById('doc-rendered');
+  var editContainer = document.getElementById('doc-edit-container');
+  var editor = document.getElementById('doc-editor');
+  var preview = document.getElementById('doc-preview');
+
+  // Real-time preview on input
+  editor.addEventListener('input', function() {
+    preview.innerHTML = renderMd(editor.value);
+  });
+
+  btnView.onclick = function() {
+    rendered.style.display = '';
+    editContainer.style.display = 'none';
+    btnSave.style.display = 'none';
+    btnView.classList.add('btn-primary');
+    btnEdit.classList.remove('btn-primary');
+  };
+  btnEdit.onclick = function() {
+    rendered.style.display = 'none';
+    editContainer.style.display = 'flex';
+    btnSave.style.display = '';
+    btnEdit.classList.add('btn-primary');
+    btnView.classList.remove('btn-primary');
+    autoGrowTextarea(editor);
+  };
+  btnSave.onclick = function() {
+    btnSave.disabled = true;
+    btnSave.textContent = t('common.saving');
+    api('PUT', '/projects/' + projectId + '/plans/' + planId + '/' + currentSubDoc, { content: editor.value }).then(function(result) {
+      if (result.ok) {
+        toast(t('common.saved'), 'success');
+        rendered.innerHTML = renderMd(editor.value);
+        plan[currentSubDoc] = editor.value;
+        btnView.click();
+      } else {
+        toast(result.error || t('error.saveFailed'), 'error');
+      }
+      btnSave.disabled = false;
+      btnSave.textContent = t('common.save');
+    });
+  };
+}
+
+function renderProgress($app, progressRef) {
+  // Handle "current" reference - use current project and find active plan
+  if (progressRef === 'current' || progressRef === 'current/') {
+    if (!state.currentProject) {
+      $app.innerHTML = '<div class="empty"><div class="icon">&#128560;</div><p>' + t('error.selectProjectFirst') + '</p></div>';
+      return;
+    }
+    // Fetch plans and find the first active/in_progress one
+    api('GET', '/projects/' + state.currentProject.id + '/plans').then(function(plans) {
+      var activePlan = plans.find(function(p) { return p.status === 'in_progress'; }) || plans[0];
+      if (!activePlan) {
+        $app.innerHTML = '<div class="empty"><div class="icon">&#128193;</div><p>' + t('error.noPlans') + '</p></div>';
+        return;
+      }
+      location.hash = '#/progress/' + state.currentProject.id + '/' + activePlan.id;
+    });
+    return;
+  }
+
+  // progressRef format: projectId/planId
+  var parts = progressRef.split('/');
+  if (parts.length !== 2) {
+    $app.innerHTML = '<div class="empty"><p>' + t('error.invalidProgressRef') + '</p></div>';
+    return;
+  }
+
+  var projectId = decodeURIComponent(parts[0]);
+  var planId = decodeURIComponent(parts[1]);
+
+  findProject(projectId).then(function(project) {
+    if (!project) { $app.innerHTML = '<div class="empty"><p>' + t('error.projectNotFound') + '</p></div>'; return; }
+
+    api('GET', '/projects/' + project.id + '/plans/' + planId).then(function(plan) {
+      if (plan.error) { $app.innerHTML = '<div class="empty"><p>' + esc(plan.error) + '</p></div>'; return; }
+
+      state.currentProject = project;
+
+      // Fetch tasks
+      api('GET', '/projects/' + project.id + '/plans/' + planId + '/tasks').then(function(taskData) {
+        var total = taskData.total || 0;
+        var completed = taskData.completed || 0;
+        var inProgress = taskData.inProgress || 0;
+        var pending = taskData.pending || 0;
+        var pct = total ? Math.round(completed / total * 100) : 0;
+
+        $app.innerHTML =
+          '<div style="margin-bottom:1rem"><a href="#/projects/' + esc(project.id) + '" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+          '<h2 style="margin-bottom:1rem">' + t('progress.heading', {plan: esc(plan.title || planId)}) + '</h2>' +
+
+          // Summary stats
+          '<div id="progress-summary" class="card" style="margin-bottom:1.5rem">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">' +
+              '<span style="font-weight:600">' + t('progress.overallProgress') + '</span>' +
+              '<span id="progress-summary-ratio">' + completed + '/' + total + ' (' + pct + '%)</span>' +
+            '</div>' +
+            '<div style="background:var(--bg-hover);border-radius:10px;height:8px;overflow:hidden">' +
+              '<div id="progress-summary-bar" style="background:var(--success);width:' + pct + '%;height:100%;transition:width .3s"></div>' +
+            '</div>' +
+            '<div style="display:flex;gap:1rem;margin-top:.5rem;font-size:.85rem">' +
+              '<span><span class="badge badge-completed">' + t('progress.completed') + '</span> <span id="stat-completed">' + completed + '</span></span>' +
+              '<span><span class="badge badge-in_progress">' + t('progress.inProgress') + '</span> <span id="stat-inprogress">' + inProgress + '</span></span>' +
+              '<span><span class="badge badge-pending">' + t('progress.pending') + '</span> <span id="stat-pending">' + pending + '</span></span>' +
+            '</div>' +
+          '</div>' +
+
+          // Task stages
+          (taskData.tasks || []).map(function(stage) {
+            var stageCompleted = stage.tasks.filter(function(t) { return t.status === 'completed'; }).length;
+            var stageTotal = stage.tasks.length;
+            var stagePct = stageTotal ? Math.round(stageCompleted / stageTotal * 100) : 0;
+            var stageLabel = typeof stage.num === 'number' ? (stage.num + '.0 ' + stage.name) : (stage.name);
+
+            return '<div class="card" style="margin-bottom:1rem">' +
+              '<h3 style="margin-bottom:.5rem">' + esc(stageLabel) + '</h3>' +
+              '<div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.5rem">' +
+                stageCompleted + '/' + stageTotal + ' (' + stagePct + '%)' +
+              '</div>' +
+              '<div style="background:var(--bg-hover);border-radius:10px;height:6px;overflow:hidden;margin-bottom:1rem">' +
+                '<div style="background:var(--primary);width:' + stagePct + '%;height:100%"></div>' +
+              '</div>' +
+              '<div style="display:grid;gap:.5rem">' +
+                stage.tasks.map(function(task) {
+                  var statusIcon = task.status === 'completed' ? '✅' : task.status === 'in_progress' ? '⏳' : '⏸️';
+                  var statusBadge = 'badge-' + task.status;
+                  var statusKey = task.status === 'in_progress' ? 'progress.inProgress' : 'progress.' + task.status;
+                  return '<div style="display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--border)">' +
+                    '<span style="font-size:1.1rem">' + statusIcon + '</span>' +
+                    '<div style="flex:1">' +
+                      '<div style="font-weight:500">' + esc(task.id) + ' — ' + esc(task.name) + '</div>' +
+                      (task.details['Depends on'] ? '<div style="font-size:.85rem;color:var(--text-muted)">' + t('progress.dependsOn') + esc(task.details['Depends on']) + '</div>' : '') +
+                    '</div>' +
+                    '<span class="badge ' + statusBadge + '">' + t(statusKey) + '</span>' +
+                  '</div>';
+                }).join('') +
+              '</div>' +
+            '</div>';
+          }).join('') +
+
+          (taskData.tasks.length === 0 ? '<div class="empty"><p>' + t('progress.noTasks') + '</p></div>' : '');
+
+        // Update page title
+        var titleEl = document.getElementById('page-title');
+        if (titleEl) titleEl.textContent = t('progress.pageTitle');
+
+        var metaEl = document.getElementById('page-meta');
+        if (metaEl) metaEl.textContent = project.name + ' / ' + (plan.title || planId);
+
+        // Setup auto-refresh (P022: 1 minute interval)
+        setupProgressAutoRefresh(project.id, plan.id, plan.title || planId);
+      });
+    });
+  });
+}
+
+// Progress page auto-refresh (P022)
+var progressRefreshInterval = null;
+var progressRefreshProjectId = null;
+var progressRefreshPlanId = null;
+var progressScrollHandler = null; // Store handler reference to prevent leak
+var progressRefreshFailures = 0; // Track consecutive failures
+
+// Plan detail page auto-refresh (P028: sync docs and approval buttons)
+var planDetailRefreshInterval = null;
+var planDetailRefreshProjectId = null;
+var planDetailRefreshPlanId = null;
+var planDetailRefreshFailures = 0;
+
+function setupProgressAutoRefresh(projectId, planId, planTitle) {
+  // Clear existing interval if any
+  clearProgressAutoRefresh();
+
+  progressRefreshProjectId = projectId;
+  progressRefreshPlanId = planId;
+
+  // Save scroll position before refresh and restore after
+  var scrollY = window.scrollY;
+  progressScrollHandler = function() {
+    if (location.hash.indexOf('#/progress/') === 0) {
+      scrollY = window.scrollY;
+    }
+  };
+  window.addEventListener('scroll', progressScrollHandler);
+
+  // Setup refresh interval (60 seconds)
+  progressRefreshInterval = setInterval(function() {
+    // Only refresh if still on progress page
+    if (location.hash.indexOf('#/progress/') !== 0) {
+      clearProgressAutoRefresh();
+      return;
+    }
+
+    // Fetch updated task data
+    api('GET', '/projects/' + projectId + '/plans/' + planId + '/tasks').then(function(taskData) {
+      var total = taskData.total || 0;
+      var completed = taskData.completed || 0;
+      var inProgress = taskData.inProgress || 0;
+      var pending = taskData.pending || 0;
+      var pct = total ? Math.round(completed / total * 100) : 0;
+
+      // Update summary stats using stable ID selectors (P022 fix: fragile DOM traversal)
+      var ratioEl = document.getElementById('progress-summary-ratio');
+      var barEl = document.getElementById('progress-summary-bar');
+      var completedEl = document.getElementById('stat-completed');
+      var inProgressEl = document.getElementById('stat-inprogress');
+      var pendingEl = document.getElementById('stat-pending');
+
+      if (ratioEl) ratioEl.textContent = completed + '/' + total + ' (' + pct + '%)';
+      if (barEl) barEl.style.width = pct + '%';
+      if (completedEl) completedEl.textContent = completed;
+      if (inProgressEl) inProgressEl.textContent = inProgress;
+      if (pendingEl) pendingEl.textContent = pending;
+
+      // Restore scroll position after update (P022: UX protection)
+      window.scrollTo(0, scrollY);
+
+      // Reset failure count on success
+      progressRefreshFailures = 0;
+    }).catch(function(err) {
+      // Track failures and disable refresh after too many errors
+      progressRefreshFailures = (progressRefreshFailures || 0) + 1;
+      if (progressRefreshFailures >= 3) {
+        clearProgressAutoRefresh();
+        console.error('[Auto-refresh] Disabled after ' + progressRefreshFailures + ' consecutive failures:', err);
+      }
+    });
+  }, 60000); // 60 seconds
+}
+
+function clearProgressAutoRefresh() {
+  if (progressRefreshInterval) {
+    clearInterval(progressRefreshInterval);
+    progressRefreshInterval = null;
+  }
+  if (progressScrollHandler) {
+    window.removeEventListener('scroll', progressScrollHandler);
+    progressScrollHandler = null;
+  }
+  progressRefreshProjectId = null;
+  progressRefreshPlanId = null;
+  progressRefreshFailures = 0;
+}
+
+// Plan detail page auto-refresh (P028: sync docs and approval buttons)
+function setupPlanDetailAutoRefresh(projectId, planId) {
+  clearPlanDetailAutoRefresh();
+
+  planDetailRefreshProjectId = projectId;
+  planDetailRefreshPlanId = planId;
+
+  planDetailRefreshInterval = setInterval(function() {
+    // Only refresh if still on plan detail page
+    if (!location.hash.match(/\/projects\/[^/]+\/plans\/[^/]+$/)) {
+      clearPlanDetailAutoRefresh();
+      return;
+    }
+
+    api('GET', '/projects/' + projectId + '/plans/' + planId).then(function(updatedPlan) {
+      if (updatedPlan.error) {
+        planDetailRefreshFailures++;
+        if (planDetailRefreshFailures >= 3) {
+          clearPlanDetailAutoRefresh();
+          console.error('[Plan Detail Auto-refresh] Disabled after failures');
+        }
+        return;
+      }
+
+      // Check if existingDocs changed
+      var currentDocTabs = Array.from(document.querySelectorAll('#doc-tabs .tab')).map(function(t) { return t.dataset.doc; });
+      var newDocTabs = ['progress'].concat(updatedPlan.pipeline || []).filter(function(d) { return (updatedPlan.existingDocs || []).indexOf(d) > -1; });
+
+      // Check if approval state changed
+      var approvalChanged = JSON.stringify(state.currentPlan.approval) !== JSON.stringify(updatedPlan.approval);
+
+      // Only refresh if something meaningful changed
+      if (JSON.stringify(currentDocTabs) !== JSON.stringify(newDocTabs) || approvalChanged) {
+        state.currentPlan = updatedPlan;
+        route(); // Re-render entire page
+      }
+
+      planDetailRefreshFailures = 0;
+    }).catch(function(err) {
+      planDetailRefreshFailures++;
+      if (planDetailRefreshFailures >= 3) {
+        clearPlanDetailAutoRefresh();
+        console.error('[Plan Detail Auto-refresh] Disabled after failures:', err);
+      }
+    });
+  }, 30000); // 30 seconds (more frequent than progress page)
+}
+
+function clearPlanDetailAutoRefresh() {
+  if (planDetailRefreshInterval) {
+    clearInterval(planDetailRefreshInterval);
+    planDetailRefreshInterval = null;
+  }
+  planDetailRefreshProjectId = null;
+  planDetailRefreshPlanId = null;
+  planDetailRefreshFailures = 0;
+}
+
+// Resume auto-refresh if tab becomes visible again (P022 fix: symmetric visibility handling)
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    // Tab hidden, pause refresh
+    if (progressRefreshInterval) {
+      clearInterval(progressRefreshInterval);
+      progressRefreshInterval = null;
+    }
+    if (planDetailRefreshInterval) {
+      clearInterval(planDetailRefreshInterval);
+      planDetailRefreshInterval = null;
+    }
+  } else {
+    // Tab became visible again, resume refresh
+    if (progressRefreshProjectId && progressRefreshPlanId && !progressRefreshInterval) {
+      setupProgressAutoRefresh(progressRefreshProjectId, progressRefreshPlanId, '');
+    }
+    if (planDetailRefreshProjectId && planDetailRefreshPlanId && !planDetailRefreshInterval) {
+      setupPlanDetailAutoRefresh(planDetailRefreshProjectId, planDetailRefreshPlanId);
+    }
+  }
+});
+
+// Clear auto-refresh when leaving page
+window.addEventListener('beforeunload', function() {
+  clearProgressAutoRefresh();
+  clearPlanDetailAutoRefresh();
+});
+
+function renderNewPlan($app, hash) {
+  var projectId = '';
+  if (hash && hash.indexOf('/projects/') === 0) {
+    var parts = hash.replace('/projects/', '').split('/plans/');
+    projectId = decodeURIComponent(parts[0]);
+  }
+
+  findProject(projectId).then(function(project) {
+    if (!project) project = state.currentProject;
+    if (!project) { $app.innerHTML = '<div class="empty"><p>' + t('newPlan.selectProject') + '</p></div>'; return; }
+
+    api('GET', '/pipelines').then(function(pipeData) {
+      var defs = (pipeData && pipeData.definitions) || {};
+      var groups = {
+        's': { label: t('newPlan.sizeSmall'), items: [] },
+        'm': { label: t('newPlan.sizeMedium'), items: [] },
+        'l': { label: t('newPlan.sizeLarge'), items: [] },
+        'hotfix': { label: t('newPlan.sizeEmergency'), items: [] }
+      };
+      Object.keys(defs).sort().forEach(function(name) {
+        var prefix = name.split('-')[0];
+        var group = groups[prefix] || groups['hotfix'];
+        group.items.push({ name: name, def: defs[name] });
+      });
+      var optionsHtml = Object.keys(groups).map(function(gk) {
+        var g = groups[gk];
+        if (!g.items.length) return '';
+        return '<optgroup label="' + esc(g.label) + '">' +
+          g.items.map(function(item) {
+            return '<option value="' + esc(item.name) + '">' +
+              esc(item.def.label || item.name) + ' — ' + esc(item.def.description || '') +
+            '</option>';
+          }).join('') + '</optgroup>';
+      }).join('');
+
+      $app.innerHTML =
+        '<div style="margin-bottom:1rem"><a href="#/projects/' + esc(project.id) + '" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+        '<h2 style="margin-bottom:1rem">' + t('newPlan.heading') + '</h2>' +
+        '<div class="card">' +
+          '<div class="form-group"><label>' + t('newPlan.planName') + '</label><input id="plan-name" placeholder="' + t('newPlan.namePlaceholder') + '"></div>' +
+          '<div class="form-group"><label>' + t('newPlan.priority') + '</label><select id="plan-priority">' +
+            '<option value="P1">P1 - Critical</option>' +
+            '<option value="P2" selected>P2 - High</option>' +
+            '<option value="P3">P3 - Medium</option>' +
+            '<option value="P4">P4 - Low</option>' +
+          '</select></div>' +
+          '<div class="form-group"><label>' + t('newPlan.pipeline') + '</label><select id="plan-complexity">' +
+            optionsHtml +
+          '</select></div>' +
+          '<button class="btn btn-primary" id="btn-create">' + t('newPlan.createPlan') + '</button>' +
+        '</div>';
+
+      document.getElementById('btn-create').onclick = function() {
+        var name = document.getElementById('plan-name').value.trim();
+        var priority = document.getElementById('plan-priority').value;
+        var complexity = document.getElementById('plan-complexity').value;
+        if (!name) { toast(t('newPlan.errorNameRequired'), 'error'); return; }
+        var btn = document.getElementById('btn-create');
+        btn.disabled = true;
+        btn.textContent = t('common.creating');
+        api('POST', '/projects/' + project.id + '/plans', { name: name, priority: priority, complexity: complexity }).then(function(result) {
+          if (result.id) {
+            location.hash = '#/projects/' + esc(project.id) + '/plans/' + result.id;
+          } else {
+            toast(result.error || t('error.createFailed'), 'error');
+            btn.disabled = false;
+            btn.textContent = t('newPlan.createPlan');
+          }
+        });
+      };
+    });
+  });
+}
+
+function renderTemplateList($app) {
+  // Directories that support "Add new template" action
+  var ADDABLE_DIRS = { 'language-profiles': true, 'docs': true };
+
+  api('GET', '/templates').then(function(templates) {
+    state.templates = templates || [];
+    updateNavActive('templates');
+
+    // P027: Clear header meta (non-project page)
+    var headerMeta = document.getElementById('page-meta');
+    if (headerMeta) headerMeta.innerHTML = '';
+
+    if (!state.templates.length) {
+      $app.innerHTML = '<div class="empty"><div class="icon">&#128196;</div><h3>' + t('templates.emptyHeading') + '</h3></div>';
+      return;
+    }
+
+    // Categorize templates
+    var categories = {
+      'all': [],
+      'project-docs': [],
+      'plan-docs': [],
+      'language-profiles': [],
+      'config': [],
+      'rules': []
+    };
+
+    state.templates.forEach(function(tpl) {
+      // Add all templates to 'all' category
+      categories['all'].push(tpl);
+
+      if (tpl.path.indexOf('docs/') === 0) {
+        var name = tpl.path.slice(5); // remove 'docs/'
+        if (name.indexOf('design-') === 0 || name === 'tasks.md' || name === 'requirements.md' || name === 'test-plan.md' || name === 'deployment.md' || name === 'design.md') {
+          categories['plan-docs'].push(tpl);
+        } else {
+          categories['project-docs'].push(tpl);
+        }
+      } else if (tpl.path.indexOf('language-profiles/') === 0) {
+        categories['language-profiles'].push(tpl);
+      } else if (tpl.path === 'quality.json' || tpl.path === 'pipelines.json') {
+        categories['config'].push(tpl);
+      } else if (tpl.path.indexOf('rules/') === 0) {
+        categories['rules'].push(tpl);
+      }
+    });
+
+    // Default to 'all' category (show all templates)
+    var activeCategory = localStorage.getItem('template-category') || 'all';
+    var searchQuery = '';
+
+    $app.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+        '<h2>' + t('templates.heading') + '</h2>' +
+        '<input id="template-search" type="search" placeholder="' + t('templates.searchPlaceholder') + '" style="width:250px;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text)">' +
+      '</div>' +
+      '<div class="tabs" id="template-categories">' +
+        '<div class="tab' + (activeCategory === 'all' ? ' active' : '') + '" data-cat="all">' + t('templates.categoryAll') + '</div>' +
+        '<div class="tab' + (activeCategory === 'project-docs' ? ' active' : '') + '" data-cat="project-docs">' + t('templates.categoryProjectDocs') + '</div>' +
+        '<div class="tab' + (activeCategory === 'plan-docs' ? ' active' : '') + '" data-cat="plan-docs">' + t('templates.categoryPlanDocs') + '</div>' +
+        '<div class="tab' + (activeCategory === 'language-profiles' ? ' active' : '') + '" data-cat="language-profiles">' + t('templates.categoryLanguageProfiles') + '</div>' +
+        '<div class="tab' + (activeCategory === 'config' ? ' active' : '') + '" data-cat="config">' + t('templates.categoryConfig') + '</div>' +
+        '<div class="tab' + (activeCategory === 'rules' ? ' active' : '') + '" data-cat="rules">' + t('templates.categoryRules') + '</div>' +
+      '</div>' +
+      '<div id="template-grid"></div>';
+
+    function renderGrid() {
+      var cat = activeCategory;
+      var items = categories[cat] || [];
+      var filtered = items.filter(function(tpl) {
+        if (!searchQuery) return true;
+        var q = searchQuery.toLowerCase();
+        return tpl.path.toLowerCase().indexOf(q) > -1;
+      });
+
+      if (!filtered.length) {
+        document.getElementById('template-grid').innerHTML = '<div class="empty"><p>' + t('templates.noResults') + '</p></div>';
+        return;
+      }
+
+      // Group by directory within category
+      var groups = {};
+      filtered.forEach(function(tpl) {
+        var dir = tpl.path.indexOf('/') > -1 ? tpl.path.split('/').slice(0, -1).join('/') : t('docs.rootDirectory');
+        if (!groups[dir]) groups[dir] = [];
+        groups[dir].push(tpl);
+      });
+
+      var gridHtml = Object.keys(groups).sort().map(function(dir) {
+        var addBtn = ADDABLE_DIRS[dir] && cat !== 'rules'
+          ? '<a href="#/templates/new?dir=' + esc(dir) + '" class="card" style="text-decoration:none;color:inherit;border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:60px">' +
+              '<span style="font-size:1.2rem;color:var(--text-muted)">' + t('templates.addNew') + '</span></a>'
+          : '';
+        return '<div style="margin-bottom:1.5rem"><h3 style="margin-bottom:.5rem;font-size:.95rem;color:var(--text-muted)">' + esc(dir) + '</h3>' +
+        '<div class="grid grid-2">' + groups[dir].map(function(f) {
+          return '<a href="#/templates/' + esc(f.path) + '" class="card" style="text-decoration:none;color:inherit">' +
+            '<h3>' + esc(f.path.split('/').pop()) + '</h3>' +
+            '<div class="meta">' + t('templates.fileMeta', {size: f.size, modified: f.modified}) + '</div>' +
+          '</a>';
+        }).join('') + addBtn + '</div></div>';
+      }).join('');
+
+      document.getElementById('template-grid').innerHTML = gridHtml || '<div class="empty"><p>' + t('templates.noResults') + '</p></div>';
+    }
+
+    renderGrid();
+
+    // Wire category tabs
+    document.querySelectorAll('#template-categories .tab').forEach(function(tab) {
+      tab.onclick = function() {
+        document.querySelectorAll('#template-categories .tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        activeCategory = tab.dataset.cat;
+        localStorage.setItem('template-category', activeCategory);
+        renderGrid();
+      };
+    });
+
+    // Wire search
+    var searchInput = document.getElementById('template-search');
+    searchInput.oninput = function() {
+      searchQuery = searchInput.value.trim();
+      renderGrid();
+    };
+  });
+}
+
+function renderTemplateEdit($app, templatePath) {
+  // Handle "new template" mode: templatePath = "new?dir=language-profiles"
+  var newMatch = templatePath.match(/^new\?dir=(.+)$/);
+  if (newMatch) {
+    var dir = decodeURIComponent(newMatch[1]);
+    renderNewTemplate($app, dir);
+    return;
+  }
+
+  api('GET', '/templates/' + templatePath.split('/').map(encodeURIComponent).join('/')).then(function(tpl) {
+    if (tpl.error) { $app.innerHTML = '<div class="empty"><p>' + esc(tpl.error) + '</p></div>'; return; }
+
+    var isJson = templatePath.indexOf('.json') === templatePath.length - 5;
+
+    $app.innerHTML =
+      '<div style="margin-bottom:1rem"><a href="#/templates" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+      '<h2 style="margin-bottom:1rem">' + esc(templatePath) + '</h2>' +
+      '<div style="display:flex;gap:.5rem;margin-bottom:.5rem">' +
+        '<button class="btn btn-sm" id="btn-view">' + t('common.view') + '</button>' +
+        '<button class="btn btn-sm" id="btn-edit">' + t('common.edit') + '</button>' +
+        '<button class="btn btn-sm btn-primary" id="btn-save" style="display:none">' + t('common.save') + '</button>' +
+      '</div>' +
+      '<div id="tpl-rendered" class="md-content">' + (isJson ? '<pre><code>' + esc(tpl.content) + '</code></pre>' : renderMd(tpl.content)) + '</div>' +
+      '<textarea id="tpl-editor" class="editor" style="display:none">' + esc(tpl.content) + '</textarea>';
+
+    var btnView = document.getElementById('btn-view');
+    var btnEdit = document.getElementById('btn-edit');
+    var btnSave = document.getElementById('btn-save');
+    var rendered = document.getElementById('tpl-rendered');
+    var editor = document.getElementById('tpl-editor');
+
+    btnView.onclick = function() {
+      rendered.style.display = '';
+      editor.style.display = 'none';
+      btnSave.style.display = 'none';
+      btnView.classList.add('btn-primary');
+      btnEdit.classList.remove('btn-primary');
+    };
+    btnEdit.onclick = function() {
+      rendered.style.display = 'none';
+      editor.style.display = '';
+      btnSave.style.display = '';
+      btnEdit.classList.add('btn-primary');
+      btnView.classList.remove('btn-primary');
+      autoGrowTextarea(editor);
+    };
+    btnSave.onclick = function() {
+      btnSave.disabled = true;
+      api('PUT', '/templates/' + templatePath.split('/').map(encodeURIComponent).join('/'), { content: editor.value }).then(function(result) {
+        if (result.ok) {
+          toast(t('common.saved'), 'success');
+          rendered.innerHTML = isJson ? '<pre><code>' + esc(editor.value) + '</code></pre>' : renderMd(editor.value);
+          btnView.click();
+        } else {
+          toast(result.error || t('error.saveFailed'), 'error');
+        }
+        btnSave.disabled = false;
+      });
+    };
+  });
+}
+
+function renderNewTemplate($app, dir) {
+  var isJson = dir === 'language-profiles';
+  var placeholder = isJson
+    ? '{\n  "$schema": "airein-language-profile-v1",\n  "name": "",\n  "version": "1.0.0",\n  "extensions": [],\n  "testPatterns": [],\n  "testNameTemplates": [],\n  "debugPatterns": []\n}'
+    : '# Template Title\n\nContent goes here...';
+  var ext = isJson ? '.json' : '.md';
+
+  $app.innerHTML =
+    '<div style="margin-bottom:1rem"><a href="#/templates" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+    '<h2 style="margin-bottom:1rem">' + t('newTemplate.heading', {dir: dir}) + '</h2>' +
+    '<div class="form-group"><label>' + t('newTemplate.filename') + '</label>' +
+      '<div style="display:flex;gap:.5rem;align-items:center">' +
+        '<span class="hint">' + esc(dir) + '/</span>' +
+        '<input id="tpl-new-filename" placeholder="name' + ext + '" style="width:220px">' +
+      '</div>' +
+    '</div>' +
+    '<div class="form-group"><label>' + t('newTemplate.content') + '</label>' +
+      '<textarea id="tpl-editor" class="editor" rows="20">' + esc(placeholder) + '</textarea>' +
+    '</div>' +
+    '<button class="btn btn-primary" id="btn-create">' + t('newTemplate.createTemplate') + '</button>';
+
+  document.getElementById('btn-create').onclick = function() {
+    var filename = (document.getElementById('tpl-new-filename').value || '').trim();
+    if (!filename) { toast(t('newTemplate.errorFilenameRequired'), 'error'); return; }
+    if (/\.\./.test(filename) || /[/\\]/.test(filename)) { toast(t('newTemplate.errorInvalidFilename'), 'error'); return; }
+    var fullPath = dir + '/' + filename;
+    var content = document.getElementById('tpl-editor').value;
+
+    api('PUT', '/templates/' + encodeURIComponent(fullPath), { content: content }).then(function(result) {
+      if (result.ok) {
+        toast(t('newTemplate.templateCreated', {path: fullPath}), 'success');
+        location.hash = '#/templates/' + fullPath;
+      } else {
+        toast(result.error || t('error.createFailed'), 'error');
+      }
+    });
+  };
+}
+
+function renderConfig($app, hash) {
+  var projectId = decodeURIComponent(hash.replace(/^\/projects\//, '').replace(/\/config$/, ''));
+
+  findProject(projectId).then(function(project) {
+    if (!project) { $app.innerHTML = '<div class="empty"><p>' + t('error.projectNotFound') + '</p></div>'; return; }
+
+    api('GET', '/projects/' + project.id + '/config').then(function(data) {
+      if (data.error) { $app.innerHTML = '<div class="empty"><p>' + esc(data.error) + '</p></div>'; return; }
+
+      var raw = data.raw || {};
+      var defaults = data.defaults || {};
+      var eff = data.effective || {};
+
+      $app.innerHTML =
+        '<div style="margin-bottom:1rem"><a href="#/projects/' + esc(project.id) + '" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+        '<h2 style="margin-bottom:1rem">' + t('config.heading', {name: project.name}) + '</h2>' +
+        '<div class="card" id="config-form">' + configForm(raw, defaults, eff) + '</div>' +
+        '<div class="card" id="language-profiles" style="margin-top:1rem">' + languageProfilesForm(raw, null) + '</div>' +
+        '<div class="card" id="plan-workflow" style="margin-top:1rem">' + planWorkflowForm(raw, eff) + '</div>' +
+        '<div style="margin-top:1rem;display:flex;gap:.5rem">' +
+          '<button class="btn btn-primary" id="btn-save-config">' + t('config.saveConfiguration') + '</button>' +
+          '<button class="btn btn-sm" id="btn-view-logs">' + t('config.viewLogs') + '</button>' +
+        '</div>';
+
+      wireLanguageProfiles(project);
+      wirePipelineSelector();
+
+      document.getElementById('btn-view-logs').onclick = function() {
+        location.hash = '#/logs';
+      };
+
+      wireLanguageProfiles(project);
+      wirePipelineSelector();
+
+      document.getElementById('btn-save-config').onclick = function() {
+        var updates = collectConfigValues();
+        var btn = document.getElementById('btn-save-config');
+        btn.disabled = true;
+        btn.textContent = t('config.saving');
+        api('PUT', '/projects/' + project.id + '/config', { updates: updates }).then(function(result) {
+          if (result.ok) {
+            toast(t('config.configurationSaved'), 'success');
+          } else {
+            toast(result.error || t('error.saveFailed'), 'error');
+          }
+          btn.disabled = false;
+          btn.textContent = t('config.saveConfiguration');
+        });
+      };
+    });
+  });
+}
+
+function configForm(raw, defaults, eff) {
+  var sections = [
+    { key: 'testGuard', label: t('config.testGuard'), fields: [
+      { name: 'testGuard.enabled', label: t('config.enabled'), type: 'toggle', 'default': true },
+      { name: 'testGuard.mode', label: t('config.mode'), type: 'select', options: ['strict', 'advisory'], 'default': 'strict' },
+    ]},
+    { key: 'approvalGuard', label: t('config.approvalGuard'), fields: [
+      { name: 'approvalGuard.mode', label: t('config.mode'), type: 'select', options: ['advisory', 'console-confirm', 'manual-only'], 'default': 'console-confirm' },
+    ]},
+    { key: 'planGate', label: t('config.planGate'), fields: [
+      { name: 'planGate.mode', label: t('config.mode'), type: 'select', options: ['strict', 'advisory', 'disabled'], 'default': 'advisory' },
+      { name: 'planGate.requireActiveTask', label: t('config.requireActiveTask'), type: 'toggle', 'default': true },
+    ]},
+    { key: 'testCoverage', label: t('config.testCoverage'), fields: [
+      { name: 'testCoverage.minRatio', label: t('config.minRatio'), type: 'number', min: 0, max: 1, step: 0.05, 'default': 0.3 },
+      { name: 'testCoverage.minSourceFiles', label: t('config.minSourceFiles'), type: 'number', min: 0, max: 100, 'default': 2 },
+      { name: 'testCoverage.functionThreshold', label: t('config.functionThreshold'), type: 'number', min: 0, max: 100, 'default': 3 },
+    ]},
+    { key: 'blocking', label: t('config.blocking'), fields: [
+      { name: 'blocking.testFailure', label: t('config.blockOnTestFailure'), type: 'toggle', 'default': true },
+      { name: 'blocking.lowCoverage', label: t('config.blockOnLowCoverage'), type: 'toggle', 'default': true },
+      { name: 'blocking.buildFailure', label: t('config.blockOnBuildFailure'), type: 'toggle', 'default': true },
+      { name: 'blocking.untestedSource', label: t('config.blockOnUntestedSource'), type: 'toggle', 'default': true },
+    ]},
+    { key: 'flowControl', label: t('config.flowControl'), fields: [
+      { name: 'flowControl.perTaskReview', label: t('config.perTaskReview'), type: 'toggle', 'default': false },
+      { name: 'flowControl.worktreeIsolation', label: t('config.worktreeIsolation'), type: 'toggle', 'default': false },
+    ]},
+    { key: 'aireinLog', label: t('config.aireinLog'), fields: [
+      { name: 'aireinLog.enabled', label: t('config.enabled'), type: 'toggle', 'default': true },
+      { name: 'aireinLog.level', label: t('config.level'), type: 'select', options: ['debug', 'info', 'warn', 'error'], 'default': 'info' },
+      { name: 'aireinLog.retentionDays', label: t('config.retentionDays'), type: 'number', min: 1, max: 365, 'default': 7 },
+    ]},
+    { key: 'selfLearning', label: t('config.selfLearning'), fields: [
+      { name: 'selfLearning.enabled', label: t('config.enabled'), type: 'toggle', 'default': true },
+      { name: 'selfLearning.promotionThreshold', label: t('config.promotionThreshold'), type: 'number', min: 2, max: 20, 'default': 3 },
+    ]},
+  ];
+
+  return sections.map(function(sec) {
+    return '<h3 style="margin: 1rem 0 .5rem">' + sec.label + '</h3>' +
+    sec.fields.map(function(f) {
+      var val = getNestedVal(raw, f.name, undefined);
+      var defVal = f['default'];
+      var curVal = val !== undefined ? val : defVal;
+      // 显示默认值和当前值（优化格式）
+      var hint;
+      if (curVal === defVal) {
+        hint = JSON.stringify(curVal);  // 未自定义时仅显示值
+      } else {
+        hint = '当前: ' + JSON.stringify(curVal) + ' (默认: ' + JSON.stringify(defVal) + ')';  // 已自定义时显示对比
+      }
+      return '<div class="form-group"><label>' + f.label + '</label>' +
+        configField(f, curVal) +
+        '<div class="hint">' + hint + '</div></div>';
+    }).join('');
+  }).join('');
+}
+
+function languageProfilesForm(raw, availableProfiles) {
+  var active = (raw.languageProfiles && raw.languageProfiles.active) || [];
+  var languages = (availableProfiles || []).sort();
+
+  var checkboxes = languages.map(function(lang) {
+    var checked = active.indexOf(lang) >= 0 ? ' checked' : '';
+    return '<label style="display:inline-flex;align-items:center;gap:.25rem;margin-right:.75rem;margin-bottom:.25rem">' +
+      '<input type="checkbox" class="lang-active-cb" value="' + esc(lang) + '"' + checked + '> ' + esc(lang) + '</label>';
+  }).join('');
+
+  return '<h3 style="margin-bottom:.5rem">' + t('config.languageProfiles') + '</h3>' +
+    '<p class="hint" style="margin-bottom:.75rem">' + t('config.langProfilesHint') + '</p>' +
+    '<div class="form-group"><label>' + t('config.activeLanguages') + '</label>' +
+      '<div id="lang-active-checkboxes">' + checkboxes + '</div>' +
+      '<div style="margin-top:.25rem"><button class="btn btn-sm btn-primary" id="btn-save-lang-active">' + t('config.saveActiveLanguages') + '</button></div>' +
+    '</div>' +
+    '<div style="margin-top:.5rem"><a href="#/templates/new?dir=language-profiles" class="btn btn-sm">' + t('config.addGlobalProfile') + '</a></div>';
+}
+
+function wireLanguageProfiles(project) {
+  // Load available profiles from global API + project active state
+  api('GET', '/language-profiles').then(function(profiles) {
+    var available = Object.keys(profiles).filter(function(k) { return k !== 'default'; }).sort();
+    return api('GET', '/projects/' + project.id + '/language-profiles').then(function(data) {
+      var active = data.active || [];
+      var container = document.getElementById('lang-active-checkboxes');
+      if (container) {
+        container.innerHTML = available.map(function(lang) {
+          var checked = active.indexOf(lang) >= 0 ? ' checked' : '';
+          return '<label style="display:inline-flex;align-items:center;gap:.25rem;margin-right:.75rem;margin-bottom:.25rem">' +
+            '<input type="checkbox" class="lang-active-cb" value="' + esc(lang) + '"' + checked + '> ' + esc(lang) + '</label>';
+        }).join('');
+      }
+    });
+  }).catch(function() {
+    var container = document.getElementById('lang-active-checkboxes');
+    if (container) container.innerHTML = '<span class="hint">' + t('config.langProfilesLoadFailed') + '</span>';
+  });
+
+  var saveActiveBtn = document.getElementById('btn-save-lang-active');
+  if (saveActiveBtn) {
+    saveActiveBtn.onclick = function() {
+      var active = [];
+      document.querySelectorAll('.lang-active-cb:checked').forEach(function(cb) { active.push(cb.value); });
+      api('PUT', '/projects/' + project.id + '/language-profiles', { active: active }).then(function(r) {
+        if (r.ok) toast(t('config.activeLanguagesSaved', {languages: active.join(', ')}), 'success');
+        else toast(r.error || t('error.saveFailed'), 'error');
+      });
+    };
+  }
+}
+
+// ── Plan Workflow (project-level pipeline preference) ───────
+
+function planWorkflowForm(raw, eff) {
+  var grilling = (eff.planWorkflow && eff.planWorkflow.enforceGrilling) !== false;
+  var pipeline = (raw.planWorkflow && raw.planWorkflow.pipeline) || 'auto';
+
+  return '<h3 style="margin-bottom:.5rem">' + t('config.planWorkflow') + '</h3>' +
+    '<div class="form-group"><label>' + t('config.pipeline') + '</label>' +
+      '<select id="pipeline-select" data-path="planWorkflow.pipeline" data-saved="' + esc(pipeline) + '">' +
+        '<option value="auto"' + (pipeline === 'auto' ? ' selected' : '') + '>' + t('config.pipelineAuto') + '</option>' +
+      '</select>' +
+      '<div class="hint">' + t('config.pipelineHint') + '</div></div>' +
+    '<div class="form-group" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<div><label style="margin-bottom:0">' + t('config.enforceGrilling') + '</label>' +
+        '<div class="hint" style="margin-top:2px">' + t('config.enforceGrillingHint') + '</div></div>' +
+      '<input type="checkbox" id="enforce-grilling" data-path="planWorkflow.enforceGrilling"' + (grilling ? ' checked' : '') + '>' +
+    '</div>';
+}
+
+function wirePipelineSelector() {
+  var select = document.getElementById('pipeline-select');
+  if (!select) return;
+
+  var saved = select.getAttribute('data-saved') || 'auto';
+
+  api('GET', '/pipelines').then(function(data) {
+    var defs = data.definitions || {};
+    var keys = Object.keys(defs).sort();
+    for (var i = 0; i < keys.length; i++) {
+      var name = keys[i];
+      var def = defs[name];
+      var opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = def.label || name;
+      if (name === saved) opt.selected = true;
+      select.appendChild(opt);
+    }
+  }).catch(function() {
+    // If fetch fails, select still has "auto" option
+  });
+}
+
+// P025: 日志查看器
+function renderLogs($app) {
+  updateNavActive('logs');
+
+  // P027: Clear header meta (non-project page)
+  var headerMeta = document.getElementById('page-meta');
+  if (headerMeta) headerMeta.innerHTML = '';
+
+  var currentPage = 1;
+  var currentLevel = 'all';
+  var pageSize = 100;
+
+  // P026 N2: 日志自动刷新状态
+  var logAutoRefreshEnabled = false;
+  var logRefreshInterval = null;
+
+  $app.innerHTML =
+    '<div style="margin-bottom:1rem"><a href="#/" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+    '<h2 style="margin-bottom:1rem">' + t('logs.heading') + '</h2>' +
+    '<div class="card" style="margin-bottom:1rem">' +
+      '<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">' +
+        '<label>' + t('logs.level') + ':</label>' +
+        '<select id="log-level-filter" style="padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text)">' +
+          '<option value="all">' + t('logs.allLevels') + '</option>' +
+          '<option value="DEBUG">DEBUG</option>' +
+          '<option value="INFO">INFO</option>' +
+          '<option value="WARN">WARN</option>' +
+          '<option value="ERROR">ERROR</option>' +
+        '</select>' +
+        '<label class="toggle" style="margin-left:auto;display:inline-flex;align-items:center;gap:.5rem;cursor:pointer">' +
+          '<input type="checkbox" id="log-auto-refresh-toggle" style="margin:0">' +
+          '<span style="font-size:.85rem">' + t('logs.autoRefresh') + '</span>' +
+        '</label>' +
+        '<span id="log-refresh-status" style="font-size:.75rem;color:var(--text-muted)"></span>' +
+        '<span id="log-summary" style="color:var(--text-muted)"></span>' +
+      '</div>' +
+    '</div>' +
+    '<div id="log-content" class="card" style="font-family:monospace;font-size:.85rem;white-space:pre-wrap;max-height:600px;overflow-y:auto;padding:1rem;line-height:1.4">' +
+      '<div style="text-align:center;padding:2rem;color:var(--text-muted)">' + t('common.loading') + '...</div>' +
+    '</div>' +
+    '<div id="log-pagination" style="margin-top:1rem;display:flex;justify-content:center;gap:.5rem"></div>';
+
+  function loadLogs() {
+    var levelEl = document.getElementById('log-level-filter');
+    if (levelEl) currentLevel = levelEl.value;
+
+    api('GET', '/logs?level=' + currentLevel + '&page=' + currentPage + '&pageSize=' + pageSize).then(function(data) {
+      var contentEl = document.getElementById('log-content');
+      var summaryEl = document.getElementById('log-summary');
+      var paginationEl = document.getElementById('log-pagination');
+
+      if (!contentEl) return;
+
+      // 显示日志内容
+      if (data.lines && data.lines.length) {
+        contentEl.innerHTML = data.lines.map(function(line) {
+          var colored = line;
+          if (line.toUpperCase().includes('[ERROR]') || line.toUpperCase().includes('[ERR]')) {
+            colored = '<span style="color:var(--error)">' + esc(line) + '</span>';
+          } else if (line.toUpperCase().includes('[WARN]') || line.toUpperCase().includes('[WARNING]')) {
+            colored = '<span style="color:var(--warning,#ff9800)">' + esc(line) + '</span>';
+          } else if (line.toUpperCase().includes('[INFO]')) {
+            colored = '<span style="color:var(--text)">' + esc(line) + '</span>';
+          } else if (line.toUpperCase().includes('[DEBUG]')) {
+            colored = '<span style="color:var(--text-muted)">' + esc(line) + '</span>';
+          } else {
+            colored = esc(line);
+          }
+          return '<div style="padding:.2rem 0;border-bottom:1px solid var(--border-hover)">' + colored + '</div>';
+        }).join('');
+      } else {
+        contentEl.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted)">' + t('logs.noLogs') + '</div>';
+      }
+
+      // 显示摘要
+      if (summaryEl) {
+        summaryEl.textContent = t('logs.summary', {total: data.total || 0, showing: (data.lines || []).length});
+      }
+
+      // 显示分页
+      if (paginationEl && data.total > pageSize) {
+        var totalPages = Math.ceil(data.total / pageSize);
+        var pages = [];
+        for (var i = 1; i <= totalPages; i++) {
+          if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            pages.push('<button class="btn btn-sm ' + (i === currentPage ? 'btn-primary' : '') + '" data-page="' + i + '">' + i + '</button>');
+          } else if (pages[pages.length - 1] !== '...') {
+            pages.push('...');
+          }
+        }
+        paginationEl.innerHTML = pages.join(' ');
+
+        // 分页点击事件
+        paginationEl.querySelectorAll('[data-page]').forEach(function(btn) {
+          btn.onclick = function() {
+            currentPage = parseInt(btn.getAttribute('data-page'), 10);
+            loadLogs();
+          };
+        });
+      } else if (paginationEl) {
+        paginationEl.innerHTML = '';
+      }
+    });
+  }
+
+  // 初始加载
+  loadLogs();
+
+  // 级别筛选事件
+  var levelFilter = document.getElementById('log-level-filter');
+  if (levelFilter) {
+    levelFilter.onchange = function() {
+      currentPage = 1;
+      loadLogs();
+    };
+  }
+
+  // P026 N2: 自动刷新逻辑
+  function updateRefreshStatus() {
+    var statusEl = document.getElementById('log-refresh-status');
+    if (statusEl) {
+      statusEl.textContent = logAutoRefreshEnabled ? '(30s)' : '';
+    }
+  }
+
+  function startLogAutoRefresh() {
+    if (logRefreshInterval) clearInterval(logRefreshInterval);
+    logRefreshInterval = setInterval(function() {
+      // 只在日志页面且自动刷新开启时刷新
+      if (location.hash !== '#/logs' || !logAutoRefreshEnabled) {
+        if (logRefreshInterval) {
+          clearInterval(logRefreshInterval);
+          logRefreshInterval = null;
+        }
+        return;
+      }
+      // 页面不可见时跳过刷新（但保持 interval）
+      if (document.visibilityState === 'hidden') return;
+      loadLogs();
+    }, 30000); // 30 秒刷新间隔
+    updateRefreshStatus();
+  }
+
+  function stopLogAutoRefresh() {
+    if (logRefreshInterval) {
+      clearInterval(logRefreshInterval);
+      logRefreshInterval = null;
+    }
+    updateRefreshStatus();
+  }
+
+  // 自动刷新开关事件
+  var autoRefreshToggle = document.getElementById('log-auto-refresh-toggle');
+  if (autoRefreshToggle) {
+    autoRefreshToggle.onclick = function() {
+      logAutoRefreshEnabled = autoRefreshToggle.checked;
+      if (logAutoRefreshEnabled) {
+        startLogAutoRefresh();
+      } else {
+        stopLogAutoRefresh();
+      }
+    };
+  }
+
+  // P026 N2: 页面可见性变化处理
+  var logVisibilityHandler = function() {
+    if (document.visibilityState === 'visible' && logAutoRefreshEnabled && location.hash === '#/logs' && !logRefreshInterval) {
+      startLogAutoRefresh();
+    } else if (document.visibilityState === 'hidden') {
+      // 页面隐藏时不停止 interval，让 loadLogs 内部处理 visibility
+    }
+  };
+  document.addEventListener('visibilitychange', logVisibilityHandler);
+
+  // P026 N2: 离开页面时清理
+  var logBeforeUnloadHandler = function() {
+    if (logRefreshInterval) clearInterval(logRefreshInterval);
+    document.removeEventListener('visibilitychange', logVisibilityHandler);
+  };
+  window.addEventListener('beforeunload', logBeforeUnloadHandler);
+}
+
+// P026: 服务健康页面
+function renderHealthPage($app) {
+  updateNavActive('health');
+
+  // P027: Clear header meta (non-project page)
+  var headerMeta = document.getElementById('page-meta');
+  if (headerMeta) headerMeta.innerHTML = '';
+
+  $app.innerHTML =
+    '<div style="margin-bottom:1rem"><a href="#/" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+    '<h2 style="margin-bottom:1rem">' + t('health.heading') + '</h2>' +
+    '<div id="health-status" class="card" style="margin-bottom:1rem">' +
+      '<div style="text-align:center;padding:2rem;color:var(--text-muted)">' + t('common.loading') + '...</div>' +
+    '</div>' +
+    '<div id="health-errors" class="card" style="display:none">' +
+      '<h3 style="margin-bottom:1rem">' + t('health.recentErrors') + '</h3>' +
+      '<div id="health-errors-list"></div>' +
+    '</div>';
+
+  api('GET', '/health').then(function(data) {
+    var statusEl = document.getElementById('health-status');
+    var errorsEl = document.getElementById('health-errors');
+    var errorsListEl = document.getElementById('health-errors-list');
+
+    if (!statusEl) return;
+
+    // 显示状态卡片
+    var statusIcon = data.status === 'healthy' ? '✅' : '⚠️';
+    statusEl.innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem">' +
+        '<div style="padding:1rem;border:1px solid var(--border);border-radius:var(--radius)">' +
+          '<div style="font-size:.85rem;color:var(--text-muted)">' + t('health.status') + '</div>' +
+          '<div style="font-size:1.5rem;font-weight:bold">' + statusIcon + ' ' + t('health.' + data.status) + '</div>' +
+        '</div>' +
+        '<div style="padding:1rem;border:1px solid var(--border);border-radius:var(--radius)">' +
+          '<div style="font-size:.85rem;color:var(--text-muted)">' + t('health.version') + '</div>' +
+          '<div style="font-size:1.1rem">v' + esc(data.version) + ' <span style="font-size:.85rem;color:var(--text-muted)">(' + esc(data.commit) + ')</span></div>' +
+        '</div>' +
+        '<div style="padding:1rem;border:1px solid var(--border);border-radius:var(--radius)">' +
+          '<div style="font-size:.85rem;color:var(--text-muted)">' + t('health.uptime') + '</div>' +
+          '<div style="font-size:1.1rem">' + esc(data.uptime) + '</div>' +
+        '</div>' +
+        '<div style="padding:1rem;border:1px solid var(--border);border-radius:var(--radius)">' +
+          '<div style="font-size:.85rem;color:var(--text-muted)">' + t('health.platform') + '</div>' +
+          '<div style="font-size:1.1rem">' + esc(data.platform) + ' / ' + esc(data.nodeVersion) + '</div>' +
+        '</div>' +
+      '</div>';
+
+    // 显示最近错误
+    if (data.recentErrors && data.recentErrors.length && errorsEl && errorsListEl) {
+      errorsEl.style.display = 'block';
+      errorsListEl.innerHTML = data.recentErrors.map(function(err) {
+        return '<div style="padding:.75rem;border-bottom:1px solid var(--border-hover);font-size:.85rem">' +
+          '<div style="font-weight:bold;color:var(--error)">' + esc(err.type) + '</div>' +
+          '<div style="color:var(--text-muted)">' + esc(err.timestamp) + '</div>' +
+          '<div style="font-family:monospace;color:var(--text-muted);margin-top:.25rem">' + esc(err.message) + '</div>' +
+        '</div>';
+      }).join('');
+    }
+  }).catch(function(err) {
+    var statusEl = document.getElementById('health-status');
+    if (statusEl) {
+      statusEl.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--error)">' +
+        t('health.error') + ': ' + esc(err.message || 'Unknown error') +
+      '</div>';
+    }
+  });
+}
+
+function normalizeLanguageProfile(profile) {
+  var copy = Object.assign({}, profile || {});
+  delete copy.$schema;
+  delete copy.name;
+  delete copy.version;
+  delete copy.language;
+  return copy;
+}
+
+function downloadJson(filename, data) {
+  var blob = new Blob([JSON.stringify(data, null, 2) + '\n'], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function configField(f, val) {
+  var id = 'cfg-' + f.name;
+  if (f.type === 'toggle') {
+    return '<label class="toggle"><input type="checkbox" id="' + id + '" data-path="' + f.name + '" ' + (val ? 'checked' : '') + '><span class="slider"></span></label>';
+  }
+  if (f.type === 'select') {
+    return '<select id="' + id + '" data-path="' + f.name + '">' +
+      f.options.map(function(o) { return '<option value="' + o + '"' + (o === val ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>';
+  }
+  if (f.type === 'number') {
+    return '<input type="number" id="' + id + '" data-path="' + f.name + '" value="' + val + '"' +
+      (f.min !== undefined ? ' min="' + f.min + '"' : '') +
+      (f.max !== undefined ? ' max="' + f.max + '"' : '') +
+      (f.step !== undefined ? ' step="' + f.step + '"' : '') + '>';
+  }
+  return '<input type="text" id="' + id + '" data-path="' + f.name + '" value="' + esc(String(val)) + '">';
+}
+
+function collectConfigValues() {
+  var updates = {};
+  document.querySelectorAll('[data-path]').forEach(function(el) {
+    var p = el.dataset.path;
+    var val;
+    if (el.type === 'checkbox') val = el.checked;
+    else if (el.type === 'number') val = parseFloat(el.value);
+    else val = el.value;
+    setNestedVal(updates, p, val);
+  });
+  return updates;
+}
+
+// ── Helpers ────────────────────────────────────
+
+function findProject(id) {
+  if (state.currentProject && (state.currentProject.id === id || state.currentProject.name === id)) {
+    return Promise.resolve(state.currentProject);
+  }
+  if (!state.projects.length) {
+    return api('GET', '/projects').then(function(ps) {
+      state.projects = ps || [];
+      return state.projects.find(function(p) { return p.id === id || p.name === id; });
+    });
+  }
+  return Promise.resolve(state.projects.find(function(p) { return p.id === id || p.name === id; }));
+}
+
+function updateProjectSelect(selectedId) {
+  var sel = document.getElementById('project-select');
+  sel.innerHTML = '<option value="">' + t('nav.selectProject') + '</option>' +
+    state.projects.map(function(p) { return '<option value="' + esc(p.id) + '"' + (p.id === selectedId ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('');
+  sel.onchange = function() { if (sel.value) location.hash = '#/projects/' + sel.value; };
+
+  // Show/hide project-specific menu items
+  var hasProject = selectedId || state.currentProject;
+  var progressNav = document.getElementById('nav-progress');
+  var configNav = document.getElementById('nav-config');
+
+  if (progressNav) progressNav.style.display = hasProject ? 'flex' : 'none';
+  if (configNav) configNav.style.display = hasProject ? 'flex' : 'none';
+}
+
+function updateNavActive(section) {
+  // Update sidebar nav active state
+  document.querySelectorAll('.sidebar-nav a[data-nav]').forEach(function(a) {
+    var href = a.getAttribute('href');
+    a.classList.toggle('active', section === 'projects' ? href === '#/' : href === '#/' + section);
+  });
+
+  // Update page title
+  var titleKey = section === 'projects' ? 'nav.projects' : 'nav.' + section;
+  var titleEl = document.getElementById('page-title');
+  if (titleEl) {
+    titleEl.textContent = t(titleKey);
+    titleEl.setAttribute('data-i18n', titleKey);
+  }
+
+  // Update page meta (optional, for project-specific info)
+  var metaEl = document.getElementById('page-meta');
+  if (metaEl) metaEl.textContent = '';
+}
+
+function planCard(plan) {
+  var total = plan.total || 0;
+  var done = plan.completedTasks || 0;
+  var pct = total ? Math.round(done / total * 100) : 0;
+  var approval = plan.approval || {};
+  var pipeline = plan.pipeline || defaultPipeline(plan.complexity || 'simple');
+  var priority = plan.priority || 'P2';
+  var priorityColor = priority === 'P1' ? 'critical' : priority === 'P2' ? 'high' : priority === 'P3' ? 'medium' : 'low';
+
+  return '<a href="#/projects/' + esc(state.currentProject.id) + '/plans/' + esc(plan.id) + '" class="card" style="text-decoration:none;color:inherit">' +
+    '<h3>' + esc(plan.title) + '</h3>' +
+    '<div style="margin:.3rem 0">' +
+      '<span class="badge badge-' + priorityColor + '">' + priority + '</span> ' +
+      '<span class="badge badge-' + (plan.complexity || 'simple') + '">' + (plan.complexity || 'simple') + '</span> ' +
+      '<span class="badge badge-' + (plan.status === 'archived' ? 'archived' : plan.status === 'completed' ? 'approved' : plan.status === 'in_progress' ? 'active' : 'pending') + '">' + t('planCard.status.' + (plan.status || 'pending')) + '</span>' +
+    '</div>' +
+    '<div class="meta">' + t('planCard.tasksProgress', {done: done, total: total, pct: pct}) + '</div>' +
+    '<div style="margin-top:.3rem">' +
+      '<span class="badge badge-' + (plan.grillingState === 'completed' ? 'approved' : 'draft') + '">' + t('planCard.grilling') + '</span> ' +
+      pipeline.map(function(p) { return '<span class="badge badge-' + (approval[p] || 'none') + '">' + esc(p) + '</span>'; }).join(' ') +
+    '</div></a>';
+}
+
+function buildPipelineSteps(plan, approval) {
+  var phases = plan.pipeline || defaultPipeline(plan.complexity || 'simple');
+  var grillingState = plan.grillingState || 'completed';
+  var steps = [{ label: t('pipeline.communication'), status: grillingState, grilling: true }].concat(phases.map(function(p) {
+    return { label: capitalize(p), status: approval[p] || 'none' };
+  }));
+
+  return steps.map(function(step, i) {
+    var approved = step.grilling ? step.status === 'completed' : step.status === 'approved';
+    var cls = approved ? 'approved' : 'current';
+    var icon = approved ? ' &#10003;' : '';
+    var arrow = i < steps.length - 1 ? '<span class="arrow">&rarr;</span>' : '';
+    return '<div class="step ' + cls + '">' + esc(step.label) + icon + '</div>' + arrow;
+  }).join('');
+}
+
+function approvalButtons(complexity, approval, planId, projectId, pipeline, existingDocs) {
+  var phases = pipeline || defaultPipeline(complexity || 'simple');
+  var existing = existingDocs || [];
+
+  // Only show approval button for the NEXT unapproved phase (sequential)
+  // All previous phases must be approved before the next one becomes available
+  for (var i = 0; i < phases.length; i++) {
+    var phase = phases[i];
+    if (approval[phase] === 'approved') continue;
+    // Skip if doc doesn't exist yet (can't approve what hasn't been written)
+    if (existing.indexOf(phase) === -1) continue;
+    // This is the next unapproved phase — show only this button
+    return '<button class="btn btn-sm btn-success" data-approve="' + esc(phase) + '" data-plan-id="' + esc(planId) + '" data-project-id="' + esc(projectId) + '">' + t('approval.approvePhase', {phase: capitalize(phase)}) + '</button>';
+  }
+  // All approved
+  return '';
+}
+
+function defaultPipeline(complexity) {
+  // Legacy backward compat
+  if (complexity === 'simple') return ['tasks'];
+  if (complexity === 'medium') return ['requirements', 'tasks'];
+  if (complexity === 'complex') return ['requirements', 'design', 'tasks'];
+  // New pipeline names
+  if (complexity === 's-bugfix' || complexity === 'm-urgent' || complexity === 'hotfix') return ['tasks'];
+  if (complexity === 's-feature' || complexity === 'm-bugfix') return ['requirements', 'tasks'];
+  if (complexity === 'm-feature') return ['requirements', 'design', 'tasks'];
+  if (complexity === 'l-feature') return ['requirements', 'design', 'test-plan', 'deployment', 'tasks'];
+  if (complexity === 'l-bugfix') return ['requirements', 'design', 'test-plan', 'tasks'];
+  return ['tasks']; // ultimate fallback
+}
+
+function capitalize(s) { return s ? s[0].toUpperCase() + s.slice(1) : ''; }
+
+// Auto-grow a textarea to fit its content (no manual dragging needed)
+function autoGrowTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';                       // reset first to measure true scrollHeight
+  el.style.height = Math.max(el.scrollHeight, window.innerHeight * 0.7) + 'px';
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function getNestedVal(obj, path, def) {
+  var keys = path.split('.');
+  var cur = obj;
+  for (var i = 0; i < keys.length; i++) {
+    if (cur == null || typeof cur !== 'object') return def;
+    cur = cur[keys[i]];
+  }
+  return cur !== undefined ? cur : def;
+}
+
+function setNestedVal(obj, path, val) {
+  var keys = path.split('.');
+  var cur = obj;
+  for (var i = 0; i < keys.length - 1; i++) {
+    if (!cur[keys[i]] || typeof cur[keys[i]] !== 'object') cur[keys[i]] = {};
+    cur = cur[keys[i]];
+  }
+  cur[keys[keys.length - 1]] = val;
+}
+
+// ── Toast ──────────────────────────────────────
+function toast(msg, type) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (type || 'success');
+  setTimeout(function() { el.className = 'toast'; }, 3000);
+}
+
+// ── Markdown renderer (lightweight) ────────────
+function renderMd(md) {
+  if (!md) return '';
+  var html = esc(md);
+
+  // Code blocks (preserve content inside)
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, function(_, lang, code) {
+    return '<pre><code class="language-' + lang + '">' + code + '</code></pre>';
+  });
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Tables
+  html = html.replace(/((?:^\|.+\|[ ]*\n)+)/gm, function(tableBlock) {
+    var rows = tableBlock.trim().split('\n');
+    if (rows.length < 2) return tableBlock;
+    var isSep = /^\|[\s\-:|]+\|$/;
+    var headerDone = false;
+    var out = '<table>';
+    for (var r = 0; r < rows.length; r++) {
+      if (isSep.test(rows[r])) continue;
+      var cells = rows[r].split('|').filter(function(c, i, arr) { return i > 0 && i < arr.length - 1; }).map(function(c) { return c.trim(); });
+      if (!headerDone) {
+        out += '<tr>' + cells.map(function(c) { return '<th>' + mdInline(c) + '</th>'; }).join('') + '</tr>';
+        headerDone = true;
+      } else {
+        out += '<tr>' + cells.map(function(c) { return '<td>' + mdInline(c) + '</td>'; }).join('') + '</tr>';
+      }
+    }
+    return out + '</table>';
+  });
+
+  // Headers
+  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Blockquotes
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // Horizontal rules
+  html = html.replace(/^---+$/gm, '<hr>');
+
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Links: [text](url) and [text](url "title")
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)(?:\s+"([^"]+)")?\)/g, function(_, text, url, title) {
+    return '<a href="' + esc(url) + '"' + (title ? ' title="' + esc(title) + '"' : '') + ' target="_blank">' + text + '</a>';
+  });
+
+  // Checklist items
+  html = html.replace(/^- \[x\] (.+)$/gm, '<li><input type="checkbox" checked disabled> $1</li>');
+  html = html.replace(/^- \[ \] (.+)$/gm, '<li><input type="checkbox" disabled> $1</li>');
+
+  // List items
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+  // Paragraphs
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = '<p>' + html + '</p>';
+
+  // Clean up empty paragraphs around block elements
+  html = html.replace(/<p>\s*(<h[1-6]>)/g, '$1');
+  html = html.replace(/(<\/h[1-6]>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<ul>)/g, '$1');
+  html = html.replace(/(<\/ul>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<table>)/g, '$1');
+  html = html.replace(/(<\/table>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<pre>)/g, '$1');
+  html = html.replace(/(<\/pre>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<hr>)/g, '$1');
+  html = html.replace(/(<hr>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<blockquote>)/g, '$1');
+  html = html.replace(/(<\/blockquote>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*<\/p>/g, '');
+
+  return html;
+}
+
+function mdInline(text) {
+  return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>');
+}
+
+// ── Approval click handler (delegated) ─────────
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-approve]');
+  if (!btn) return;
+
+  var phase = btn.dataset.approve;
+  var projectId = btn.dataset.projectId;
+  var planId = btn.dataset.planId;
+
+  btn.disabled = true;
+  btn.textContent = t('approval.approving');
+
+  findProject(projectId).then(function(project) {
+    if (!project) { toast(t('error.projectNotFound'), 'error'); return; }
+
+    api('POST', '/projects/' + project.id + '/plans/' + planId + '/approve', { phase: phase }).then(function(result) {
+      if (result.ok) {
+        toast(t('approval.phaseApproved', {phase: capitalize(phase)}), 'success');
+        route();
+      } else {
+        toast(result.error || t('approval.approvalFailed'), 'error');
+        btn.disabled = false;
+        btn.textContent = t('approval.approvePhase', {phase: capitalize(phase)});
+      }
+    });
+  });
+});
+
+// ── Doc-view link interception ────────────────────────
+// Markdown rendered in a project doc view (e.g. docs/design.md) holds relative
+// links like [LLD_00](./lld/LLD_00_公共架构与规范.md). As plain <a href>, the
+// browser resolves them against the page base URL (hash excluded) → /lld/... →
+// 404. Intercept such clicks and route them through the SPA hash router so they
+// stay inside the dashboard. External links and same-page anchors are left to
+// the browser. Pure href classification lives in doc-links.js (node-tested).
+document.addEventListener('click', function(e) {
+  var node = e.target && e.target.closest ? e.target.closest('a') : null;
+  if (!node) return;
+  var raw = node.getAttribute && node.getAttribute('href');
+  if (!raw) return;
+  // Only intercept links rendered inside markdown content (not toolbar/sidebar).
+  if (!node.closest('.md-content')) return;
+  var hm = (location.hash || '').match(/^#\/projects\/([^/]+)\/docs\/(.+)$/);
+  if (!hm) return; // not inside a project doc view → leave to browser
+  var resolved = resolveDocLink(raw, decodeURIComponent(hm[2]));
+  if (!resolved.internal) return;
+  e.preventDefault();
+  var newHash = '#/projects/' + encodeURIComponent(decodeURIComponent(hm[1])) +
+    '/docs/' + resolved.docPath.split('/').map(encodeURIComponent).join('/');
+  if (location.hash !== newHash) location.hash = newHash;
+});
+
+// ── Init ───────────────────────────────────────
+window.addEventListener('hashchange', route);
+applyI18n();
+route();
+</script>
+</body>
+</html>

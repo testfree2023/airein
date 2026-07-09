@@ -1,0 +1,57 @@
+# Airein 源码仓库 .gitignore
+# 这个 repo 是 Airein 的源码仓库，不是安装目标
+
+# ── 安装目标特有的运行时文件（机器特定，不入仓库）─────────────────
+stats-cache.json
+.credentials.json
+config.json
+settings.json
+settings.local.json
+settings.json.glm
+settings.json.qwen
+settings.json.template
+
+# ── 会话/临时数据 ────────────────────────────────────────────────
+.last-cleanup
+history.jsonl
+plans/
+tasks/
+task-master/
+sessions/
+session-env/
+file-history/
+shell-snapshots/
+backups/
+debug/
+ide/
+*.lock
+
+# ── 插件（新机器通过 settings.json 重新安装）─────────────────────
+plugins/
+
+# ── CC memory（每项目独立，按项目隔离，不入仓库）──────────────────
+projects/
+
+# ── 自学习晋升产物（个人化：每人累计的允许/禁止指令不同，不上游）──
+rules/30-self-learned.md
+
+# ── 自动生成的契约缓存 ──────────────────────────────────────────
+contract-cache/
+
+# ── Airein 自身开发时的内部计划（非开源内容）─────────────────────
+/docs/plans/
+
+# ── Airein 源码仓库的 CC 运行时数据（dogfooding 产生，非源码）────
+# 注：.claude/rules/conventions-*.md 薄壳是 airein dogfooding 源码，需跟踪
+/.claude/session-state.md
+/.claude/memory/
+/.claude/config/
+/.claude/self-learning/
+/.claude/contract-cache/
+
+# ── Playwright MCP 运行时产物（截图 / 页面快照 / 控制台日志）──────
+.playwright-mcp/
+
+# ── Dashboard 运行时产物（PID 文件 + 日志）───────────────────────
+dashboard.pid
+dashboard/dashboard.log

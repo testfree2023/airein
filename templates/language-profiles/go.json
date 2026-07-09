@@ -1,0 +1,26 @@
+{
+  "$schema": "airein-language-profile-v1",
+  "name": "go",
+  "role": "backend",
+  "version": "1.0.0",
+  "description": "Go language profile",
+  "extensions": [".go"],
+  "testPatterns": ["_test\\.go$"],
+  "testNameTemplates": ["{base}_test{ext}"],
+  "debugPatterns": ["println!"],
+  "importPatterns": {
+    ".go": ["^import "]
+  },
+  "exportPatterns": {
+    ".go": ["^func [A-Z]", "^type [A-Z]"]
+  },
+  "buildCommands": [
+    { "cmd": "go build ./...", "configFile": "go.mod" }
+  ],
+  "testCommands": [
+    { "cmd": "go test ./...", "configFile": "go.mod" }
+  ],
+  "conventions": {
+    "testNaming": "Go convention: *_test.go in same package"
+  }
+}

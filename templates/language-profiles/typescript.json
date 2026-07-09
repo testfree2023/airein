@@ -1,0 +1,25 @@
+{
+  "$schema": "airein-language-profile-v1",
+  "name": "typescript",
+  "role": "fullstack",
+  "version": "1.0.0",
+  "description": "TypeScript and TSX language profile",
+  "extensions": [".ts", ".tsx"],
+  "testPatterns": ["\\.test\\.", "\\.spec\\.", "^test-"],
+  "testNameTemplates": ["{base}.test{ext}", "{base}.spec{ext}", "test-{base}{ext}", "test_{base}{ext}"],
+  "debugPatterns": ["console\\.log", "console\\.debug"],
+  "importPatterns": {
+    ".ts": ["import .* from", "require\\("],
+    ".tsx": ["import .* from", "require\\("]
+  },
+  "exportPatterns": {
+    ".ts": ["export\\s+", "module\\.exports"],
+    ".tsx": ["export\\s+", "module\\.exports"]
+  },
+  "buildCommands": [
+    { "cmd": "npm run build", "configFile": "package.json" }
+  ],
+  "testCommands": [
+    { "cmd": "npm test", "configFile": "package.json" }
+  ]
+}

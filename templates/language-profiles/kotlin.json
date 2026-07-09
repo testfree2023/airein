@@ -1,0 +1,25 @@
+{
+  "$schema": "airein-language-profile-v1",
+  "name": "kotlin",
+  "role": "backend",
+  "version": "1.0.0",
+  "description": "Kotlin language profile (Gradle/Maven)",
+  "extensions": [".kt"],
+  "testPatterns": ["Test\\.kt$", "IT\\.kt$"],
+  "testNameTemplates": ["{base}Test{ext}", "{base}IT{ext}"],
+  "debugPatterns": ["println\\("],
+  "importPatterns": {
+    ".kt": ["^import "]
+  },
+  "exportPatterns": {
+    ".kt": ["class ", "interface ", "fun "]
+  },
+  "buildCommands": [
+    { "cmd": "./gradlew compileKotlin", "configFile": "build.gradle.kts" },
+    { "cmd": "mvn compile -q", "configFile": "pom.xml" }
+  ],
+  "testCommands": [
+    { "cmd": "./gradlew test", "configFile": "build.gradle.kts" },
+    { "cmd": "mvn test -q", "configFile": "pom.xml" }
+  ]
+}

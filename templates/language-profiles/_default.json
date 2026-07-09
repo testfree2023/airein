@@ -1,0 +1,22 @@
+{
+  "$schema": "airein-language-profile-v1",
+  "name": "default",
+  "version": "1.0.0",
+  "description": "Cross-language defaults shared by all languages",
+  "exemptPatterns": [
+    "\\.d\\.ts$",
+    "\\.config\\.",
+    "\\.setup\\.",
+    "/migrations/",
+    "/fixtures/",
+    "/__fixtures__/"
+  ],
+  "secretPatterns": [
+    "sk-[A-Za-z0-9]{20,}",
+    "AKIA[0-9A-Z]{16}",
+    "AIza[0-9A-Za-z_-]{35}",
+    "(password|secret|token|api[_-]?key)\\s*[=:]\\s*[\"'][^\"']{8,}[\"']"
+  ],
+  "testDirectories": ["test", "tests", "__tests__"],
+  "impactThresholds": { "medium": 3, "high": 9 }
+}

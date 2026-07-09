@@ -1,0 +1,21 @@
+{
+  "$schema": "airein-language-profile-v1",
+  "name": "python",
+  "role": "backend",
+  "version": "1.0.0",
+  "description": "Python language profile",
+  "extensions": [".py"],
+  "testPatterns": ["^test_", "_test\\.", "^test-"],
+  "testNameTemplates": ["test_{base}{ext}", "{base}_test{ext}", "test-{base}{ext}"],
+  "debugPatterns": ["print\\s*\\("],
+  "importPatterns": {
+    ".py": ["^from .* import", "^import "]
+  },
+  "exportPatterns": {
+    ".py": ["^def ", "^class "]
+  },
+  "buildCommands": [],
+  "testCommands": [
+    { "cmd": "pytest", "configFile": "pytest.ini" }
+  ]
+}
