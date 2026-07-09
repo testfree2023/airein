@@ -75,11 +75,16 @@ _（暂无活跃 plan。下一个 plan：v0.2 规划，待 `/new-plan` 启动。
 > 工程化 / dogfooding 缺口（部署与自身验证）：
 
 - [ ] **安装部署验证缺失**：当前无 CI、无自动化端到端安装测试；`verify-airein.sh` 仅静态校验且自身未被测；行为层验证靠人工按 `test-plan.md` 执行。需补 CI 流水线 + 真实安装冒烟测试 + verify 脚本自身回归测试。
+  > 进展（2026-07-09）：首次真实安装已人工验证通过（macOS，见 Recent Changes）；CI / 自动化冒烟 / verify 自身回归测试仍缺，且本次部署暴露 2 个安装器缺陷（见下）。
 - [ ] **dogfooding：自身 hook 在内部流程上的覆盖**：`doc-file-warning` 曾漏豁免 `.claude/self-learning/`（已修，见 Recent Changes），暴露「hook 未在自身 harness 流程上实战演练」的系统性缺口——类似路径 / 豁免缺口应随发现补测。
 - [ ] **dogfooding：源码修复不自动生效于运行中的安装**：开发源（本仓库）与全局安装副本（`~/.claude/scripts/hooks/`）分离——改源码后，运行中的 session 仍用旧副本（本次修 `doc-file-warning` 即被旧安装副本误拦自学习缓冲写入），需手动同步 / 重装才生效。需明确 dogfooding「改源 → 同步到安装」工作流，或让开发态直接跑源码 hook。
+- [x] **setup-airein.sh 检测 nvm 安装的 node 失败**：node 回退路径表（`setup-airein.sh:24` / `airein-chores.sh:16`）只含 homebrew 与 `/usr/local/bin/node`，缺 `~/.nvm/versions/node/*/bin/node`——非交互 shell（SSH / cron / 未 source nvm 的登录）下 `command -v node` 失败且回退表也 miss，误报「Node.js 未安装」并退出。首次真实部署（192.168.3.14 macOS，nvm node v22）即命中，靠预先 `source nvm.sh` 绕过。交互式终端不受影响（nvm 已在 shell rc 加载）。修：回退表补 nvm 路径，或自动 `source` nvm。
+- [x] **setup-airein.sh 误把外来 `~/.claude/.git` 当本仓库**：`setup-airein.sh:84-89` 见 `~/.claude/.git` 存在即 `git pull origin main`——若该 `.git` 属于其他 harness（如本机原 my-ai-coder），会静默 pull 错仓库而非安装 airein（本次靠「先卸载删 `.git` + 从 `/tmp/airein` 运行」绕过）。修：pull 前校验 `remote.origin.url` 属于 airein，不匹配则按外来仓库处理（提示备份 / 重装）。
 
 ### Recent Changes
 
+- **2026-07-09** `fix` 安装器双缺陷修复（首次真实部署暴露）：① nvm/fnm node 检测 —— 抽取 `scripts/lib/install-helpers.sh` 的 `resolve_node_bin`（PATH → source nvm/fnm → 扫描已知安装目录），`setup-airein.sh` / `airein-chores.sh` / `merge-hooks.sh` 共用，修复非交互 shell（SSH / cron）下误报「Node.js 未安装」并退出；② 外来 `~/.claude/.git` 误 pull —— `setup-airein.sh` pull 前用 `is_airein_remote_url` 校验 `remote.origin.url`，不匹配则拒绝（exit 1 + 提示备份 / 移除），不再静默拉错仓库。新 lib 已加入 `sync-airein.sh` CORE_FILES（更新路径也会分发）。TDD：`test/test-install-helpers.js`（25 断言，含 glob 回退 / source nvm / 拒绝外来仓库集成测试）。
+- **2026-07-09** `test` 首次真实部署验证（192.168.3.14 macOS Monterey，bash 3.2 + nvm node v22 + claude 2.1.193）—— 外科式卸载旧 harness（my-ai-coder，401 tracked 文件 + `.git`，保留个人数据 `settings.json` / `history.jsonl` / `sessions` / `projects`）→ 安装 airein → `verify-airein.sh` 通过（22/22 hook 脚本就位、47 脚本语法检查、lib + L0 rules 完整）→ hook 行为实测（`doc-file-warning` 非标准路径 exit 2 阻断 + stderr、`docs/` 路径 exit 0 放行）；`settings.json` hooks 由旧 harness ~42 个替换为 airein 23 个、0 orphan。期间发现 2 个安装器缺陷（见 Issues）。备份 `claude-pre-airein-20260709-162030.tar.gz` 留档可回滚。
 - **2026-07-09** `fix` doc-file-warning 豁免 `.claude/self-learning/` 路径 —— 解除对自学习缓冲（`.claude/self-learning/pending.md`）的误拦，TDD 补测。dogfooding 首例「自身 hook 漏豁免内部数据路径」。
 - **2026-07-09** `docs` CONTRIBUTING 补 commit message 规范（公开记录只写 what+why、不加 `Co-Authored-By` trailer）+ roadmap 增设项目状态轨（活跃工作 / Issues / Recent Changes）。
 - **2026-07-09** `docs` 补充英文 README（`README.en.md`）+ 精化致谢措辞（聚焦当前 Node.js 内建模块实现）。
