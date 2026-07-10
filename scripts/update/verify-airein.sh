@@ -1,19 +1,131 @@
 #!/usr/bin/env bash
 # verify-airein.sh — Post-sync integrity verification
 #
-# After sync-airein.sh copies files, this script:
-#   1. Parses hooks.json to extract ALL referenced script paths
-#   2. Verifies every script exists at the install target
-#   3. Runs `node -e "require()"` on each to catch missing dependencies
-#   4. Cross-checks hooks are registered in settings.json
-#   5. Returns non-zero if any check fails
+# 两模式：
+#   1) CC 模式（既有）：bash verify-airein.sh <install_dir>
+#      解析 hooks.json → 校验脚本就位 → node --check 依赖 → settings.json 注册 → lib/ + rules/
+#   2) --host 模式（P001 T10 · deployment §6.2）：bash verify-airein.sh --host <X> --root <dir>
+#      按 deployment §3 产物矩阵校验指定宿主产物就位（K1 skills / K2 rules / K3 hook 配置 /
+#      归一化入口）+ install-manifest 存在。各宿主 install 后回归门禁。
 #
-# Usage: bash verify-airein.sh <install_dir>
-#   install_dir: the airein install target (usually ~/.claude)
+# Usage:
+#   bash verify-airein.sh <install_dir>              # CC 模式（install_dir 通常 ~/.claude 或仓库根）
+#   bash verify-airein.sh --host <cursor|codex|codebuddy|opencode> --root <dir>
 
-set -euo pipefail
+set -uo pipefail
 
-INSTALL_DIR="${1:?用法: verify-airein.sh <install_dir>}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# ── argv 解析（--host/--root 提取，余位置参数 → INSTALL_DIR for CC 模式）──
+HOST=""
+ROOT_DIR=""
+INSTALL_DIR=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --host) HOST="${2:-}"; shift 2 ;;
+    --root) ROOT_DIR="${2:-}"; shift 2 ;;
+    *) INSTALL_DIR="$1"; shift ;;
+  esac
+done
+
+# check_* helpers：echo 结果 + return 0/1（调用方用 `||` 累加 errors）。
+check_file() {
+  if [ -f "$1" ]; then echo "  ✅ $2: $1"; return 0; else echo "  ❌ 缺 $2: $1"; return 1; fi
+}
+check_dir_nonempty() {
+  if [ -d "$1" ] && [ -n "$(ls -A "$1" 2>/dev/null)" ]; then echo "  ✅ $2: $1"; return 0; else echo "  ❌ 缺/空 $2: $1"; return 1; fi
+}
+
+# ── --host 模式：按 deployment §3 产物矩阵校验 ──
+verify_host() {
+  local host="$1"
+  local target="$2"
+  local errors=0
+
+  echo ""
+  echo "🔍 verify-airein.sh --host $host（deployment §3 产物矩阵）..."
+
+  case "$host" in
+    cursor|codex|codebuddy|opencode) ;;
+    *)
+      echo "❌ 未知 host: $host（已知: cursor/codex/codebuddy/opencode)"
+      echo "  用法: verify-airein.sh --host <X> --root <dir>"
+      exit 1
+      ;;
+  esac
+
+  if [ -z "$target" ]; then
+    echo "❌ 缺 --root <dir>（install 时的 targetRoot，通常项目根）"
+    echo "  用法: verify-airein.sh --host $host --root <dir>"
+    exit 1
+  fi
+  if [ ! -d "$target" ]; then
+    echo "❌ --root 目录不存在: $target"
+    exit 1
+  fi
+
+  # install-manifest（install-host.js install 写盘，deployment §2）
+  if [ ! -f "$target/.airein-install-state.json" ]; then
+    echo "❌ 缺 install-manifest: $target/.airein-install-state.json"
+    echo "  → 先 install: node \"$REPO_ROOT/scripts/install-host.js\" install --host $host --root \"$target\""
+    exit 1
+  fi
+  echo "  ✅ install-manifest: $target/.airein-install-state.json"
+
+  echo ""
+  echo "  📦 $host 产物矩阵（deployment §3）..."
+  case "$host" in
+    cursor)
+      check_dir_nonempty "$target/.cursor/skills" "K1 skills" || errors=$((errors + 1))
+      check_dir_nonempty "$target/.cursor/rules" "K2 rules (.mdc 目录)" || errors=$((errors + 1))
+      check_file "$target/.cursor/hooks.json" "K3 hook 配置" || errors=$((errors + 1))
+      check_file "$REPO_ROOT/scripts/hooks/host/cursor.js" "归一化入口 cursor.js" || errors=$((errors + 1))
+      ;;
+    codex)
+      check_dir_nonempty "$target/.agents/skills" "K1 skills (.agents 复数)" || errors=$((errors + 1))
+      check_file "$target/AGENTS.md" "K2 rules AGENTS.md" || errors=$((errors + 1))
+      check_file "$target/.codex/config.toml" "K3 hook 配置 config.toml" || errors=$((errors + 1))
+      check_file "$REPO_ROOT/scripts/hooks/host/codex.js" "归一化入口 codex.js" || errors=$((errors + 1))
+      ;;
+    codebuddy)
+      check_dir_nonempty "$target/.codebuddy/skills" "K1 skills" || errors=$((errors + 1))
+      check_file "$target/CODEBUDDY.md" "K2 CODEBUDDY.md (root)" || errors=$((errors + 1))
+      check_dir_nonempty "$target/.codebuddy/rules" "K2 L0 rules 目录" || errors=$((errors + 1))
+      check_file "$target/.codebuddy/settings.json" "K3 hook 配置 settings.json" || errors=$((errors + 1))
+      check_file "$REPO_ROOT/scripts/hooks/host/codebuddy.js" "归一化入口 codebuddy.js" || errors=$((errors + 1))
+      ;;
+    opencode)
+      # OC 零 skill 放置（原生搜 .claude/skills/，deployment §3）；校验 K2/K3 + bridge.ts
+      check_file "$target/AGENTS.md" "K2 rules AGENTS.md" || errors=$((errors + 1))
+      check_file "$target/opencode.json" "K3 plugin 注册 opencode.json" || errors=$((errors + 1))
+      check_file "$target/.opencode/plugin/airein-bridge.ts" "OC bridge.ts 实体" || errors=$((errors + 1))
+      check_file "$REPO_ROOT/opencode/bridge.ts" "归一化入口 bridge.ts (源)" || errors=$((errors + 1))
+      ;;
+  esac
+
+  echo ""
+  if [ "$errors" -eq 0 ]; then
+    echo "✅ verify $host 通过: 产物完整（deployment §3 矩阵）"
+    exit 0
+  else
+    echo "❌ verify $host 失败: $errors 个缺失"
+    echo "  修复: node \"$REPO_ROOT/scripts/install-host.js\" install --host $host --root \"$target\""
+    exit 1
+  fi
+}
+
+if [ -n "$HOST" ]; then
+  verify_host "$HOST" "$ROOT_DIR"
+  exit $?
+fi
+
+# ════════════════════════════════════════════════════════════════════
+# CC 模式（既有 · 位置参数 <install_dir>）—— 以下逻辑保留不变
+# ════════════════════════════════════════════════════════════════════
+set -e
+
+INSTALL_DIR="${INSTALL_DIR:?用法: verify-airein.sh <install_dir> | --host <X> [--root <dir>]}"
 
 if [ ! -d "$INSTALL_DIR" ]; then
   echo "❌ 安装目录不存在: $INSTALL_DIR"

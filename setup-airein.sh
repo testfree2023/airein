@@ -19,15 +19,18 @@ REPO="git@github.com:testfree2023/airein.git"
 CLAUDE_DIR="$HOME/.claude"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMP_CLONE=""
-NODE_BIN="$(command -v node 2>/dev/null || true)"
-if [ -z "$NODE_BIN" ]; then
-  for candidate in "$HOME/.homebrew/bin/node" /opt/homebrew/bin/node /usr/local/bin/node; do
-    if [ -x "$candidate" ]; then
-      NODE_BIN="$candidate"
-      break
-    fi
-  done
+# Shared installer helpers (node resolution + remote check). The lib is part
+# of the installer tree; if it is missing the install is broken — abort early
+# with a clear message rather than failing mysteriously later.
+HELPERS_LIB="$SCRIPT_DIR/scripts/lib/install-helpers.sh"
+if [ ! -f "$HELPERS_LIB" ]; then
+  echo "❌ 安装器残缺：缺少 $HELPERS_LIB" >&2
+  exit 1
 fi
+# shellcheck source=scripts/lib/install-helpers.sh
+. "$HELPERS_LIB"
+# Resolve node robustly across nvm/fnm/volta/homebrew (see install-helpers.sh).
+NODE_BIN="$(resolve_node_bin)"
 HOOK_COUNT=0
 JS_COUNT=0
 
@@ -82,11 +85,24 @@ if [ "$IS_FROM_REPO" = true ] && [ "$CLAUDE_DIR" != "$SCRIPT_DIR" ]; then
   echo ""
   echo "📂 从仓库目录运行: $SCRIPT_DIR"
 elif [ -d "$CLAUDE_DIR/.git" ]; then
-  # ~/.claude 已是 git 仓库 → git pull
-  echo ""
-  echo "📦 ~/.claude 已是 git 仓库，更新到最新..."
-  git -C "$CLAUDE_DIR" pull origin main 2>/dev/null || echo "  ⚠️  pull 失败，继续使用现有内容"
-  AIREIN_SRC="$CLAUDE_DIR"
+  # ~/.claude 已是 git 仓库 → 先校验 remote 是否 airein 自己的，再 pull。
+  # 不校验会静默 pull 外来 harness 的仓库（Bug 2026-07-09 首次部署命中）。
+  REMOTE_URL="$(git -C "$CLAUDE_DIR" config --get remote.origin.url 2>/dev/null || true)"
+  if is_airein_remote_url "$REMOTE_URL"; then
+    echo ""
+    echo "📦 ~/.claude 已是 airein 仓库，更新到最新..."
+    git -C "$CLAUDE_DIR" pull origin main 2>/dev/null || echo "  ⚠️  pull 失败，继续使用现有内容"
+    AIREIN_SRC="$CLAUDE_DIR"
+  else
+    # 外来 harness 的 git 仓库 → 不能 pull（会拉取错误仓库而非安装 airein）。
+    # 不自动删除用户的 .git：提示备份 + 移除旧 harness 后重装，由用户决策。
+    echo ""
+    echo "❌ ~/.claude 已是 git 仓库，但来源不是 airein："
+    echo "     remote.origin.url = ${REMOTE_URL:-（无 origin remote）}"
+    echo "   直接 pull 会拉取错误仓库而非安装 airein。"
+    echo "   请先备份个人数据并移除旧 harness（含 ~/.claude/.git），再重新运行 setup-airein.sh。"
+    exit 1
+  fi
 else
   # 需要 clone → 临时目录
   echo ""

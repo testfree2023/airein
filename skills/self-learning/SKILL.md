@@ -1,3 +1,9 @@
+---
+name: self-learning
+description: Identify persistent user allow/deny directives in passing while working and append them to the pending buffer file. Archiving to the per-project log and promotion to permanent L0 rules is handled automatically by Stop hooks. Use when the user expresses a durable preference mid-task that should outlive the session.
+disable-model-invocation: false
+---
+
 # Self-Learning（LLM 搭车识别 + Stop hook 归档晋升）
 
 > 本 skill 是自学习机制的**模型侧说明**。识别提示已由 `UserPromptSubmit` hook

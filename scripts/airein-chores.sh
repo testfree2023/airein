@@ -11,14 +11,24 @@
 
 CLAUDE_DIR="${1:-$HOME/.claude}"
 PROJECT_DIR="${2:-$(pwd)}"
-NODE_BIN="$(command -v node 2>/dev/null || true)"
-if [ -z "$NODE_BIN" ]; then
-  for candidate in "$HOME/.homebrew/bin/node" /opt/homebrew/bin/node /usr/local/bin/node; do
-    if [ -x "$candidate" ]; then
-      NODE_BIN="$candidate"
-      break
-    fi
-  done
+CHORES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HELPERS_LIB="$CHORES_DIR/lib/install-helpers.sh"
+if [ -f "$HELPERS_LIB" ]; then
+  # shellcheck source=lib/install-helpers.sh
+  . "$HELPERS_LIB"
+  NODE_BIN="$(resolve_node_bin)"
+else
+  # Degraded mode (half-installed state): fall back to the old inline resolve
+  # so chores keeps working when the shared lib is absent.
+  NODE_BIN="$(command -v node 2>/dev/null || true)"
+  if [ -z "$NODE_BIN" ]; then
+    for candidate in "$HOME/.homebrew/bin/node" /opt/homebrew/bin/node /usr/local/bin/node; do
+      if [ -x "$candidate" ]; then
+        NODE_BIN="$candidate"
+        break
+      fi
+    done
+  fi
 fi
 CREATED=0
 ERRORS=0

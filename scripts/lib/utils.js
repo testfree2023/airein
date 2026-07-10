@@ -396,12 +396,36 @@ function findFiles(dir, pattern, options = {}) {
 }
 
 /**
+ * Parse a raw stdin string into JSON, stripping a leading UTF-8 BOM (U+FEFF).
+ *
+ * Background: Cursor's `$OutputEncoding=[System.Text.Encoding]::UTF8` injects a BOM
+ * (EF BB BF) into hook stdin. Parsing the BOM-prefixed original makes JSON.parse throw,
+ * which `readStdinJson`'s catch silently turns into resolve({}) — a fail-open that
+ * strips the hook of its enforcement power (more dangerous than a loud error).
+ *
+ * Pure function (no IO) so it can be unit-tested directly; `readStdinJson` delegates
+ * here for both its timeout and end paths. Malformed non-empty input throws
+ * SyntaxError — the caller's catch preserves the existing resolve({}) tolerance.
+ *
+ * @param {string} data - Raw stdin accumulator (utf8).
+ * @returns {*} Parsed JSON value; {} for empty/whitespace-only input.
+ * @throws {SyntaxError} if input is non-empty but not valid JSON.
+ */
+function parseStdinData(data) {
+  // /^\uFEFF/ strips ONE leading BOM. The \uFEFF escape (not a literal U+FEFF char)
+  // keeps the strip robust to editor normalization / byte-level file rewrites.
+  const cleaned = String(data).replace(/^\uFEFF/, '');
+  return cleaned.trim() ? JSON.parse(cleaned) : {};
+}
+
+/**
  * Read JSON from stdin (for hook input)
  * @param {object} options - Options
  * @param {number} options.timeoutMs - Timeout in milliseconds (default: 5000).
  *   Prevents hooks from hanging indefinitely if stdin never closes.
  * @returns {Promise<object>} Parsed JSON object, or empty object if stdin is empty
  */
+
 async function readStdinJson(options = {}) {
   const { timeoutMs = 5000, maxSize = 1024 * 1024 } = options;
 
@@ -419,7 +443,7 @@ async function readStdinJson(options = {}) {
         if (process.stdin.unref) process.stdin.unref();
         // Resolve with whatever we have so far rather than hanging
         try {
-          resolve(data.trim() ? JSON.parse(data) : {});
+          resolve(parseStdinData(data));
         } catch {
           resolve({});
         }
@@ -438,7 +462,7 @@ async function readStdinJson(options = {}) {
       settled = true;
       clearTimeout(timer);
       try {
-        resolve(data.trim() ? JSON.parse(data) : {});
+        resolve(parseStdinData(data));
       } catch {
         // Consistent with timeout path: resolve with empty object
         // so hooks don't crash on malformed input
@@ -731,6 +755,7 @@ module.exports = {
   grepFile,
 
   // Hook I/O
+  parseStdinData,
   readStdinJson,
   log,
   output,

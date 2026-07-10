@@ -25,7 +25,17 @@ fi
 # Project-level settings.local.json is NOT read for hooks by CC.
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 
-# Resolve node binary (not in default PATH on some macOS setups)
-NODE_BIN="$(command -v node 2>/dev/null || echo /usr/local/bin/node)"
+# Resolve node binary robustly (nvm/fnm install node off the default PATH on
+# macOS; a non-interactive shell misses it — see install-helpers.sh). Prefer
+# the shared helper; fall back to the inline resolve only if the lib is absent
+# (half-installed state) so hook registration never silently breaks.
+HELPERS_LIB="$SCRIPT_DIR/lib/install-helpers.sh"
+if [ -f "$HELPERS_LIB" ]; then
+  # shellcheck source=lib/install-helpers.sh
+  . "$HELPERS_LIB"
+  NODE_BIN="$(resolve_node_bin)"
+else
+  NODE_BIN="$(command -v node 2>/dev/null || echo /usr/local/bin/node)"
+fi
 
 exec "$NODE_BIN" "$SCRIPT_DIR/merge-hooks.js" "$HOOKS_FILE" "$CLAUDE_DIR" "$SETTINGS_FILE"

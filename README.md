@@ -221,6 +221,31 @@ bash airein-unpack.sh airein-*.tar.gz      # 解包
 
 ---
 
+## 多宿主支持（v0.2 预览）
+
+v0.1 的 airein 只跑在 Claude Code 上。v0.2 正在把它扩展到 **4 个 AI 编码宿主**——同一个 airein 内核（skills / rules / hooks），通过一次命令分发到各宿主的原生配置目录：
+
+| 宿主 | 产物落点 | 阻断机制 |
+|------|---------|---------|
+| **Cursor** | `.cursor/`（skills + rules/*.mdc + hooks.json）| stdout `{permission:"deny"}` |
+| **Codex** | `.agents/skills/` + `AGENTS.md` + `.codex/config.toml` | stdout `{permissionDecision:"deny"}` |
+| **CodeBuddy** | `.codebuddy/` + `CODEBUDDY.md` + `.codebuddy/settings.json` | `exit 2` 原生透传 |
+| **OpenCode** | `AGENTS.md` + `opencode.json` + `.opencode/plugin/airein-bridge.ts` | `throw Error(stderr)` |
+
+```bash
+# 在你的项目目录里，任选宿主安装
+node scripts/install-host.js install --host cursor    # 或 codex / codebuddy / opencode
+```
+
+**两个关键保证**：
+
+- **CC 物理隔离**：4 宿主的 install / uninstall / verify 全程不读写 `~/.claude/`（CC 领地）。已装 airein 的 CC 环境叠加多宿主，CC 配置原样不动。
+- **单一真相源**：各宿主的 skills 与 CC 副本逐字节等价，rules 由 `rules/` + `docs/` 生成，hook 注册由 `hooks/hooks.json` 翻译——不是各宿主各写一份。
+
+> 这是 v0.2 预览特性（P001-cross-platform），随实现同步。各宿主前置条件、产物矩阵、阻断映射、故障排查详见 **[多宿主安装指南](docs/install-hosts.md)**；架构契约见 [deployment.md](docs/plans/P001-cross-platform/deployment.md)。
+
+---
+
 ## 附录 A：工作原理
 
 > 想深读的人看这里。日常使用不需要理解这些。

@@ -77,6 +77,7 @@ CORE_FILES=(
   "scripts/lib/runtime-metrics.js"      # dashboard/server.js requires it (omission crashed dashboard on deploy)
   "scripts/lib/resolve-formatter.js"    # hooks/post-edit-format.js + quality-gate.js require it
   "scripts/lib/commit-gate.js"          # hooks/pre-commit-gate.js requires it (classify staged files)
+  "scripts/lib/install-helpers.sh"      # setup/chores/merge-hooks source it (node resolution + remote check)
   # ── templates: reference config (always overwrite) ──
   "templates/quality.json"
   "templates/language-profiles/_default.json"
@@ -108,6 +109,21 @@ CORE_FILES=(
   "airein-unpack.sh"
   "RELEASES.md"
   "README.md"
+  # ── P001 multi-host adaptation layer (v0.2) ──
+  # install-host.js reads skills/hooks.json/opencode from repoRoot (= this install dir),
+  # so all P001 source files must ship alongside the dispatcher or it breaks at runtime.
+  "scripts/install-host.js"            # P001 dispatcher (install/plan/uninstall/verify CLI)
+  "scripts/lib/hook-register.js"       # K3 hook registration translator (4 hosts)
+  "scripts/lib/install-manifest.js"    # install-state JSON (no SQLite, decoupled from ECC)
+  "scripts/lib/skill-place.js"         # K1 skill placement (copy/none + name invariant)
+  "scripts/lib/rule-generate.js"       # K2 rule thin-shell generator (.mdc/AGENTS.md/...)
+  "scripts/lib/stdin-normalize.js"     # K3 stdin → CC schema normalization
+  "scripts/lib/host-adapter.js"        # K3 mapHookResult pure fn (block semantic mapping)
+  "scripts/hooks/host/host-runner.js"  # host entry IO runner (readStdin→norm→spawn→map)
+  "scripts/hooks/host/cursor.js"       # CUR entry (camelCase events + permission:deny)
+  "scripts/hooks/host/codex.js"        # CDX entry (stdin cwd resolve + permissionDecision)
+  "scripts/hooks/host/codebuddy.js"    # CB entry (schema identical to CC, identity map)
+  "opencode/bridge.ts"                 # OC TS plugin (install injects AIREIN_ROOT, throw to block)
 )
 
 # 文档模板：airein 结构模板源（new-plan/archive-plan 读取生成 plan 文档），随 airein 升级强制覆盖
@@ -179,6 +195,9 @@ VERIFY_FILES=(
   "scripts/update/clean-airein.sh"
   "scripts/update/sync-airein.sh"
   "scripts/update/verify-airein.sh"
+  # ── P001 dispatch sentinels: install-host + host-runner present = multi-host chain live ──
+  "scripts/install-host.js"
+  "scripts/hooks/host/host-runner.js"
 )
 
 # ═══════════════════════════════════════════════════════════════════
