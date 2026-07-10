@@ -222,6 +222,31 @@ bash airein-unpack.sh airein-*.tar.gz      # unpack
 
 ---
 
+## Multi-Host Support (v0.2 Preview)
+
+v0.1 of airein ran only on Claude Code. v0.2 is extending it to **4 AI coding hosts** — the same airein kernel (skills / rules / hooks) dispatched into each host's native config directory via a single command:
+
+| Host | Output location | Blocking mechanism |
+|------|-----------------|--------------------|
+| **Cursor** | `.cursor/` (skills + rules/*.mdc + hooks.json) | stdout `{permission:"deny"}` |
+| **Codex** | `.agents/skills/` + `AGENTS.md` + `.codex/config.toml` | stdout `{permissionDecision:"deny"}` |
+| **CodeBuddy** | `.codebuddy/` + `CODEBUDDY.md` + `.codebuddy/settings.json` | `exit 2` native passthrough |
+| **OpenCode** | `AGENTS.md` + `opencode.json` + `.opencode/plugin/airein-bridge.ts` | `throw Error(stderr)` |
+
+```bash
+# In your project directory, install into any host
+node scripts/install-host.js install --host cursor    # or codex / codebuddy / opencode
+```
+
+**Two key guarantees**:
+
+- **CC physical isolation**: the 4 hosts' install / uninstall / verify never touch `~/.claude/` (CC territory). Layering multi-host onto a CC environment already running airein leaves CC config untouched.
+- **Single source of truth**: each host's skills are byte-equivalent to the CC copy; rules are generated from `rules/` + `docs/`; hook registration is translated from `hooks/hooks.json` — not hand-maintained per host.
+
+> This is a v0.2 preview feature (P001-cross-platform), synced with implementation. Per-host prerequisites, product matrix, blocking mappings, and troubleshooting are in the **[Multi-Host Install Guide](docs/install-hosts.md)**; architectural contracts are in [deployment.md](docs/plans/P001-cross-platform/deployment.md).
+
+---
+
 ## Appendix A: How It Works
 
 > For those who want to read deep. Daily use doesn't require understanding this.

@@ -29,7 +29,6 @@ const {
   log,
   output
 } = require('../lib/utils');
-const { getPackageManager, getSelectionPrompt } = require('../lib/package-manager');
 const { listAliases } = require('../lib/session-aliases');
 const { aireinLog } = require('../lib/airein-logger');
 
@@ -144,14 +143,6 @@ async function main() {
     const aliasNames = aliases.map(a => a.name).join(', ');
     log(`[SessionStart] ${aliases.length} session alias(es) available: ${aliasNames}`);
     log(`[SessionStart] Use /sessions load <alias> to continue a previous session`);
-  }
-
-  // Detect and report package manager (stderr, no context injection)
-  const pm = getPackageManager();
-  log(`[SessionStart] Package manager: ${pm.name} (${pm.source})`);
-  if (pm.source === 'default') {
-    log('[SessionStart] No package manager preference found.');
-    log(getSelectionPrompt());
   }
 
   // --- MINIMAL OUTPUT (~200 tokens) ---
