@@ -172,6 +172,10 @@ case "$SCRIPT_DIR" in
   /tmp/airein*)
     if [ "$IS_FROM_REPO" = true ] && [ "$SCRIPT_DIR" != "$CLAUDE_DIR" ]; then
       echo "  🧹 清理临时文件: $SCRIPT_DIR"
+      # 先退出待删目录：调用方常 `cd /tmp/airein* && bash setup-airein.sh`，
+      # 当前 shell 的 cwd 仍在 SCRIPT_DIR，rm 后后续 merge-hooks/chores/verify
+      # 子进程 getcwd 失效（Bug 2026-07-10 双机重装发现）。
+      cd "$HOME" 2>/dev/null || cd / 2>/dev/null || true
       rm -rf "$SCRIPT_DIR"
     fi
     ;;
