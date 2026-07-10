@@ -9,7 +9,7 @@
  * Previously tried PreToolUse + additionalContext (also invisible for plugin hooks).
  * Only exit 2 + stderr is reliably visible to the model in PreToolUse.
  *
- * Exit code 2 = block with visible warning (model can choose to continue)
+ * Exit code 2 = block Write this turn; model must change path/naming and retry
  * Exit code 0 = allow (stdin passthrough)
  */
 
@@ -64,11 +64,13 @@ process.stdin.on('end', () => {
     const filePath = String(input.tool_input?.file_path || '');
 
     if (filePath && !isAllowedDocPath(filePath)) {
-      // PreToolUse exit 2 + stderr: visible to the model
+      // PreToolUse exit 2 + stderr: visible to the model.
+      // Wording must match the hard-block semantics — never imply "可以创建"
+      // (dogfood-found 2026-07-10: earlier wording said the file could be
+      // created, contradicting exit 2 and misleading the model into retrying).
       console.error(
-        `[Doc Warning] ⚠️ ${path.basename(filePath)}: 非标准文档文件位置。\n` +
-        `建议将文档放在 docs/ 目录下，或使用标准命名（README.md、CHANGELOG.md 等）。\n` +
-        `注意：此文件可以创建，但建议确认位置是否合理。`
+        `[Doc Warning] ⚠️ ${path.basename(filePath)}: 非标准文档文件位置,已阻断写入。\n` +
+        `请改放到 docs/ 目录下,或使用标准命名（README.md、CHANGELOG.md 等）。`
       );
       process.exit(2);
     }

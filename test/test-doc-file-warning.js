@@ -72,6 +72,15 @@ describe('doc-file-warning: path allowlist', suite => {
     const r = runDocWarn(path.join(projectRoot(), '.claude', 'self-learning', 'pending.md'));
     assertEqual(r.exitCode, 0, '.claude/self-learning allowed');
   });
+
+  suite.test('blocked stderr must not contradict exit 2 (no 可以创建 wording)', () => {
+    // exit 2 is a HARD block (Write denied this turn). The stderr must not
+    // claim the file "可以创建" — that misleads the model/user into retrying
+    // the same path expecting success. Dogfood-found 2026-07-10 (3.14 test).
+    const r = runDocWarn(path.join(projectRoot(), 'NOTES.md'));
+    assertEqual(r.exitCode, 2, 'root NOTES.md blocked');
+    assertOk(!/可以创建/.test(r.stderr), 'stderr must not claim 可以创建 (contradicts exit 2 hard block)');
+  });
 });
 
 process.exit(printSummary());
