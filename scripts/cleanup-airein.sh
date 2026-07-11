@@ -83,7 +83,7 @@ $f"
 done
 
 # 安装/更新/打包脚本（顶层）
-for f in setup-airein.sh update-airein.sh airein-pack.sh airein-unpack.sh; do
+for f in setup-airein.sh update-airein.sh; do
   [ -f "$AIREIN_SRC/$f" ] && SOURCE_FILES="$SOURCE_FILES
 $f"
 done
@@ -171,7 +171,7 @@ for f in README.md RELEASES.md CHANGELOG.md; do
 $f"
 done
 
-for f in setup-airein.sh update-airein.sh airein-pack.sh airein-unpack.sh; do
+for f in setup-airein.sh update-airein.sh; do
   [ -f "$CLAUDE_DIR/$f" ] && TARGET_FILES="$TARGET_FILES
 $f"
 done

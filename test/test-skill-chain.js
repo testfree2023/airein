@@ -154,7 +154,6 @@ describe('File consolidation: skill references', suite => {
       'scripts/cleanup-airein.sh',
       'scripts/manage-profile.js',
       'setup-airein.sh',
-      'airein-pack.sh',
       'CLAUDE.md',
       'README.md',
     ];
@@ -210,7 +209,6 @@ describe('rules retirement: python/typescript/common gone, 00/10/20 in place', s
       'README.md',
       'CONTEXT.md',
       'setup-airein.sh',
-      'airein-pack.sh',
       'scripts/update/sync-airein.sh',
       'scripts/manage-profile.js',
     ];

@@ -64,19 +64,29 @@ function getMode() {
 }
 
 /**
- * Get the confirmation file path for a given project directory.
+ * Get the confirmation file path.
+ *
+ * The project root is already known — Claude Code (and every supported host via
+ * P001 stdin normalization + host-runner.resolveCwd) launches hooks with
+ * process.cwd() set to the project root. Resolve it through the shared
+ * getProjectDir() helper, which also guards the CC edge case where cwd is
+ * ~/.claude/ rather than the project, and falls back via session lookup.
+ *
+ * Earlier this walked upward from the edited file looking for
+ * `.git`/`package.json`/`.claude` markers, which (a) silently locked non-git,
+ * non-node projects (dogfood 2026-07-10: airein-test had neither marker) and
+ * (b) was host-coupled — any filesystem marker is at best a heuristic for a
+ * fact the host already hands us via cwd. The project root is given, not guessed.
  */
-function getConfirmationFile(filePath) {
-  let dir = path.dirname(path.resolve(filePath));
-  for (let i = 0; i < 20; i++) {
-    if (fs.existsSync(path.join(dir, '.git')) || fs.existsSync(path.join(dir, 'package.json'))) {
-      return path.join(dir, '.claude', 'approval-confirmed.json');
-    }
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
+function getConfirmationFile() {
+  try {
+    const { getProjectDir } = require('../lib/utils');
+    const projectDir = getProjectDir();
+    if (!projectDir) return null;
+    return path.join(projectDir, '.claude', 'approval-confirmed.json');
+  } catch {
+    return null;
   }
-  return null;
 }
 
 /**
@@ -170,7 +180,7 @@ function handleApprovalChange(filePath, changes) {
   }
 
   // ── Console-confirm mode (default): block + confirmation file bypass ──
-  const confirmFile = getConfirmationFile(filePath);
+  const confirmFile = getConfirmationFile();
 
   if (checkConfirmation(confirmFile, approvalChanges)) {
     consumeConfirmation(confirmFile);

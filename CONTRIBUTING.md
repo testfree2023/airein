@@ -38,6 +38,23 @@ bash test/run-all.sh   # 确认全绿
 - **Trailer 策略**：airein 公开提交**不加 `Co-Authored-By` trailer**。git 作者署名即维护者；如需说明 AI 协作，放 PR 描述，不挂每条 commit 的幽灵共同作者。
 - 格式：`<type>: <description>`（Conventional Commits），body 用要点列 what / why。
 
+### 版本号维护（VERSION）
+
+仓库根 `VERSION` 文件是版本守卫（`setup`/`update` 降级拒绝、同版提醒）的依据。格式 `x.xx`：
+
+- **major** = plan 序号（P001→`1`、P002→`2`…），plan 切换时 `major+1`
+- **minor** = 当前 plan 内的 commit 序号（`00`–`99`），每次 commit `minor+1`
+
+手动递增（**无 hook 强制——靠贡献者纪律**，P002 design 明确选择文档而非强制）。示例：
+
+| 场景 | bump |
+|------|------|
+| 同 plan 第 2 次 commit | `1.00 → 1.01` |
+| 新 plan 首次 commit | `1.05 → 2.00` |
+| minor 触顶 | `1.99 → 2.00`（拆 plan；单 plan 内 100 次commit 不现实，触顶即信号该收尾归档） |
+
+漏 bump 不阻断提交，但会让下一位升级者看到「已装 == 源版本」的同版提醒——发现时顺手补上。
+
 ## 不可妥协的约束
 
 - **零 npm 依赖**：只用 Node.js 内建模块。引入新依赖需证明无法用内建实现 + 记录 ADR。

@@ -6,7 +6,7 @@
  *   - writing-plans/SKILL.md (was referencing superpowers:subagent-driven-development)
  *   - Any other skill files or repo files
  *
- * Exception: this test file, RELEASES.md mentions "Superpowers" as proper noun.
+ * Exception: this test file mentions "Superpowers" as a proper noun.
  */
 
 const fs = require('fs');

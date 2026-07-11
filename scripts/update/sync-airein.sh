@@ -105,9 +105,7 @@ CORE_FILES=(
   # ── top-level ──
   "setup-airein.sh"
   "update-airein.sh"
-  "airein-pack.sh"
-  "airein-unpack.sh"
-  "RELEASES.md"
+  "VERSION"                          # P002: 版本守卫读（安装目标 VERSION 供下次升级比较）
   "README.md"
   # ── P001 multi-host adaptation layer (v0.2) ──
   # install-host.js reads skills/hooks.json/opencode from repoRoot (= this install dir),
@@ -302,7 +300,6 @@ echo "  ✅ 复制/合并了 $UPDATED 个文件"
 
 # ── 模板文件（仅新增）─────────────────────────────────────────
 CREATED=0
-SKIPPED=0
 
 echo ""
 echo "📋 检查模板文件..."

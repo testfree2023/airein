@@ -54,7 +54,9 @@ const PROGRESS_CONTENT = PROGRESS_LINES.join('\n');
 function createTempProject() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-guard-'));
   fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
-  fs.mkdirSync(path.join(dir, '.git'));  // needed by getConfirmationFile()
+  // No `.git`/`package.json`: getConfirmationFile() resolves root via the shared
+  // getProjectDir() (process.cwd()), not filesystem markers — every test here
+  // is implicitly a non-git project (dogfood 2026-07-10 regression guard).
   return dir;
 }
 
@@ -360,6 +362,38 @@ describe('approval-guard [console-confirm]: confirmation file bypass', suite => 
         old_string: 'requirements: draft', new_string: 'requirements: approved'
       });
       assertEqual(fs.existsSync(cf), false, 'should be consumed');
+    } finally { removeTempProject(tmp); }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// Non-git project support (dogfood 2026-07-10)
+// ═══════════════════════════════════════════════════════════════════
+
+describe('approval-guard [console-confirm]: non-git project bypass', suite => {
+  // Dogfood-found 2026-07-10 (3.14 /new-plan on airein-test, a non-git project):
+  // getConfirmationFile() used to walk upward looking for `.git`/`package.json`
+  // markers and returned null when neither was found → checkConfirmation() always
+  // false → confirmation-file bypass permanently locked for non-git projects
+  // (the whole m-feature pipeline stalled: requirements stuck at `draft`,
+  // design.md / tasks.md uncreatable). Fix: resolve root via the shared
+  // getProjectDir() (process.cwd(), which every host sets to the project root)
+  // instead of guessing from filesystem markers. This fixture MUST NOT create
+  // `.git`/`package.json` — that would mask the regression by satisfying the old
+  // marker walk; it only seeds `.claude/config/` (via writeQualityConfig).
+  suite.test('accepts confirmation file in non-git project (only .claude/ present)', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-nongit-'));
+    try {
+      // NO .git, NO package.json — simulates a non-git, non-node airein project.
+      writeQualityConfig(tmp, 'console-confirm');  // creates <tmp>/.claude/config/
+      createPlanDir(tmp, 'P010-test', PROGRESS_CONTENT);
+      const pp = path.join(tmp, 'docs', 'plans', 'P010-test', 'progress.md');
+      const cf = path.join(tmp, '.claude', 'approval-confirmed.json');
+      fs.writeFileSync(cf, JSON.stringify({ requirements: 'approved' }));
+      const r = runHook(pp, tmp, 'Edit', {
+        old_string: 'requirements: draft', new_string: 'requirements: approved'
+      });
+      assertEqual(r.exitCode, 0, 'non-git airein project should accept confirmation file');
     } finally { removeTempProject(tmp); }
   });
 });

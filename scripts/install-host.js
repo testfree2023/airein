@@ -109,6 +109,21 @@ function rollbackWritten(targetRoot, written) {
 }
 
 /**
+ * Read airein package VERSION from repoRoot (P002 2.4). Missing/empty → undefined
+ * (pre-P002 sources have no VERSION; buildManifest omits the field → backward compatible).
+ * @param {string} repoRoot
+ * @returns {string|undefined}
+ */
+function readInstalledVersion(repoRoot) {
+  try {
+    const v = fs.readFileSync(path.join(repoRoot, 'VERSION'), 'utf8').trim();
+    return v || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Install airein into a host target (K1 + K2 + K3 + install-manifest).
  * @param {string} host - cursor/codex/codebuddy/opencode
  * @param {{targetRoot:string, repoRoot:string, platform?:string, dryRun?:boolean}} opts
@@ -169,7 +184,8 @@ function installHost(host, opts) {
     }
 
     // install-manifest（轻量 JSON，非 SQLite；幂等——同 host 二次 install manifest 等价）
-    const state = buildManifest(host, platform, written);
+    // P002 2.4：记录已装包版本（读 repoRoot/VERSION；缺失/空则省字段，向后兼容老 manifest）
+    const state = buildManifest(host, platform, written, readInstalledVersion(repoRoot));
     if (!dryRun) {
       fs.writeFileSync(toAbs(targetRoot, STATE_FILE), `${JSON.stringify(state, null, 2)}\n`);
     }
