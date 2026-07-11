@@ -65,6 +65,17 @@ describe('verify-airein.sh --host: ② 缺产物 → exit 1 + 报告缺失', (su
     } finally { rmTmp(tmp); }
   });
 
+  suite.test('cursor: 删 .cursor/commands → verify exit 1 + 报 commands', () => {
+    const tmp = mkTmp();
+    try {
+      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      fs.rmSync(path.join(tmp, '.cursor', 'commands'), { recursive: true, force: true });
+      const r = runVerify(['--host', 'cursor', '--root', tmp]);
+      assertOk(r.status !== 0, '删 commands → verify 非 0');
+      assertContains(r.stdout + r.stderr, 'commands', 'verify 报告缺失 commands');
+    } finally { rmTmp(tmp); }
+  });
+
   suite.test('opencode: 删 .opencode/plugin/airein-bridge.ts → verify exit 1', () => {
     const tmp = mkTmp();
     try {

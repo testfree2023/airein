@@ -8,7 +8,7 @@
 ## 核心保证
 
 - **CC 物理隔离**：4 宿主的 install / uninstall / verify 全程**不读写 `~/.claude/`**（CC 领地）。在已装 airein 的 CC 环境叠加多宿主，CC 的 `settings.json` / hooks / memory 原样保留（`test/test-cc-no-impact.js` 锁定）。
-- **单一真相源**：K1 skills（`SKILL.md`）逐字节等价 CC 副本；K2 rules 由 `rules/` + `docs/` 生成；K3 hook 注册由 `hooks/hooks.json` 翻译。
+- **单一真相源**：K1 skills（`SKILL.md`）逐字节等价 CC 副本；K2 rules 由 `rules/` + `docs/` 生成；K3 hook 注册由 `hooks/hooks.json` 翻译；**K4 commands** 由 `commands/*.md` 原样拷贝（P003）。
 - **幂等可重入**：同宿主重复 install 产物 hash 不变；install 中途失败回滚已写文件（`deployment §8`）。
 
 ## 通用命令
@@ -22,7 +22,7 @@ node scripts/install-host.js <install|plan|uninstall|verify> \
 
 | 子命令 | 用途 |
 |---|---|
-| `install` | 部署该宿主的 K1 skills + K2 rules + K3 hook 注册 + 归一化入口引用 |
+| `install` | 部署该宿主的 K1 skills + K2 rules + K3 hook 注册 + **K4 commands** + 归一化入口引用 |
 | `plan` | 等价 `install --dry-run`，仅打印产物清单，不写盘 |
 | `verify` | 自检产物完整性（manifest hash 校验 + 归一化入口存在） |
 | `uninstall` | 按 install-manifest + hash 校验清理（hash 不匹配报错中止，保护用户改动） |
@@ -39,6 +39,7 @@ node scripts/install-host.js <install|plan|uninstall|verify> \
   - K1 `skills/<name>/SKILL.md`
   - K2 `rules/*.mdc`（L0 `alwaysApply:true`；L1 `alwaysApply:false` + `globs`，`@include` 内联展开）
   - K3 `hooks.json`（事件名 camelCase：`preToolUse` / `sessionStart` / …；command 引用 `$CURSOR_PROJECT_DIR/scripts/hooks/host/cursor.js`）
+  - **K4** `commands/*.md`（16 个 slash command，如 `tdd.md` → `/tdd`）
 - **阻断机制**：PreToolUse `exit 2` → cursor.js 映射为 stdout `{permission:"deny"}`（CUR 原生协议）。
 
 ### Codex（CDX）
@@ -49,6 +50,7 @@ node scripts/install-host.js <install|plan|uninstall|verify> \
   - K1 `.agents/skills/<name>/SKILL.md`（**复数 `.agents`**，CDX 约定）
   - K2 `AGENTS.md`（L0 内联；L1 降级标注「hook 注入」，32KiB 上限）
   - K3 `.codex/config.toml`（Windows 额外 `command_windows` 字段；command 引用 `$PLUGIN_ROOT/scripts/hooks/host/codex.js`）
+  - K4 🚫 **N/A**（Codex `~/.codex/prompts/` 已 deprecated + bug #15941；install 时 errors 报 N/A，不部署）
 - **阻断机制**：PreToolUse `exit 2` → codex.js 映射为 stdout `{permissionDecision:"deny"}`（CDX 原生协议）。
 
 ### CodeBuddy（CB）
@@ -59,6 +61,7 @@ node scripts/install-host.js <install|plan|uninstall|verify> \
   - K1 `.codebuddy/skills/<name>/SKILL.md`
   - K2 `CODEBUDDY.md`（根） + `.codebuddy/rules/{00,10,20,30}-*.md` + `.codebuddy/rules/conventions-*.md`（薄壳 `paths` + `@include` 保留）
   - K3 `.codebuddy/settings.json`（schema 同 CC，command 引用 `$CODEBUDDY_PLUGIN_ROOT/scripts/hooks/host/codebuddy.js`）
+  - **K4** `.codebuddy/commands/*.md`
 - **阻断机制**：CB 原生识别 `exit 2` 并透传，**零阻断映射**（codebuddy.js 恒等归一化，直接 exit 2）。
 
 ### OpenCode（OC）
@@ -69,6 +72,7 @@ node scripts/install-host.js <install|plan|uninstall|verify> \
   - K1 **零放置**（OC 原生搜 `.claude/skills/`，不复制）
   - K2 `AGENTS.md`（L1 降级 `instructions` 数组）
   - K3 `opencode.json`（注册 plugin `.opencode/plugin/airein-bridge.ts`） + `.opencode/plugin/airein-bridge.ts`（install 时从仓库 `opencode/bridge.ts` 复制 + 注入 `AIREIN_ROOT` 正斜杠绝对路径）
+  - **K4** `commands/*.md`（项目根 `commands/`，OC 官方 docs/commands/）
 - **阻断机制**：bridge.ts 注册 `tool.execute.before` → spawn airein PreToolUse hook → `exit 2` → `throw Error(stderr)` 阻断 OC 工具执行。
 - **🚫 N/A 事件**：OC 事件集无 `session.idle`（Stop）/ UserPromptSubmit 对应项——物理不可达，install 时报错标注 N/A，不注册悬空 hook（design §6.3）。
 

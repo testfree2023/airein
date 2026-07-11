@@ -80,6 +80,7 @@ verify_host() {
       check_dir_nonempty "$target/.cursor/skills" "K1 skills" || errors=$((errors + 1))
       check_dir_nonempty "$target/.cursor/rules" "K2 rules (.mdc 目录)" || errors=$((errors + 1))
       check_file "$target/.cursor/hooks.json" "K3 hook 配置" || errors=$((errors + 1))
+      check_dir_nonempty "$target/.cursor/commands" "K4 commands" || errors=$((errors + 1))
       check_file "$REPO_ROOT/scripts/hooks/host/cursor.js" "归一化入口 cursor.js" || errors=$((errors + 1))
       ;;
     codex)
@@ -93,12 +94,14 @@ verify_host() {
       check_file "$target/CODEBUDDY.md" "K2 CODEBUDDY.md (root)" || errors=$((errors + 1))
       check_dir_nonempty "$target/.codebuddy/rules" "K2 L0 rules 目录" || errors=$((errors + 1))
       check_file "$target/.codebuddy/settings.json" "K3 hook 配置 settings.json" || errors=$((errors + 1))
+      check_dir_nonempty "$target/.codebuddy/commands" "K4 commands" || errors=$((errors + 1))
       check_file "$REPO_ROOT/scripts/hooks/host/codebuddy.js" "归一化入口 codebuddy.js" || errors=$((errors + 1))
       ;;
     opencode)
-      # OC 零 skill 放置（原生搜 .claude/skills/，deployment §3）；校验 K2/K3 + bridge.ts
+      # OC 零 skill 放置（原生搜 .claude/skills/，deployment §3）；校验 K2/K3/K4 + bridge.ts
       check_file "$target/AGENTS.md" "K2 rules AGENTS.md" || errors=$((errors + 1))
       check_file "$target/opencode.json" "K3 plugin 注册 opencode.json" || errors=$((errors + 1))
+      check_dir_nonempty "$target/commands" "K4 commands (项目根 commands/)" || errors=$((errors + 1))
       check_file "$target/.opencode/plugin/airein-bridge.ts" "OC bridge.ts 实体" || errors=$((errors + 1))
       check_file "$REPO_ROOT/opencode/bridge.ts" "归一化入口 bridge.ts (源)" || errors=$((errors + 1))
       ;;
