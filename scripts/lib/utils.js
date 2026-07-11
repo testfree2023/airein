@@ -29,22 +29,23 @@ function getClaudeDir() {
 
 /**
  * Resolve the real project directory.
- * Claude Code may call hooks with cwd = ~/.claude/ instead of the project dir.
- * Strategy: check cwd first, then extract from most recent session file.
+ *
+ * Every host sets process.cwd() to the project root (CC natively; Cursor/CB/CDX
+ * via P001 host-runner.resolveCwd). Trust cwd directly — session cache is ONLY
+ * for the CC edge case where cwd is mis-set to ~/.claude/ (the global config dir).
  */
 let _projectDir = null;
 function getProjectDir() {
   if (_projectDir) return _projectDir;
 
   const cwd = process.cwd();
+  const claudeDir = getClaudeDir();
 
-  // 1. cwd is a real project (has .claude/memory or .claude/config or .claude/quality.json)
-  //    but NOT if cwd is the airein install dir (has hooks/hooks.json)
-  const isAireinInstall = fs.existsSync(path.join(cwd, 'hooks', 'hooks.json'));
-  if (!isAireinInstall && (
-      fs.existsSync(path.join(cwd, '.claude', 'memory')) ||
-      fs.existsSync(path.join(cwd, '.claude', 'config')) ||
-      fs.existsSync(path.join(cwd, '.claude', 'quality.json')))) {
+  // 1. Trust cwd unless it IS the CC global config dir (~/.claude).
+  //    Never fall back to session cache for a real project cwd — stale
+  //    ~/.claude/projects/*/.project-path would write hooks data (approval
+  //    files, logs, session-state) into the wrong project (dogfood 2026-07-11).
+  if (path.resolve(cwd) !== path.resolve(claudeDir)) {
     _projectDir = cwd;
     return _projectDir;
   }
