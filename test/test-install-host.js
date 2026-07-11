@@ -23,15 +23,17 @@ const { spawnSync } = require('child_process');
 const { describe, assertEqual, assertOk, assertContains, assertNotContains, printSummary, projectRoot } = require('./helpers');
 const { installHost, uninstallHost, KNOWN_HOSTS } = require('../scripts/install-host');
 const { HOST_SKILLS_DIR } = require('../scripts/lib/skill-place');
+const { HOST_COMMANDS_DIR } = require('../scripts/lib/command-place');
 
 const ROOT = projectRoot();
+const COMMAND_COUNT = 16;
 
-// 每宿主产物矩阵（deployment §3）—— skills dir / rules 入口 / hook 配置入口
+// 每宿主产物矩阵（deployment §3 + P003 K4）—— skills dir / rules 入口 / hook 配置 / commands dir
 const MATRIX = {
-  cursor: { skillsDir: '.cursor/skills', rules: '.cursor/rules', hook: '.cursor/hooks.json', entryFrag: 'host/cursor' },
-  codex: { skillsDir: '.agents/skills', rules: 'AGENTS.md', hook: '.codex/config.toml', entryFrag: 'host/codex' },
-  codebuddy: { skillsDir: '.codebuddy/skills', rules: 'CODEBUDDY.md', hook: '.codebuddy/settings.json', entryFrag: 'host/codebuddy' },
-  opencode: { skillsDir: null, rules: 'AGENTS.md', hook: 'opencode.json', entryFrag: 'airein-bridge' },
+  cursor: { skillsDir: '.cursor/skills', rules: '.cursor/rules', hook: '.cursor/hooks.json', commandsDir: '.cursor/commands', entryFrag: 'host/cursor' },
+  codex: { skillsDir: '.agents/skills', rules: 'AGENTS.md', hook: '.codex/config.toml', commandsDir: null, entryFrag: 'host/codex' },
+  codebuddy: { skillsDir: '.codebuddy/skills', rules: 'CODEBUDDY.md', hook: '.codebuddy/settings.json', commandsDir: '.codebuddy/commands', entryFrag: 'host/codebuddy' },
+  opencode: { skillsDir: null, rules: 'AGENTS.md', hook: 'opencode.json', commandsDir: 'commands', entryFrag: 'airein-bridge' },
 };
 
 // ── fixture helpers ───────────────────────────────────────────────
@@ -43,6 +45,10 @@ function read(d, rel) { return fs.readFileSync(path.join(d, ...rel.split('/')), 
 function listSkillNames(d, skillsDir) {
   const dir = path.join(d, ...skillsDir.split('/'));
   return fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name) : [];
+}
+function listCommandFiles(d, commandsDir) {
+  const dir = path.join(d, ...commandsDir.split('/'));
+  return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort() : [];
 }
 
 describe('installHost: ① 4 宿主产物完整（design §3 矩阵）', (suite) => {
@@ -76,6 +82,14 @@ describe('installHost: ① 4 宿主产物完整（design §3 矩阵）', (suite)
         const hc = read(tmp, m.hook);
         assertOk(hc.trim().length > 0, `${host} hook 配置非空`);
         assertContains(hc, m.entryFrag, `${host} hook 配置引用归一化入口`);
+        // K4 commands（CDX N/A 不放置）
+        if (m.commandsDir) {
+          const cmds = listCommandFiles(tmp, m.commandsDir);
+          assertEqual(cmds.length, COMMAND_COUNT, `${host} commands 数量 == ${COMMAND_COUNT}`);
+          assertOk(exists(tmp, `${m.commandsDir}/tdd.md`), `${host} tdd.md 就位`);
+        } else {
+          assertOk(!exists(tmp, '.codex/commands'), `${host} 无 commands 放置`);
+        }
         // M1 回归（M2 补强）：非 OC 宿主 hook 配置含真实路由 hookId，绝不被错标 run-with-flags
         if (host !== 'opencode') {
           assertContains(hc, 'session-start', `${host} hook 配置含 session-start hookId`);
@@ -117,6 +131,24 @@ describe('installHost: ③ skill 单一真相源（SKILL.md hash == CC 副本）
           const ccHash = shaFile(path.join(ROOT, 'skills', n, 'SKILL.md'));
           const destHash = shaFile(path.join(tmp, ...`${m.skillsDir}/${n}/SKILL.md`.split('/')));
           assertEqual(ccHash, destHash, `${host} ${n}/SKILL.md hash == CC 副本`);
+        }
+      } finally { rmTmp(tmp); }
+    });
+  }
+});
+
+describe('installHost: ③b command 单一真相源（*.md hash == 仓库 commands/ 副本）', (suite) => {
+  for (const host of ['cursor', 'codebuddy', 'opencode']) {
+    suite.test(`${host}: 每个 command.md 逐字节等价真相源`, () => {
+      const tmp = mkTmp();
+      try {
+        installHost(host, { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+        const m = MATRIX[host];
+        const files = listCommandFiles(tmp, m.commandsDir);
+        for (const f of files) {
+          const ccHash = shaFile(path.join(ROOT, 'commands', f));
+          const destHash = shaFile(path.join(tmp, ...`${m.commandsDir}/${f}`.split('/')));
+          assertEqual(ccHash, destHash, `${host} ${f} hash == 仓库 commands/ 副本`);
         }
       } finally { rmTmp(tmp); }
     });

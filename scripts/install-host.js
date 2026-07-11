@@ -3,7 +3,8 @@
  * install-host — P001 跨宿主分发框架（design §9 · deployment §2-3 · test-plan §3.5）
  *
  * 独立轻量分发器，**零耦合 ECC**（deployment §1.2 偏差登记）。编排：
- *   K1 skill-place（T03）+ K2 rule-generate（T04）+ K3 hook-register + 归一化入口引用 + 轻量 install-manifest（JSON）
+ *   K1 skill-place（T03）+ K2 rule-generate（T04）+ K3 hook-register + K4 command-place（P003）
+ *   + 归一化入口引用 + 轻量 install-manifest（JSON）
  *
  * 子命令（幂等可重入）：install / plan（=install --dry-run）/ uninstall（hash 校验删）/ verify
  *
@@ -18,6 +19,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { skillPlace, HOST_SKILLS_DIR } = require('./lib/skill-place');
+const { commandPlace, HOST_COMMANDS_DIR } = require('./lib/command-place');
 const { ruleGenerate } = require('./lib/rule-generate');
 const { translateHooks } = require('./lib/hook-register');
 const { hashContent, hashFile, buildManifest } = require('./lib/install-manifest');
@@ -124,7 +126,7 @@ function readInstalledVersion(repoRoot) {
 }
 
 /**
- * Install airein into a host target (K1 + K2 + K3 + install-manifest).
+ * Install airein into a host target (K1 + K2 + K3 + K4 + install-manifest).
  * @param {string} host - cursor/codex/codebuddy/opencode
  * @param {{targetRoot:string, repoRoot:string, platform?:string, dryRun?:boolean}} opts
  * @returns {{written:Array<{path:string,hash:string,kind:string}>, state:object, errors:string[]}}
@@ -169,6 +171,15 @@ function installHost(host, opts) {
     errors.push(...hookRes.errors);
     for (const f of hookRes.files) {
       writeRel(targetRoot, f.path, f.content, written, 'hook-config', dryRun);
+    }
+
+    // K4 — commands（CDX N/A → errors；CUR/CB/OC copy 扁平 commands/*.md）
+    const commandRes = commandPlace(path.join(repoRoot, 'commands'), host, targetRoot);
+    errors.push(...commandRes.errors);
+    for (const a of commandRes.actions) {
+      if (a.type !== 'copy') continue;
+      const rel = `${HOST_COMMANDS_DIR[host]}/${a.name}.md`;
+      writeRel(targetRoot, rel, fs.readFileSync(a.src, 'utf8'), written, 'command', dryRun);
     }
 
     // OC 独轨（design §6.3 · T08）：复制 bridge.ts 实体到 .opencode/plugin/，注入 AIREIN_ROOT
