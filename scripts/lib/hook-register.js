@@ -87,16 +87,23 @@ function groupByEvent(hooks) {
 }
 
 function renderCursor(hooks, aireinRoot) {
+  // Cursor hooks.json 扁平 schema（≠ CC 嵌套 · 真机 Cursor IDE smoke 发现 2026-07-10）：
+  // Cursor 每个 definition 直接持有 {command, type, ...}，无 {matcher, hooks:[...]} 嵌套层
+  // （官方 docs：「The hooks object maps hook names to arrays of hook definitions. Each
+  // definition currently supports a command property」）。airein 曾照搬 CC 三层嵌套 → Cursor
+  // 解析 definition 时顶层找不到 command → 整个 hook 注册失败 → IDE 完全不触发（「matches
+  // Claude Code behavior」仅指 exit 2=deny 行为兼容，非配置 schema 兼容）。CLI 冒烟能过是
+  // 因为直接 spawn cursor.js 绕过了 Cursor 自身的 hooks.json 解析。
+  // 修：顶层 version:1 + definition 扁平 + 省略 matcher（type=object；省略=对所有工具触发，
+  // docs: preToolUse「fires for all tool types」）。CodeBuddy 仍用 CC 嵌套（design §6.2 同 CC，
+  // 待 CB 真机校准）—— 仅 Cursor 扁平化。
   const byEvent = groupByEvent(hooks);
-  const cfg = { hooks: {} };
+  const cfg = { version: 1, hooks: {} };
   for (const event of Object.keys(byEvent).sort()) {
     const camel = EVENT_CAMEL[event] || event.charAt(0).toLowerCase() + event.slice(1);
     cfg.hooks[camel] = byEvent[event].map((hookId) => ({
-      matcher: '*',
-      hooks: [{
-        type: 'command',
-        command: `node "${aireinRoot}/scripts/hooks/host/cursor.js" ${hookId}`,
-      }],
+      type: 'command',
+      command: `node "${aireinRoot}/scripts/hooks/host/cursor.js" ${hookId}`,
     }));
   }
   return JSON.stringify(cfg, null, 2);
