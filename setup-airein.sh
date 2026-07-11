@@ -13,9 +13,34 @@
 
 set -e
 
-PROXY_URL="${1:-}"
-API_KEY="${2:-}"
-REPO="git@github.com:testfree2023/airein.git"
+# ── argv 解析 ────────────────────────────────────────────────────
+# P002：支持 --source <dir|tar.gz|zip> [--sha256 <hex>] 本地源安装（网络不畅/离线）。
+# 兼容旧位置参数 [PROXY_URL] [API_KEY]（顺序：先 proxy 再 api-key）。
+SOURCE=""
+SHA256=""
+PROXY_URL=""
+API_KEY=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --source)
+      [[ $# -ge 2 ]] || { echo "❌ --source 缺值" >&2; exit 1; }
+      SOURCE="$2"; shift 2 ;;
+    --source=*) SOURCE="${1#--source=}"; shift ;;
+    --sha256)
+      [[ $# -ge 2 ]] || { echo "❌ --sha256 缺值" >&2; exit 1; }
+      SHA256="$2"; shift 2 ;;
+    --sha256=*) SHA256="${1#--sha256=}"; shift ;;
+    --help|-h) sed -n '2,13p' "$0" 2>/dev/null || true; exit 0 ;;
+    *)
+      if [[ -z "$PROXY_URL" ]]; then PROXY_URL="$1"
+      elif [[ -z "$API_KEY" ]]; then API_KEY="$1"
+      else echo "❌ 未知参数: $1" >&2; exit 1
+      fi
+      shift ;;
+  esac
+done
+
+REPO="https://github.com/testfree2023/airein.git"   # SSH→HTTPS（P002：clone 回退更稳）
 CLAUDE_DIR="$HOME/.claude"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMP_CLONE=""
@@ -23,7 +48,7 @@ TEMP_CLONE=""
 # of the installer tree; if it is missing the install is broken — abort early
 # with a clear message rather than failing mysteriously later.
 HELPERS_LIB="$SCRIPT_DIR/scripts/lib/install-helpers.sh"
-if [ ! -f "$HELPERS_LIB" ]; then
+if [[ ! -f "$HELPERS_LIB" ]]; then
   echo "❌ 安装器残缺：缺少 $HELPERS_LIB" >&2
   exit 1
 fi
@@ -33,6 +58,20 @@ fi
 NODE_BIN="$(resolve_node_bin)"
 HOOK_COUNT=0
 JS_COUNT=0
+
+# Node lib 路径（win32 git bash 的 MSYS POSIX 路径需转 mixed，否则 node require 不认盘符）
+NODE_LIB_DIR="$SCRIPT_DIR/scripts/lib"
+if command -v cygpath >/dev/null 2>&1; then
+  NODE_LIB_DIR="$(cygpath -m "$NODE_LIB_DIR")"
+fi
+# resolveSource 解压 tmpdir（跨进程 cleanup：node 退出后 cleanup 闭包失效，trap 用此字符串删）
+CLEANUP_DIR=""
+cleanup_extract() {
+  if [[ -n "$CLEANUP_DIR" && -d "$CLEANUP_DIR" ]]; then
+    rm -rf "$CLEANUP_DIR" 2>/dev/null || true
+  fi
+}
+trap cleanup_extract EXIT
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Airein — 一键初始化"
@@ -71,52 +110,145 @@ if [ $MISSING -eq 1 ]; then
 fi
 
 # ── 2. 确定 Airein 源文件位置 ───────────────────────────────────
-# 脚本可能从仓库内运行，也可能从任意位置运行
-# 需要确保 Airein 文件可用
+# 优先级：① --source <dir|pkg>（resolveSource 本地解析，不联网）② 仓库目录运行
+#         ③ ~/.claude/.git 是 airein remote → pull  ④ HTTPS clone 回退（REPO 已 HTTPS）
+AIREIN_SRC=""
+PKG_VERSION=""
 
-IS_FROM_REPO=false
-if [ -f "$SCRIPT_DIR/rules/00-iron-rules.md" ] && [ -f "$SCRIPT_DIR/hooks/hooks.json" ]; then
-  IS_FROM_REPO=true
+if [[ -n "$SOURCE" ]]; then
+  # ── 路径 ①：--source → node resolveSource（纯本地；sha256 可选；--source <dir> 不调 git）
+  echo ""
+  echo "📂 解析本地源: $SOURCE"
+  # win32 git bash 的 MSYS POSIX 路径需转 mixed，否则 node fs 不认盘符
+  NODE_SOURCE="$SOURCE"
+  if command -v cygpath >/dev/null 2>&1; then
+    NODE_SOURCE="$(cygpath -m "$SOURCE")"
+  fi
+  RESOLVE_OUT="$(AIREIN_NODE_LIB="$NODE_LIB_DIR" AIREIN_SOURCE="$NODE_SOURCE" AIREIN_SHA256="$SHA256" \
+    "$NODE_BIN" -e '
+    const { resolveSource, NoLocalSourceError } = require(process.env.AIREIN_NODE_LIB + "/source-resolver");
+    try {
+      const r = resolveSource({
+        source: process.env.AIREIN_SOURCE || undefined,
+        sha256: process.env.AIREIN_SHA256 || undefined,
+      });
+      console.log("OK=1");
+      console.log("SOURCE_DIR=" + r.sourceDir);
+      console.log("VERSION=" + (r.version || ""));
+      console.log("CLEANUP_DIR=" + r.cleanupDir);
+    } catch (e) {
+      console.log("OK=0");
+      console.log("MESSAGE=" + e.message);
+    }
+  ')" || { echo "❌ resolveSource 执行失败（node 错误）" >&2; exit 1; }
+  _ok=0
+  while IFS= read -r _line; do
+    case "$_line" in
+      OK=1) _ok=1 ;;
+      OK=0) _ok=0 ;;
+      SOURCE_DIR=*) AIREIN_SRC="${_line#SOURCE_DIR=}" ;;
+      VERSION=*) PKG_VERSION="${_line#VERSION=}" ;;
+      CLEANUP_DIR=*) CLEANUP_DIR="${_line#CLEANUP_DIR=}" ;;
+      MESSAGE=*) echo "❌ ${_line#MESSAGE=}" >&2 ;;
+    esac
+  done <<< "$RESOLVE_OUT"
+  if [[ $_ok -ne 1 || -z "$AIREIN_SRC" ]]; then
+    echo "❌ 本地源解析失败。请检查 --source 路径/格式（dir | .tar.gz | .zip）与 --sha256" >&2
+    exit 1
+  fi
+  echo "  ✅ 源就绪: $AIREIN_SRC${PKG_VERSION:+（v$PKG_VERSION）}"
+else
+  # ── 路径 ②③④：无 --source → 既有 3 路
+  IS_FROM_REPO=false
+  if [[ -f "$SCRIPT_DIR/rules/00-iron-rules.md" ]] && [[ -f "$SCRIPT_DIR/hooks/hooks.json" ]]; then
+    IS_FROM_REPO=true
+  fi
+
+  if [[ "$IS_FROM_REPO" = true ]] && [[ "$CLAUDE_DIR" != "$SCRIPT_DIR" ]]; then
+    AIREIN_SRC="$SCRIPT_DIR"
+    echo ""
+    echo "📂 从仓库目录运行: $SCRIPT_DIR"
+  elif [[ -d "$CLAUDE_DIR/.git" ]]; then
+    REMOTE_URL="$(git -C "$CLAUDE_DIR" config --get remote.origin.url 2>/dev/null || true)"
+    if is_airein_remote_url "$REMOTE_URL"; then
+      echo ""
+      echo "📦 ~/.claude 已是 airein 仓库，更新到最新..."
+      git -C "$CLAUDE_DIR" pull origin main 2>/dev/null || echo "  ⚠️  pull 失败，继续使用现有内容"
+      AIREIN_SRC="$CLAUDE_DIR"
+    else
+      echo ""
+      echo "❌ ~/.claude 已是 git 仓库，但来源不是 airein："
+      echo "     remote.origin.url = ${REMOTE_URL:-（无 origin remote）}"
+      echo "   直接 pull 会拉取错误仓库而非安装 airein。"
+      echo "   请先备份个人数据并移除旧 harness（含 ~/.claude/.git），再重新运行 setup-airein.sh。"
+      exit 1
+    fi
+  else
+    echo ""
+    echo "📥 下载 Airein 文件（HTTPS clone）..."
+    TEMP_CLONE="$(mktemp -d)"
+    if git clone --depth 1 "$REPO" "$TEMP_CLONE/airein" 2>/dev/null; then
+      AIREIN_SRC="$TEMP_CLONE/airein"
+      echo "  ✅ 下载完成"
+    else
+      echo "  ❌ clone 失败：$REPO"
+      echo "     网络不畅？从 GitHub 网页下载 source archive 后改用："
+      echo "     bash setup-airein.sh --source <dir|tar.gz|zip>"
+      rm -rf "$TEMP_CLONE"
+      exit 1
+    fi
+  fi
+  # 无 --source 的 3 路统一读 AIREIN_SRC/VERSION
+  if [[ -f "$AIREIN_SRC/VERSION" ]]; then
+    PKG_VERSION="$(tr -d '[:space:]' < "$AIREIN_SRC/VERSION")"
+  fi
 fi
 
-if [ "$IS_FROM_REPO" = true ] && [ "$CLAUDE_DIR" != "$SCRIPT_DIR" ]; then
-  # 从仓库目录运行，但不是 ~/.claude → 需要合并
-  AIREIN_SRC="$SCRIPT_DIR"
-  echo ""
-  echo "📂 从仓库目录运行: $SCRIPT_DIR"
-elif [ -d "$CLAUDE_DIR/.git" ]; then
-  # ~/.claude 已是 git 仓库 → 先校验 remote 是否 airein 自己的，再 pull。
-  # 不校验会静默 pull 外来 harness 的仓库（Bug 2026-07-09 首次部署命中）。
-  REMOTE_URL="$(git -C "$CLAUDE_DIR" config --get remote.origin.url 2>/dev/null || true)"
-  if is_airein_remote_url "$REMOTE_URL"; then
-    echo ""
-    echo "📦 ~/.claude 已是 airein 仓库，更新到最新..."
-    git -C "$CLAUDE_DIR" pull origin main 2>/dev/null || echo "  ⚠️  pull 失败，继续使用现有内容"
-    AIREIN_SRC="$CLAUDE_DIR"
-  else
-    # 外来 harness 的 git 仓库 → 不能 pull（会拉取错误仓库而非安装 airein）。
-    # 不自动删除用户的 .git：提示备份 + 移除旧 harness 后重装，由用户决策。
-    echo ""
-    echo "❌ ~/.claude 已是 git 仓库，但来源不是 airein："
-    echo "     remote.origin.url = ${REMOTE_URL:-（无 origin remote）}"
-    echo "   直接 pull 会拉取错误仓库而非安装 airein。"
-    echo "   请先备份个人数据并移除旧 harness（含 ~/.claude/.git），再重新运行 setup-airein.sh。"
+# ── 2b. 版本守卫（checkGuard）──────────────────────────────────
+# 读已装版本（CLAUDE_DIR/VERSION；P002 前老装无 VERSION → 首次装兼容）
+INSTALLED_VERSION=""
+if [[ -f "$CLAUDE_DIR/VERSION" ]]; then
+  INSTALLED_VERSION="$(tr -d '[:space:]' < "$CLAUDE_DIR/VERSION")"
+fi
+
+if [[ -n "$PKG_VERSION" ]]; then
+  GUARD_OUT="$(AIREIN_NODE_LIB="$NODE_LIB_DIR" AIREIN_PKG="$PKG_VERSION" AIREIN_INSTALLED="$INSTALLED_VERSION" \
+    "$NODE_BIN" -e '
+    const { checkGuard } = require(process.env.AIREIN_NODE_LIB + "/version-guard");
+    try {
+      const r = checkGuard({ pkgVer: process.env.AIREIN_PKG, installedVer: process.env.AIREIN_INSTALLED || undefined });
+      console.log("GUARD_OK=" + (r.ok ? 1 : 0));
+      console.log("ACTION=" + r.action);
+      console.log("MESSAGE=" + r.message);
+    } catch (e) {
+      console.log("GUARD_OK=ERR");
+      console.log("MESSAGE=" + e.message);
+    }
+  ')" || { echo "❌ checkGuard 执行失败" >&2; exit 1; }
+  _g_ok=""
+  _g_action=""
+  _g_msg=""
+  while IFS= read -r _line; do
+    case "$_line" in
+      GUARD_OK=*) _g_ok="${_line#GUARD_OK=}" ;;
+      ACTION=*) _g_action="${_line#ACTION=}" ;;
+      MESSAGE=*) _g_msg="${_line#MESSAGE=}" ;;
+    esac
+  done <<< "$GUARD_OUT"
+  if [[ "$_g_ok" == "ERR" ]]; then
+    echo "❌ 版本守卫失败：$_g_msg" >&2
     exit 1
+  fi
+  if [[ "$_g_ok" != "1" ]]; then
+    # downgrade → exit 1 硬拒绝 + 卸载提示（无 --force）
+    echo "❌ 版本守卫拒绝（降级）：$_g_msg" >&2
+    exit 1
+  fi
+  if [[ -n "$_g_msg" ]]; then
+    echo "  ℹ️  $_g_msg"
   fi
 else
-  # 需要 clone → 临时目录
-  echo ""
-  echo "📥 下载 Airein 文件..."
-  TEMP_CLONE=$(mktemp -d)
-  if git clone --depth 1 "$REPO" "$TEMP_CLONE/airein" 2>/dev/null; then
-    AIREIN_SRC="$TEMP_CLONE/airein"
-    echo "  ✅ 下载完成"
-  else
-    echo "  ❌ 下载失败，请检查网络和 SSH key"
-    echo "     确保 SSH key 已添加到 github.com"
-    rm -rf "$TEMP_CLONE"
-    exit 1
-  fi
+  echo "  ⚠️  源缺 VERSION 文件，跳过版本守卫（P002 前老源兼容）"
 fi
 
 # ── 3. 合并到 ~/.claude ──────────────────────────────────────────
@@ -134,7 +266,6 @@ if [ "$AIREIN_SRC" != "$CLAUDE_DIR" ]; then
     rsync -a --ignore-existing "$AIREIN_SRC/" "$CLAUDE_DIR/"
     # 始终更新的关键文件（即使用户有旧版本）
     rsync -a "$AIREIN_SRC/hooks/hooks.json" "$AIREIN_SRC/setup-airein.sh" "$CLAUDE_DIR/"
-    rsync -a "$AIREIN_SRC/airein-pack.sh" "$AIREIN_SRC/airein-unpack.sh" "$CLAUDE_DIR/" 2>/dev/null
     rsync -a "$AIREIN_SRC/README.md" "$CLAUDE_DIR/" 2>/dev/null
     rsync -a "$AIREIN_SRC/scripts/" "$CLAUDE_DIR/scripts/" 2>/dev/null
     rsync -a "$AIREIN_SRC/skills/init-project/" "$CLAUDE_DIR/skills/init-project/" 2>/dev/null

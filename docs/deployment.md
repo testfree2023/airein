@@ -134,10 +134,28 @@ bash ~/.claude/dashboard/start.sh   # 默认 http://localhost:3456
 | **Windows** | 用 **Git Bash**（非 cmd/PowerShell）；路径用正斜杠；`mktemp`/`sed -i` 等 GNU vs BSD 差异已在脚本内处理 |
 | **Node 路径** | 非 PATH 环境下脚本会探测 `~/.homebrew/bin/node`、`/opt/homebrew/bin/node`、`/usr/local/bin/node` |
 
-## 打包 / 分发
+## 离线安装 / 升级
 
-- `airein-pack.sh` — 打包当前仓库为可分发快照
-- `airein-unpack.sh` — 解包到目标
+GitHub 网页下载 source archive（tar.gz / zip）后本地安装（网络不畅场景，P002）：
+
+```bash
+bash setup-airein.sh --source <dir|tar.gz|zip> [--sha256 <hex>]   # 首次安装
+bash update-airein.sh --source <dir|tar.gz|zip>                    # 升级
+```
+
+可选 sha256 校验（GitHub archive 无官方 checksum sidecar，自行计算后传入；不传则跳过校验）：
+
+```bash
+sha256sum airein-2.00.tar.gz          # Linux / Git Bash
+shasum -a 256 airein-2.00.tar.gz      # macOS
+bash setup-airein.sh --source airein-2.00.tar.gz --sha256 <上一步输出的 hash>
+```
+
+源目录直装（已解压或本地 `git clone` 的仓库）跳过解压，不触网、不调 git：
+
+```bash
+bash setup-airein.sh --source /path/to/airein-repo
+```
 
 ## 安全声明
 

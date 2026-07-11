@@ -49,12 +49,10 @@ airein/
 │  ├─ lib/          # bash 库（被 source；多数逻辑在 lib/*.js）
 │  └─ update/       # sync-airein.sh / clean-airein.sh / verify-airein.sh
 ├─ setup-airein.sh     # 安装入口
-├─ airein-pack.sh      # 打包
-├─ airein-unpack.sh    # 解包
 └─ update-airein.sh    # 增量更新
 ```
 
-**约定**：库函数放 `lib/` 供多脚本 source；顶层入口脚本（`setup-`/`airein-pack`/`update-`）只做编排，复杂逻辑下沉到 lib 或 `scripts/lib/*.js`。
+**约定**：库函数放 `lib/` 供多脚本 source；顶层入口脚本（`setup-`/`update-`）只做编排，复杂逻辑下沉到 lib 或 `scripts/lib/*.js`。
 
 ## 4. source / 导入规范 (Sourcing)
 

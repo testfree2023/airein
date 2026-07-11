@@ -210,12 +210,13 @@ Update policy (protects your config):
 
 Onboarded projects don't need to re-run `/init-project`; just continue working after the update.
 
-**Offline migration (machines without git)**:
+**Offline install/upgrade (flaky network or no git)**:
+
+Download the source archive (tar.gz / zip) from GitHub, copy it to the target machine, then:
 
 ```bash
-bash airein-pack.sh /path/to/output              # pack
-scp airein-*.tar.gz user@newhost:~/         # copy
-bash airein-unpack.sh airein-*.tar.gz      # unpack
+bash setup-airein.sh --source <dir|tar.gz|zip> [--sha256 <hex>]   # first install
+bash update-airein.sh --source <dir|tar.gz|zip>                    # upgrade
 ```
 
 **Team sharing**: make the `~/.claude` repo a shared team git repo; each member clones it and configures their own `settings.json` (keys differ). Project-level `docs/` and `quality.json` travel with the project repo.
@@ -367,7 +368,7 @@ A: Most of those are "prompt-level" constraints — written in rule files, relyi
 A: Yes, flexibly configure in `.claude/config/quality.json`: disable TDD (`testGuard.enabled: false`), TDD warn-only (`mode: "advisory"`), downgrade blocking (`blocking.testFailure: false`), turn off plan gate (`planGate.mode: "disabled"`). Or drag toggles directly in the Dashboard panel.
 
 **Q: Will self-learning memory be lost when I change machines?**
-A: The self-learning archive is at `~/.claude/projects/{key}/self-learning-archive.md`, project-isolated, not in git. Manually copy that directory on migration, or pack with `airein-pack.sh`.
+A: The self-learning archive is at `~/.claude/projects/{key}/self-learning-archive.md`, project-isolated, not in git. Manually copy that directory on migration.
 
 **Q: My project has no test framework — will stop-test-gate error?**
 A: No. The hook detects project type (package.json / pom.xml / Cargo.toml, etc.) and skips if no matching test framework is found.

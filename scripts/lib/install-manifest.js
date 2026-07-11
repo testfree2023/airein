@@ -37,15 +37,20 @@ function hashFile(absPath) {
  * @param {string} host - One of cursor/codex/codebuddy/opencode.
  * @param {string} platform - windows/macos/linux.
  * @param {Array<{path:string,hash:string}>} files - Written files (path is POSIX-relative to targetRoot).
- * @returns {{version:number, host:string, platform:string, files:Array<{path:string,hash:string}>}}
+ * @param {string} [installedVersion] - P002: airein VERSION of the installed package
+ *   (read by caller from repoRoot/VERSION). Omitted for pre-P002 callers → field absent
+ *   (backward compatible with old manifests). Truthy values only — empty string not recorded.
+ * @returns {{version:number, host:string, platform:string, files:Array<{path:string,hash:string}>, installedVersion?:string}}
  */
-function buildManifest(host, platform, files) {
-  return {
+function buildManifest(host, platform, files, installedVersion) {
+  const manifest = {
     version: 1,
     host,
     platform,
     files: files.map((f) => ({ path: f.path, hash: f.hash })),
   };
+  if (installedVersion) manifest.installedVersion = installedVersion;
+  return manifest;
 }
 
 module.exports = { hashContent, hashFile, buildManifest };

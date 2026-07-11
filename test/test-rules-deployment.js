@@ -129,12 +129,6 @@ describe('P017: sibling deploy scripts do not own ~/.claude/CLAUDE.md', suite =>
     const content = fs.readFileSync(p, 'utf8');
     assertContains(content, 'rules/00-iron-rules.md', 'cleanup-airein.sh should detect the airein repo via rules/00, not CLAUDE.md');
   });
-
-  suite.test('airein-unpack.sh does NOT advertise CLAUDE.md as an install artifact', () => {
-    const p = path.join(root, 'airein-unpack.sh');
-    const content = fs.readFileSync(p, 'utf8');
-    assertNotContains(content, '✅ CLAUDE.md', 'airein-unpack.sh must not report CLAUDE.md as installed by airein');
-  });
 });
 
 // ── Run standalone ─────────────────────────────────────────────────
