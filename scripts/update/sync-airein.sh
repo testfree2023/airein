@@ -105,6 +105,8 @@ CORE_FILES=(
   "scripts/merge-hooks.js"
   "scripts/airein-chores.sh"
   "scripts/migrate-paths.sh"
+  "scripts/migrate-project-to-airein.js"
+  "scripts/lib/project-migrate.js"
   "scripts/diagnose-hooks.sh"
   "scripts/cleanup-airein.sh"
   "scripts/migrate-plans.js"

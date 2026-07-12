@@ -281,6 +281,7 @@ function printUsage(out = process.stdout) {
     '  · CC 注册层: ~/.claude/（symlink + settings.json hooks）',
     '  · Cursor 注册层: ~/.cursor/（skills / rules / hooks.json；全局安装 --root=$HOME）',
     '  · update 后自动跑 verify --full；手动复验用上面 --full 命令',
+    '  · 项目迁移（老 .claude 结构）: node ~/.airein/scripts/migrate-project-to-airein.js',
     '  · 更多文档: README.md · docs/deployment.md',
     '',
   ];

@@ -134,6 +134,22 @@ bash ~/.airein/scripts/update/verify-airein.sh --host cursor --root /path/to/pro
 
 详见 [test-plan.md](test-plan.md#回归门禁)。
 
+## 项目结构迁移（P004 前老项目）
+
+P004 前项目数据在 `<项目>/.claude/`；新标准 canonical 在 `<项目>/.airein/`（CC 另建 `.claude/rules` shim）。
+
+在每个老项目根执行一次：
+
+```bash
+cd /path/to/your-project
+node ~/.airein/scripts/migrate-project-to-airein.js --dry-run   # 预览
+node ~/.airein/scripts/migrate-project-to-airein.js            # 执行
+```
+
+迁移内容：`quality.json`、`memory/`、`logs/`、`self-learning/`、`rules/` → `.airein/` 对应路径；hooks 读路径自动 fallback legacy，**新写入走 `.airein/`**。
+
+旧包装器仍可用：`bash ~/.airein/scripts/migrate-paths.sh`（内部转发到上述脚本）。
+
 ## 更新
 
 ```bash

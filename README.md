@@ -115,7 +115,13 @@ claude
 ```
 
 - **新项目**：模型自动检测到没有 `docs/roadmap.md`，引导你执行 `/init-project`，只创建精简骨架。
-- **进行中项目**：首次迁移时执行一次 `/init-project`，扫描代码库生成 roadmap 和项目文档；之后每次 session 自动恢复上次位置，AI 会主动告诉你下一步该做什么。
+- **进行中项目**：首次迁移时在每个项目根执行一次：
+  ```bash
+  cd /path/to/your-project
+  node ~/.airein/scripts/migrate-project-to-airein.js
+  # 预览：加 --dry-run
+  ```
+  将 legacy `.claude/config|memory|…` 迁到 canonical `.airein/`，并为 CC 建 `.claude/rules` shim。之后可用 `/init-project` 补全 roadmap 等文档。
 - **建议第一件事**：告诉模型项目的构建/测试命令（写进项目级 `CLAUDE.md` 即可）。
 
 ### 日常：你会用到的几个命令
