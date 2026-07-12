@@ -178,4 +178,12 @@ describe('verify-airein.sh: ⑥ --full 按 profile 验全部层', (suite) => {
   });
 });
 
+describe('verify-airein.sh: bash3.2 变量边界（全角括号）', (suite) => {
+  suite.test('禁止 $var（ 未加花括号（Mac bash 3.2 + set -u 会 unbound）', () => {
+    const sh = fs.readFileSync(path.join(ROOT, 'scripts/update/verify-airein.sh'), 'utf8');
+    const bad = sh.match(/\$[a-zA-Z_][a-zA-Z0-9_]*（/g);
+    assert(!bad || bad.length === 0, `应使用 \${var}（ 而非 $var（: ${(bad || []).join(', ')}`);
+  });
+});
+
 process.exit(printSummary());

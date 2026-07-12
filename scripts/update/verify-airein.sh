@@ -291,7 +291,7 @@ verify_cc_registration() {
       } catch { console.log('unified'); }
     " "$profile_file" 2>/dev/null || echo "unified")
   fi
-  echo "  📦 delivery: $delivery（skills/commands）；rules 固定 deploy"
+  echo "  📦 delivery: ${delivery}（skills/commands）；rules 固定 deploy"
 
   local shim
   for shim in skills commands; do
@@ -305,11 +305,11 @@ verify_cc_registration() {
         if [ -n "$real_link" ] && [ "$real_link" = "$real_expected" ]; then
           echo "  ✅ $shim symlink → $real_link"
         else
-          echo "  ❌ $shim symlink 指向错误: $link → $real_link（期望 $real_expected）"
+          echo "  ❌ $shim symlink 指向错误: $link → ${real_link}（期望 ${real_expected}）"
           errors=$((errors + 1))
         fi
       elif [ -e "$link" ]; then
-        echo "  ❌ $shim 是实体路径而非 symlink（delivery=unified，应指向 $expected）"
+        echo "  ❌ $shim 是实体路径而非 symlink（delivery=unified，应指向 ${expected}）"
         errors=$((errors + 1))
       else
         echo "  ❌ 缺 $shim symlink: $link"
@@ -384,7 +384,7 @@ verify_host_checks() {
   case "$host" in
     cursor|codex|codebuddy|opencode) ;;
     *)
-      echo "❌ 未知 host: $host（已知: cursor/codex/codebuddy/opencode)"
+      echo "❌ 未知 host: ${host}（已知: cursor/codex/codebuddy/opencode)"
       return 1
       ;;
   esac
@@ -527,7 +527,7 @@ verify_full() {
             ;;
           *)
             echo ""
-            echo "  ⚠️  跳过未知宿主 $hid（无 verify 规则）"
+            echo "  ⚠️  跳过未知宿主 ${hid}（无 verify 规则）"
             ;;
         esac
       done <<< "$host_ids"
