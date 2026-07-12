@@ -31,6 +31,7 @@ const {
 const { aireinLog } = require('../lib/airein-logger');
 const { archiveAndPromote } = require('../lib/self-learning');
 const { loadQualityConfig } = require('../lib/quality-config');
+const { projectDataSubpath, projectDataSubpathForRead } = require('../lib/project-paths');
 
 const SUMMARY_START_MARKER = '<!-- ECC:SUMMARY:START -->';
 const SUMMARY_END_MARKER = '<!-- ECC:SUMMARY:END -->';
@@ -334,11 +335,11 @@ function escapeRegExp(value) {
 }
 
 /**
- * Write a lean session-state.md to the project's .claude/ directory.
+ * Write a lean session-state.md to the project's .airein/ directory.
  * This file serves as the JIT context recovery point for new sessions.
  */
 function writeSessionState(summary, metadata, transcriptPath) {
-  const memoryDir = path.join(getProjectDir(), '.claude', 'memory');
+  const memoryDir = projectDataSubpath(getProjectDir(), 'memory');
   const stateFile = path.join(memoryDir, 'session-state.md');
 
   try {
@@ -391,11 +392,11 @@ function writeSessionState(summary, metadata, transcriptPath) {
 }
 
 /**
- * Write a daily chat log entry to .claude/memory/chat-YYYY-MM-DD.md
+ * Write a daily chat log entry to .airein/memory/chat-YYYY-MM-DD.md
  * Extracts richer content from transcript: user request, assistant summary, errors.
  */
 function writeChatLog(summary, metadata) {
-  const memoryDir = path.join(getProjectDir(), '.claude', 'memory');
+  const memoryDir = projectDataSubpath(getProjectDir(), 'memory');
   try {
     if (!fs.existsSync(memoryDir)) {
       fs.mkdirSync(memoryDir, { recursive: true });
@@ -532,7 +533,7 @@ function updateMemoryIndex(ccMemoryDir, fileName, description) {
  * 缓冲 → 存档 → rules/30 晋升。挂在 Stop 链末尾（writeChatLog 后）。
  * 全程 fail-open：任何异常只 aireinLog，不影响 session-state/chat-log/exit。
  * 自学习不碰 memory——archive 落在 transcript 同目录（与 memory/ 同级），rules
- * 落在项目 rules/，pending 在项目 .claude/self-learning/。
+ * 落在项目 rules/，pending 在项目 .airein/self-learning/。
  */
 function runSelfLearning(transcriptPath) {
   try {
@@ -546,7 +547,7 @@ function runSelfLearning(transcriptPath) {
     const threshold = (cfg.selfLearning && cfg.selfLearning.promotionThreshold) || 3;
 
     const result = archiveAndPromote({
-      pendingPath: path.join(projectDir, '.claude', 'self-learning', 'pending.md'),
+      pendingPath: projectDataSubpath(projectDir, 'self-learning', 'pending.md'),
       archivePath: path.join(projectsKeyDir, 'self-learning-archive.md'),
       rulesPath: path.join(projectDir, 'rules', '30-self-learned.md'),
       threshold

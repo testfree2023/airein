@@ -95,7 +95,8 @@ describe('getProjectDir: cwd wins over stale session cache', suite => {
     const realProject = fs.mkdtempSync(path.join(os.tmpdir(), 'airein-gpd-proj3-'));
     try {
       fs.mkdirSync(claudeDir, { recursive: true });
-      fs.mkdirSync(path.join(realProject, '.claude'), { recursive: true });
+      fs.mkdirSync(path.join(realProject, '.airein', 'config'), { recursive: true });
+      fs.writeFileSync(path.join(realProject, '.airein', 'config', 'quality.json'), '{}');
       injectSessionCache(home, 'sess3', realProject);
 
       const got = runGetProjectDir(claudeDir, home, 'sess3');

@@ -2,33 +2,24 @@
 # merge-hooks.sh — Register hooks into GLOBAL settings.json
 #
 # Usage:
-#   bash scripts/merge-hooks.sh <claude-dir> [project-dir]
+#   bash scripts/merge-hooks.sh [airein-kernel-root] [project-dir]
 #
-# Delegates to merge-hooks.js for cross-platform compatibility.
-# Registers hooks to GLOBAL ~/.claude/settings.json because CC only reads
-# hooks from there (not project-level settings.local.json).
-#
-# Self-heal: session-start.js detects when CC overwrites settings.json
-# (e.g. on /model switch) and re-runs this script automatically.
+# Arg1: airein kernel (~/.airein) — ${CLAUDE_PLUGIN_ROOT} resolves here (P004).
+# settings.json target: ~/.claude/settings.json (CC registration layer).
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CLAUDE_DIR="${1:-$HOME/.claude}"
+AIREIN_ROOT="${1:-$HOME/.airein}"
 PROJECT_DIR="${2:-$(pwd)}"
-HOOKS_FILE="$CLAUDE_DIR/hooks/hooks.json"
+HOOKS_FILE="$AIREIN_ROOT/hooks/hooks.json"
+CC_HOME="${CLAUDE_DIR:-$HOME/.claude}"
 
 if [ ! -f "$HOOKS_FILE" ]; then
   echo "  ⚠️  hooks.json not found: $HOOKS_FILE"
   exit 1
 fi
 
-# Target GLOBAL settings.json — CC only reads hooks from here.
-# Project-level settings.local.json is NOT read for hooks by CC.
-SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+SETTINGS_FILE="$CC_HOME/settings.json"
 
-# Resolve node binary robustly (nvm/fnm install node off the default PATH on
-# macOS; a non-interactive shell misses it — see install-helpers.sh). Prefer
-# the shared helper; fall back to the inline resolve only if the lib is absent
-# (half-installed state) so hook registration never silently breaks.
 HELPERS_LIB="$SCRIPT_DIR/lib/install-helpers.sh"
 if [ -f "$HELPERS_LIB" ]; then
   # shellcheck source=lib/install-helpers.sh
@@ -38,4 +29,4 @@ else
   NODE_BIN="$(command -v node 2>/dev/null || echo /usr/local/bin/node)"
 fi
 
-exec "$NODE_BIN" "$SCRIPT_DIR/merge-hooks.js" "$HOOKS_FILE" "$CLAUDE_DIR" "$SETTINGS_FILE"
+exec "$NODE_BIN" "$SCRIPT_DIR/merge-hooks.js" "$HOOKS_FILE" "$AIREIN_ROOT" "$SETTINGS_FILE"

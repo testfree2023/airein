@@ -45,12 +45,12 @@ function runHook(stdinPayload, options = {}) {
 // which is exactly the condition that triggered the noise.
 function makeTempProject(opts = {}) {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'ss-start-proj-'));
-  fs.mkdirSync(path.join(cwd, '.claude', 'memory'), { recursive: true });
+  fs.mkdirSync(path.join(cwd, '.airein', 'memory'), { recursive: true });
   // Seed a session-state.md so the hook has real context to inject — lets the
   // regression guard verify context injection still works after silencing PM.
   if (opts.seedState) {
     fs.writeFileSync(
-      path.join(cwd, '.claude', 'memory', 'session-state.md'),
+      path.join(cwd, '.airein', 'memory', 'session-state.md'),
       [
         '# Session State',
         '',

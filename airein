@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# airein — unified install orchestrator (P004)
+# Usage: airein setup|update|uninstall [options]
+
+set -euo pipefail
+
+AIREIN_HOME="${AIREIN_HOME:-$HOME/.airein}"
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
+# Resolve runnable tree: prefer ~/.airein kernel, else script's directory (dev checkout).
+if [[ -f "$AIREIN_HOME/scripts/lib/install-orchestrator.js" ]]; then
+  ROOT="$AIREIN_HOME"
+elif [[ -f "$(dirname "$SCRIPT_PATH")/scripts/lib/install-orchestrator.js" ]]; then
+  ROOT="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+else
+  echo "❌ airein kernel not found. Run from airein repo or install to ~/.airein first." >&2
+  exit 1
+fi
+
+HELPERS="$ROOT/scripts/lib/install-helpers.sh"
+if [[ -f "$HELPERS" ]]; then
+  # shellcheck source=scripts/lib/install-helpers.sh
+  . "$HELPERS"
+  NODE_BIN="$(resolve_node_bin)"
+else
+  NODE_BIN="$(command -v node 2>/dev/null || true)"
+fi
+
+if [[ -z "$NODE_BIN" ]]; then
+  echo "❌ Node.js required" >&2
+  exit 1
+fi
+
+export AIREIN_SCRIPT_DIR="$ROOT"
+exec "$NODE_BIN" "$ROOT/scripts/lib/install-orchestrator.js" "$@"

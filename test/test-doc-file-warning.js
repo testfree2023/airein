@@ -73,6 +73,21 @@ describe('doc-file-warning: path allowlist', suite => {
     assertEqual(r.exitCode, 0, '.claude/self-learning allowed');
   });
 
+  suite.test('allows SECURITY.md at project root', () => {
+    const r = runDocWarn(path.join(projectRoot(), 'SECURITY.md'));
+    assertEqual(r.exitCode, 0, 'SECURITY.md allowed at root');
+  });
+
+  suite.test('allows CODE_OF_CONDUCT.md at project root', () => {
+    const r = runDocWarn(path.join(projectRoot(), 'CODE_OF_CONDUCT.md'));
+    assertEqual(r.exitCode, 0, 'CODE_OF_CONDUCT.md allowed at root');
+  });
+
+  suite.test('allows SUPPORT.md at project root', () => {
+    const r = runDocWarn(path.join(projectRoot(), 'SUPPORT.md'));
+    assertEqual(r.exitCode, 0, 'SUPPORT.md allowed at root');
+  });
+
   suite.test('blocked stderr must not contradict exit 2 (no 可以创建 wording)', () => {
     // exit 2 is a HARD block (Write denied this turn). The stderr must not
     // claim the file "可以创建" — that misleads the model/user into retrying

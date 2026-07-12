@@ -13,9 +13,9 @@ Initialize a project into the Airein system. Automatically detects whether the p
 即将为项目创建以下标准文件：
   1. docs/roadmap.md — 项目状态总览（含 Issues、Recent Changes）
   2. docs/adr/ — 架构决策记录（仅在需要时创建）
-  3. .claude/memory/memory.md — 已确认的规则和偏好
-  4. .claude/memory/session-state.md — 会话状态
-  5. .claude/config/quality.json — 质量门禁配置
+  3. .airein/memory/memory.md — 已确认的规则和偏好
+  4. .airein/memory/session-state.md — 会话状态
+  5. .airein/config/quality.json — 质量门禁配置
 
 注意事项：
   - 已存在的文件不会被覆盖，只会补充缺失的内容
@@ -29,9 +29,9 @@ Initialize a project into the Airein system. Automatically detects whether the p
 
 Before doing anything, check if the project was already initialized:
 
-1. `.claude/memory/session-state.md` — search for `onboarded` keyword
+1. `.airein/memory/session-state.md` — search for `onboarded` keyword
 2. `docs/roadmap.md` — exists and has `## Issues` section
-3. `.claude/config/quality.json` — exists
+3. `.airein/config/quality.json` — exists
 
 **If already onboarded:**
 - Warn: `⚠️ 此项目已于 [日期] 完成 init。重新执行会追加内容到已有文件，不会覆盖。`
@@ -41,10 +41,13 @@ Before doing anything, check if the project was already initialized:
 ## Phase 0: Ensure directories exist
 
 ```bash
-mkdir -p docs/plans docs/adr .claude/config .claude/memory
+mkdir -p docs/plans docs/adr .airein/config .airein/memory .airein/rules
 ```
 
-Verify: `ls -d docs/plans docs/adr .claude/config .claude/memory`
+Verify: `ls -d docs/plans docs/adr .airein/config .airein/memory .airein/rules`
+
+**CC 项目**：运行 `bash ~/.airein/scripts/airein-chores.sh` 创建 `.claude/rules` shim → `.airein/rules`（P004）。
+
 If any directory already has content, don't delete or empty — only fill gaps.
 
 ## Auto-detect: Empty vs Existing project
@@ -70,8 +73,8 @@ For brand new projects with no code — only create essential scaffolding:
 
 1. **Create `docs/roadmap.md`** (from template below)
 2. **Create `docs/adr/README.md`** (if not already present)
-3. **Create `.claude/memory/memory.md`** (empty template, if not present)
-4. **Create `.claude/memory/session-state.md`** (initial state, if not present)
+3. **Create `.airein/memory/memory.md`** (empty template, if not present)
+4. **Create `.airein/memory/session-state.md`** (initial state, if not present)
 5. **Report**: List created files. Tell user: "项目骨架已就绪。当项目有代码后，重新运行 `/init-project` 获取完整分析。"
 
 **Done. Do NOT create project documents (requirements/design/deployment) — empty projects have nothing to analyze. Do NOT generate conventions thin-shells either — there is no source code to infer conventions from, and a shell would point at a non-existent `docs/conventions-{lang}.md`. Re-run `/init-project` after the project has code.**
@@ -101,7 +104,7 @@ For projects with existing code — full analysis and document generation.
 扫描项目中所有文档和规范：
 1. docs/ 目录下所有 .md 文件
 2. README.md
-3. 隐藏目录配置（.claude/, .github/, .husky/, lint configs, CI/CD, Docker）
+3. 隐藏目录配置（.airein/, .github/, .husky/, lint configs, CI/CD, Docker）
 返回每个文件的路径和内容摘要
 ```
 
@@ -124,14 +127,14 @@ Review the current session's conversation history and extract:
 | Business context | Project background, user roles, use cases | `docs/roadmap.md` → Project Overview section |
 | Design decisions | Architecture choices, tech selection reasons | `docs/adr/` (create ADR file if irreversible) |
 | Code understanding | Module relationships, data flow | `docs/roadmap.md` → Project Overview section |
-| User preferences | Coding style, tool, workflow preferences | `.claude/memory/memory.md` |
+| User preferences | Coding style, tool, workflow preferences | `.airein/memory/memory.md` |
 | Unfinished tasks | Mentioned but undone items | `docs/roadmap.md` → Active Plans section |
 
 If session just started, skip this step and note in Phase 6 report.
 
 ### Phase 2: Generate Project Documents
 
-Read structural templates from `~/.claude/templates/docs/` as reference, then generate based on code analysis:
+Read structural templates from `~/.airein/templates/docs/` as reference, then generate based on code analysis:
 
 | File | Content source | Skip when |
 |------|---------------|-----------|
@@ -166,13 +169,13 @@ deleted `conventions-trigger` hook).
       (naming, style, error handling, testing, etc.). Append `## Status: draft`.
       If `docs/conventions-{lang}.md` already exists, append — don't overwrite.
 
-   b. **`.claude/rules/conventions-{lang}.md`** — the thin-shell pointer:
+   b. **`.airein/rules/conventions-{lang}.md`** — the thin-shell pointer:
       - Read skeleton `templates/rules/conventions-scope.md`
       - Replace `{scope}` → `{lang}`
       - Replace `{paths-globs}` → source file globs for that language
-      - Write `.claude/rules/conventions-{lang}.md`. The frontmatter `---` MUST
+      - Write `.airein/rules/conventions-{lang}.md`. The frontmatter `---` MUST
         be the first line (CC's conditional-rule loader anchors on `^---`).
-      - Validate: `node scripts/lib/conventions-shell.js .claude/rules/conventions-{lang}.md`
+      - Validate: `node scripts/lib/conventions-shell.js .airein/rules/conventions-{lang}.md`
         must report `"valid": true`.
 
    **scope → paths-globs reference** (adjust to the project's actual source tree):
@@ -196,17 +199,17 @@ pointing at a non-existent `docs/conventions-{lang}.md` would be dead weight.
 
 1. **`docs/roadmap.md`** — create with full template, populate Project Overview from code analysis, infer Active Plans from recent git history
 2. **Generate Recent Changes** from recent commits (append to `## Recent Changes` section in roadmap.md)
-3. Migrate `.claude/plans/` content to `docs/plans/` if applicable
+3. Migrate `.airein/plans/` content to `docs/plans/` if applicable
 
 ### Phase 4: Generate Config
 
-1. **`.claude/config/quality.json`** — auto-detect test framework:
+1. **`.airein/config/quality.json`** — auto-detect test framework:
    - pytest → Python config
    - JUnit/Maven → Java config
    - Jest/Vitest → JS/TS config
    - None → set `"blocking": {"testFailure": false}`
 
-2. **`.claude/memory/session-state.md`** — must include onboard marker:
+2. **`.airein/memory/session-state.md`** — must include onboard marker:
 
 ```markdown
 # Session State: {Project Name}
@@ -222,7 +225,7 @@ pointing at a non-existent `docs/conventions-{lang}.md` would be dead weight.
 
 ### Phase 5: Self-learning
 
-1. **`.claude/memory/memory.md`** — if empty, generate from CLAUDE.md/rules/quality.json/eslint; include a `## Project Info` section with tech stack and key configs
+1. **`.airein/memory/memory.md`** — if empty, generate from CLAUDE.md/rules/quality.json/eslint; include a `## Project Info` section with tech stack and key configs
 
 ### Phase 6: Verification
 
@@ -277,7 +280,7 @@ Report:
 ## On Hold
 ```
 
-### `.claude/memory/memory.md`
+### `.airein/memory/memory.md`
 
 ```markdown
 # Memory (confirmed rules and preferences)
@@ -285,7 +288,7 @@ Report:
 > Auto-loaded every session. Confirmed rules and preferences accumulate here.
 ```
 
-### `.claude/memory/session-state.md`
+### `.airein/memory/session-state.md`
 
 ```markdown
 # Session State: {Project Name}

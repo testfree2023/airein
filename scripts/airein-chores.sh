@@ -5,7 +5,7 @@
 # 也可独立运行：bash scripts/airein-chores.sh [CLAUDE_DIR] [PROJECT_DIR]
 #
 # 功能：
-#   1. 创建项目目录（.claude/config/, .claude/memory/, .claude/logs/）
+#   1. 创建项目目录（.airein/{config,memory,logs}；CC 项目额外 shim .claude/rules）
 #   2. 补缺模板文件
 #   3. 语法验证
 
@@ -37,11 +37,23 @@ ERRORS=0
 ensure_dirs() {
   echo "📁 创建目录..."
 
-  # 项目级目录
-  mkdir -p "$PROJECT_DIR/.claude/config"
-  mkdir -p "$PROJECT_DIR/.claude/memory"
-  mkdir -p "$PROJECT_DIR/.claude/logs"
-  echo "  ✅ .claude/{config,memory,logs}"
+  mkdir -p "$PROJECT_DIR/.airein/config"
+  mkdir -p "$PROJECT_DIR/.airein/memory"
+  mkdir -p "$PROJECT_DIR/.airein/logs"
+  echo "  ✅ .airein/{config,memory,logs}"
+
+  # CC 项目：.claude/rules → .airein/rules shim（P004 project-shim；失败不阻断 chores）
+  if [[ -n "$NODE_BIN" && -f "$CHORES_DIR/lib/project-shim.js" ]]; then
+    if ! "$NODE_BIN" -e "
+      const { ensureCcRulesShim } = require(process.argv[1]);
+      const r = ensureCcRulesShim(process.argv[2]);
+      if (!r.ok) process.exit(1);
+    " "$CHORES_DIR/lib/project-shim.js" "$PROJECT_DIR" 2>/dev/null; then
+      : # non-CC project or existing .claude/rules — skip silently
+    else
+      echo "  ✅ .claude/rules shim → .airein/rules (CC)"
+    fi
+  fi
 }
 
 # ── 2. 补缺模板文件 ──────────────────────────────────────────────

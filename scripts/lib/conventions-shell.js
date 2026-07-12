@@ -2,7 +2,8 @@
 /**
  * conventions-shell — validate P018 thin-shell conventions rules.
  *
- * A thin shell is a project-level `.claude/rules/conventions-{scope}.md`
+ * A thin shell is a project-level `.airein/rules/conventions-{scope}.md`
+ * (CC projects may shim via `.claude/rules` → `.airein/rules`).
  * with a `paths:` frontmatter (globs matching the scope's source files)
  * and a single @include directive pulling content from `docs/conventions-{scope}.md`.
  *

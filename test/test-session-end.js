@@ -6,7 +6,7 @@
  *   - disabled 时跳过（pending 不动、archive 不生成）
  *   - fail-open：坏 pending / pending 缺失不崩，主流程仍 exit 0
  *
- * fixture：临时项目目录 T（cwd，含 .claude/memory + .claude/self-learning/pending.md）
+ * fixture：临时项目目录 T（cwd，含 .airein/memory + .airein/self-learning/pending.md）
  * + 临时 transcript key 目录 T2（archive 落点 = path.dirname(transcriptPath)）。
  */
 
@@ -39,17 +39,17 @@ function block(ts, instr) {
 function setupProject(enabled) {
   const T = fs.mkdtempSync(path.join(os.tmpdir(), 'sl-se-proj-'));
   const T2 = fs.mkdtempSync(path.join(os.tmpdir(), 'sl-se-key-'));
-  fs.mkdirSync(path.join(T, '.claude', 'memory'), { recursive: true });
-  fs.mkdirSync(path.join(T, '.claude', 'self-learning'), { recursive: true });
-  fs.mkdirSync(path.join(T, '.claude', 'config'), { recursive: true });
+  fs.mkdirSync(path.join(T, '.airein', 'memory'), { recursive: true });
+  fs.mkdirSync(path.join(T, '.airein', 'self-learning'), { recursive: true });
+  fs.mkdirSync(path.join(T, '.airein', 'config'), { recursive: true });
   if (enabled === false) {
     fs.writeFileSync(
-      path.join(T, '.claude', 'config', 'quality.json'),
+      path.join(T, '.airein', 'config', 'quality.json'),
       JSON.stringify({ selfLearning: { enabled: false } })
     );
   }
   fs.writeFileSync(
-    path.join(T, '.claude', 'self-learning', 'pending.md'),
+    path.join(T, '.airein', 'self-learning', 'pending.md'),
     [
       block('2026-06-10T00:00:00Z', '永不用 git add -A'),
       block('2026-06-12T00:00:00Z', '永不用 git add -a'),
@@ -65,7 +65,7 @@ describe('session-end.js: self-learning 归档晋升 (T5)', suite => {
     const r = runHook({ transcript_path: transcriptPath }, { cwd: T });
     assertEqual(r.status, 0, '应 exit 0');
 
-    const pending = fs.readFileSync(path.join(T, '.claude', 'self-learning', 'pending.md'), 'utf8');
+    const pending = fs.readFileSync(path.join(T, '.airein', 'self-learning', 'pending.md'), 'utf8');
     assertEqual(pending, '', 'pending 应清空');
 
     const archive = fs.readFileSync(path.join(T2, 'self-learning-archive.md'), 'utf8');
@@ -81,7 +81,7 @@ describe('session-end.js: self-learning 归档晋升 (T5)', suite => {
     const r = runHook({ transcript_path: transcriptPath }, { cwd: T });
     assertEqual(r.status, 0, '应 exit 0');
 
-    const pending = fs.readFileSync(path.join(T, '.claude', 'self-learning', 'pending.md'), 'utf8');
+    const pending = fs.readFileSync(path.join(T, '.airein', 'self-learning', 'pending.md'), 'utf8');
     assertOk(pending.includes('type: deny'), 'disabled 时 pending 应保留');
 
     assertOk(
@@ -93,9 +93,9 @@ describe('session-end.js: self-learning 归档晋升 (T5)', suite => {
   suite.test('fail-open：坏 pending 不崩，exit 0', () => {
     const T = fs.mkdtempSync(path.join(os.tmpdir(), 'sl-se-bad-'));
     const T2 = fs.mkdtempSync(path.join(os.tmpdir(), 'sl-se-badkey-'));
-    fs.mkdirSync(path.join(T, '.claude', 'memory'), { recursive: true });
-    fs.mkdirSync(path.join(T, '.claude', 'self-learning'), { recursive: true });
-    fs.writeFileSync(path.join(T, '.claude', 'self-learning', 'pending.md'), '这不是合法 frontmatter');
+    fs.mkdirSync(path.join(T, '.airein', 'memory'), { recursive: true });
+    fs.mkdirSync(path.join(T, '.airein', 'self-learning'), { recursive: true });
+    fs.writeFileSync(path.join(T, '.airein', 'self-learning', 'pending.md'), '这不是合法 frontmatter');
     const r = runHook({ transcript_path: path.join(T2, 'fake.jsonl') }, { cwd: T });
     assertEqual(r.status, 0, '坏 pending 必须 fail-open exit 0');
   });
@@ -103,7 +103,7 @@ describe('session-end.js: self-learning 归档晋升 (T5)', suite => {
   suite.test('fail-open：pending 缺失不崩，exit 0', () => {
     const T = fs.mkdtempSync(path.join(os.tmpdir(), 'sl-se-nopend-'));
     const T2 = fs.mkdtempSync(path.join(os.tmpdir(), 'sl-se-nopendkey-'));
-    fs.mkdirSync(path.join(T, '.claude', 'memory'), { recursive: true });
+    fs.mkdirSync(path.join(T, '.airein', 'memory'), { recursive: true });
     const r = runHook({ transcript_path: path.join(T2, 'fake.jsonl') }, { cwd: T });
     assertEqual(r.status, 0, 'pending 缺失必须 fail-open exit 0');
   });

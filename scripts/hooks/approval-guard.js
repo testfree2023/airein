@@ -81,9 +81,12 @@ function getMode() {
 function getConfirmationFile() {
   try {
     const { getProjectDir } = require('../lib/utils');
+    const { projectDataSubpath, projectDataSubpathForRead } = require('../lib/project-paths');
     const projectDir = getProjectDir();
     if (!projectDir) return null;
-    return path.join(projectDir, '.claude', 'approval-confirmed.json');
+    const readPath = projectDataSubpathForRead(projectDir, 'approval-confirmed.json');
+    if (fs.existsSync(readPath)) return readPath;
+    return projectDataSubpath(projectDir, 'approval-confirmed.json');
   } catch {
     return null;
   }
@@ -193,7 +196,7 @@ function handleApprovalChange(filePath, changes) {
   }
   const confirmPath = confirmFile
     ? confirmFile.replace(/\\/g, '/')
-    : '.claude/approval-confirmed.json';
+    : '.airein/approval-confirmed.json';
 
   block(
     `[Approval Guard] ⚠️ progress.md 审批状态变更: ${details}\n` +

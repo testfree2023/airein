@@ -1,7 +1,8 @@
 # 多宿主安装指南（v0.2 预览 · P001-cross-platform）
 
 > airein 从 Claude Code 单宿主扩展到 **4 宿主**：Cursor（CUR）/ Codex（CDX）/ CodeBuddy（CB）/ OpenCode（OC）。
-> CC 仍是**基准宿主**（走既有 `setup-airein.sh` → `~/.claude/`）；本文档是 v0.2 多宿主分发入口
+> 用户统一入口：**`airein setup`**（P004）。CC 仍是基准宿主；多宿主 `install-host.js` 见下文。
+> CC 注册层 `~/.claude/` 经 `cc-register` 指回内核 `~/.airein/`；非 CC 宿主 install 永不写 `~/.claude/`（`test-cc-no-impact`）。
 > `scripts/install-host.js` 的使用指南。架构与产物契约详见 [deployment.md](plans/P001-cross-platform/deployment.md)；
 > 事件映射与阻断机制详见 [design.md §6](plans/P001-cross-platform/design.md)。
 

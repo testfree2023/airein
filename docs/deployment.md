@@ -7,20 +7,32 @@
 
 ## 部署模型
 
-airein 是**纯本地、零外部依赖**的 Claude Code 增强框架。它不运行后台守护进程，而是把规则文件和 hook 脚本部署到 `~/.claude/`，由 CC 原生机制（`processMdRules` 加载 rules、settings.json 调度 hook）在会话中驱动。
+airein 采用**三层目录**（P004），纯本地、零外部依赖，无后台守护进程：
 
 ```
 airein 仓库（GitHub）
   │
-  ▼  setup-airein.sh / update-airein.sh
-~/.claude/
-  ├─ rules/{00,10,20}-*.md      # L0 始终加载
-  ├─ skills/*/                  # L2 按需
-  ├─ scripts/{hooks,lib}/       # hook 执行体
-  ├─ hooks/hooks.json           # hook 注册清单
-  ├─ settings.json              # merge-hooks.sh 合并（保留第三方）
-  └─ templates/                 # 文档/规则模板
+  ▼  airein setup / update / uninstall
+~/.airein/                          ← 内核（真相源）
+  ├─ rules/{00,10,20}-*.md
+  ├─ skills/*/
+  ├─ scripts/{hooks,lib}/
+  ├─ hooks/hooks.json
+  ├─ templates/
+  └─ install-profile.json           ← 已装宿主记录
+
+宿主注册层（按 profile 写入）：
+  ~/.claude/   ← CC：symlink skills/commands/rules + merge-hooks → settings.json
+  ~/.cursor/   ← Cursor：项目级 .cursor/（install-host）
+
+项目数据（per-repo）：
+  <项目>/.airein/                   ← canonical：config / memory / logs / self-learning
+  <项目>/.claude/rules/             ← CC 项目 shim → .airein/rules（可选）
 ```
+
+**用户入口**：`airein setup|update|uninstall`（根目录 `airein` bash CLI）。`setup-airein.sh` / `update-airein.sh` 已 deprecated，转发到上述命令。
+
+**回滚锚点**：P004 合并到 main 前，远程 `origin/main` 打 tag `pre-p004-2026-07-11`。出问题可 `git checkout pre-p004-2026-07-11` 或 `airein update --source <该 tag 的 archive>`。
 
 ## 前置条件
 
@@ -39,18 +51,16 @@ airein 仓库（GitHub）
 
 ```bash
 git clone git@github.com:testfree2023/airein.git /tmp/airein
-bash /tmp/airein/setup-airein.sh
+bash /tmp/airein/airein setup --yes
 ```
 
-`setup-airein.sh` 是**完全自包含**的一键初始化：检测前置条件 → 合并 airein 文件到 `~/.claude/` → 注册 hooks → 跑 `verify-airein.sh` 校验。
+`airein setup` 检测宿主、安装内核到 `~/.airein`、注册 CC/Cursor（首版）、跑 verify。非交互示例：`airein setup --hosts claude-code,cursor --yes`。
 
-### 方式二：已有脚本文件
+**已废弃**（仍可用，打印 deprecation）：
 
 ```bash
-bash setup-airein.sh
+bash /tmp/airein/setup-airein.sh   # → airein setup
 ```
-
-脚本用 `BASH_SOURCE` 解析自身路径，不依赖 cwd；从任意目录运行均可。
 
 ## Hook 注册机制
 
@@ -156,6 +166,37 @@ bash setup-airein.sh --source airein-2.00.tar.gz --sha256 <上一步输出的 ha
 ```bash
 bash setup-airein.sh --source /path/to/airein-repo
 ```
+
+## Dogfooding 工作流（开发源 → 运行安装）
+
+airein **开发仓库**与**全局安装副本**（`~/.claude/` 或 Cursor 的 `install-host` 内核路径）分离。改 `scripts/lib/` 或 `scripts/hooks/` 后，运行中的 session **不会**自动拾取源码变更，需显式同步：
+
+### Claude Code（`~/.claude/`）
+
+```bash
+# 在 airein 源码根目录
+bash scripts/update/sync-airein.sh "$(pwd)" "$HOME/.claude" "$(pwd)"
+bash scripts/merge-hooks.sh "$HOME/.claude" "$(pwd)"   # 若 hooks.json 有变
+bash scripts/update/verify-airein.sh "$HOME/.claude"
+```
+
+或整包升级：`bash update-airein.sh --source <airein-repo-dir>`
+
+### Cursor / 多宿主（内核在 airein 仓库，注册表在 `~/.cursor/` 等）
+
+hook 脚本从 **airein 仓库绝对路径**加载（`install-host` 注入）。开发时直接在源码仓库改 hook/lib 即可生效；若改了 K1–K4 **分发产物**（rules/skills/commands 模板），需重跑：
+
+```bash
+node scripts/install-host.js install --host cursor --root "$HOME"
+```
+
+### Hook 自身流程覆盖
+
+在 airein 仓库内改 hook 时，用本仓库 `test/test-*.js` 与 `docs/test-plan.md` 行为清单做回归；发现路径豁免缺口（如 `doc-file-warning`）应补对应用例。
+
+### Hook 耗时可观测
+
+`run-with-flags.js` 为每次 hook 写 `durationMs` 到 `<project>/.claude/logs/airein-*.log`（`quality.json` → `aireinLog.slowHookMs`，默认 2000ms 以上记 `warn`）。
 
 ## 安全声明
 

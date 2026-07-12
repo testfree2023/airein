@@ -48,7 +48,7 @@ Another chronic pain of AI coding: **once the context is compressed past its lim
 Airein uses a set of mechanisms so a new session quickly recovers "where I left off, why this decision was made, which files I changed":
 
 - **`/init-project`**: run once when entering a new project. Automatically detects whether it's an empty or existing project — empty projects get a minimal skeleton (roadmap + session-state + memory); existing projects get a codebase scan, existing docs, and hidden config, generating `docs/roadmap.md` (with Issues & Recent Changes), and detecting the primary language into config.
-- **Session state recovery**: at the end of each session, `session-end` writes "current plan, active tasks, last edited files, pending todos" to `.claude/session-state.md`; next time, `session-start` auto-injects it (a few hundred tokens) so AI picks up where it left off instead of asking from scratch.
+- **Session state recovery**: at the end of each session, `session-end` writes current plan, active tasks, last edited files, and pending todos to `<project>/.airein/memory/session-state.md`; next time, `session-start` auto-injects it (a few hundred tokens) so AI picks up where it left off. (Legacy: `.claude/memory/`.)
 - **Rescue before compression**: `pre-compact` extracts Active Task / Decisions / Files / Pending before context compression, preventing key decisions from being wiped.
 - **Auto archive**: completed plans archive into `docs/plans/`, not crowding the active view; `/next` proactively tells you "the most important thing to do right now is X" based on the roadmap.
 - **Self-learning promotion**: preferences you've corrected ("don't do X" / "always Y") accumulate; once the same instruction hits the threshold, it promotes to a permanent L0 rule and auto-takes effect next session — you don't repeat the correction every time.
@@ -77,17 +77,38 @@ The Dashboard isn't a separate system — it's the visualization layer over aire
 
 ## 5-Minute Quickstart
 
-### New machine: one-command install
+### Three-layer directory model (P004)
 
-Prerequisites: Claude Code, git, Node.js installed, SSH key configured.
+| Layer | Path | Role |
+|-------|------|------|
+| **Kernel** | `~/.airein/` | Canonical skills / rules / hooks / scripts; `install-profile.json` records installed hosts |
+| **Host registration** | `~/.claude/` (CC) / `~/.cursor/` (Cursor) … | Per-host native config; CC uses symlinks + merge-hooks pointing at the kernel |
+| **Project data** | `<project>/.airein/` | `config/quality.json`, `memory/`, `logs/`, self-learning buffer, etc. |
+
+CC projects also get an **L1 shim**: `<project>/.claude/rules` → symlink to `<project>/.airein/rules`. See [deployment.md](docs/deployment.md).
+
+### New machine: unified install (recommended)
+
+Prerequisites: git, Node.js ≥ 18, bash ≥ 4 (Git Bash on Windows).
 
 ```bash
-# clone → merge into ~/.claude → configure → verify → clean temp files (one command)
 git clone git@github.com:testfree2023/airein.git /tmp/airein && \
-bash /tmp/airein/setup-airein.sh; rm -rf /tmp/airein
+bash /tmp/airein/airein setup --yes; rm -rf /tmp/airein
 ```
 
-The script won't overwrite your existing `~/.claude` config (settings.json, CLAUDE.md, and other user territory stay untouched).
+`airein setup` detects local hosts. First release fully supports **Claude Code + Cursor**; Codex / CodeBuddy / OpenCode are detected with a hint only.
+
+**Quickstart forks** (non-interactive: add `--hosts`):
+
+| Scenario | Command |
+|----------|---------|
+| CC only | `airein setup --hosts claude-code --yes` |
+| Cursor only | `airein setup --hosts cursor --yes` |
+| CC + Cursor same machine | `airein setup --hosts claude-code,cursor --yes` |
+
+Verify: `bash ~/.airein/scripts/update/verify-airein.sh --host cursor`.
+
+> **Deprecated**: `setup-airein.sh` / `update-airein.sh` still work but print deprecation and forward to `airein setup|update`.
 
 ### In a project: just use it
 
@@ -110,7 +131,7 @@ claude
 | `/tdd` | Enter the RED → GREEN → REFACTOR TDD flow |
 | `/code-review` `/quality-gate` `/refactor-clean` `/plan` `/verify` | Workflow shortcuts |
 
-> This repo is **Airein's source code**, not the install target. You clone it to read/develop airein itself; actual usage happens in your project directory after `claude` starts, with airein deployed to `~/.claude` taking over.
+> This repo is **Airein's source code**, not the install target. Daily use is in your project directory, driven by the deployed kernel at `~/.airein` plus host registration layers.
 
 ---
 
@@ -195,56 +216,62 @@ With zero config files created, it **works out of the box** — all gates have s
 
 ---
 
-## Upgrade / Offline Migration / Team Sharing
+## Upgrade / Offline Migration / Rollback
 
-**Upgrade**: after Airein releases a new version, any installed machine updates with one command:
-
-```bash
-bash ~/.claude/update-airein.sh
-```
-
-Update policy (protects your config):
-- **Built-in components refresh with update**: hooks, scripts, rules, skills, templates
-- **Merge not overwrite**: `templates/pipelines.json` — keeps your custom pipelines, only refreshes built-in ones
-- **Never overwrites**: `settings.json`, `quality.json`, `session-state.md`, `~/.claude/CLAUDE.md` (user territory untouched)
-
-Onboarded projects don't need to re-run `/init-project`; just continue working after the update.
-
-**Offline install/upgrade (flaky network or no git)**:
-
-Download the source archive (tar.gz / zip) from GitHub, copy it to the target machine, then:
+**Upgrade** (one command on any installed machine):
 
 ```bash
-bash setup-airein.sh --source <dir|tar.gz|zip> [--sha256 <hex>]   # first install
-bash update-airein.sh --source <dir|tar.gz|zip>                    # upgrade
+airein update
 ```
 
-**Team sharing**: make the `~/.claude` repo a shared team git repo; each member clones it and configures their own `settings.json` (keys differ). Project-level `docs/` and `quality.json` travel with the project repo.
+Update policy:
+- **Kernel refreshes**: hooks, scripts, rules, skills, templates under `~/.airein`
+- **Profile-driven host refresh**: CC / Cursor layers per `install-profile.json`
+- **Merge not overwrite**: `templates/pipelines.json` keeps custom pipelines
+- **Never overwrites**: user `settings.json`, project `quality.json` / `session-state.md`, host CLAUDE.md territory
+
+Onboarded projects don't need to re-run `/init-project`.
+
+**Offline** (P002 `--source`):
+
+```bash
+airein setup --source <dir|tar.gz|zip> [--sha256 <hex>] [--hosts cc,cursor] --yes
+airein update --source <dir|tar.gz|zip>
+```
+
+**Rollback** (stable tag on remote main before P004 merge — see deployment):
+
+```bash
+git checkout pre-p004-2026-07-11
+airein update --source <archive from that tag>
+```
+
+**Uninstall**: `airein uninstall` (`--keep-kernel` retains `~/.airein`).
+
+> `setup-airein.sh` / `update-airein.sh` are deprecated; use the `airein` CLI.
 
 ---
 
-## Multi-Host Support (v0.2 Preview)
+## Multi-Host Support (first release: CC + Cursor)
 
-v0.1 of airein ran only on Claude Code. v0.2 is extending it to **4 AI coding hosts** — the same airein kernel (skills / rules / hooks) dispatched into each host's native config directory via a single command:
+One airein **kernel** (`~/.airein`) dispatches to each host's native directory via `airein setup` or `install-host.js`:
 
-| Host | Output location | Blocking mechanism |
-|------|-----------------|--------------------|
-| **Cursor** | `.cursor/` (skills + rules/*.mdc + hooks.json) | stdout `{permission:"deny"}` |
-| **Codex** | `.agents/skills/` + `AGENTS.md` + `.codex/config.toml` | stdout `{permissionDecision:"deny"}` |
-| **CodeBuddy** | `.codebuddy/` + `CODEBUDDY.md` + `.codebuddy/settings.json` | `exit 2` native passthrough |
-| **OpenCode** | `AGENTS.md` + `opencode.json` + `.opencode/plugin/airein-bridge.ts` | `throw Error(stderr)` |
+| Host | setup support | Output | Blocking |
+|------|---------------|--------|----------|
+| **Claude Code** | ✅ full | `~/.claude/` registration → kernel | native `exit 2` |
+| **Cursor** | ✅ full | `<project>/.cursor/` | stdout `{permission:"deny"}` |
+| **Codex** | detect hint | `.agents/skills/` + `AGENTS.md` | `{permissionDecision:"deny"}` |
+| **CodeBuddy** | detect hint | `.codebuddy/` + `CODEBUDDY.md` | native `exit 2` |
+| **OpenCode** | detect hint | `AGENTS.md` + `opencode.json` | `throw Error(stderr)` |
 
 ```bash
-# In your project directory, install into any host
-node scripts/install-host.js install --host cursor    # or codex / codebuddy / opencode
+airein setup --hosts claude-code,cursor --yes
+node ~/.airein/scripts/install-host.js install --host cursor
 ```
 
-**Two key guarantees**:
+**Guarantees**: non-CC hosts never touch `~/.claude/` (`test-cc-no-impact`); single source of truth in the kernel.
 
-- **CC physical isolation**: the 4 hosts' install / uninstall / verify never touch `~/.claude/` (CC territory). Layering multi-host onto a CC environment already running airein leaves CC config untouched.
-- **Single source of truth**: each host's skills are byte-equivalent to the CC copy; rules are generated from `rules/` + `docs/`; hook registration is translated from `hooks/hooks.json` — not hand-maintained per host.
-
-> This is a v0.2 preview feature (P001-cross-platform), synced with implementation. Per-host prerequisites, product matrix, blocking mappings, and troubleshooting are in the **[Multi-Host Install Guide](docs/install-hosts.md)**; architectural contracts are in [deployment.md](docs/plans/P001-cross-platform/deployment.md).
+See **[Multi-Host Install Guide](docs/install-hosts.md)** and [deployment.md](docs/deployment.md).
 
 ---
 
@@ -317,7 +344,7 @@ Covers **6 events** (PreToolUse / PostToolUse / SessionStart / PreCompact / Stop
 ### Self-learning system (three-tier flow, never touches memory)
 
 ```
-User persistent allow/deny instruction → buffer(.claude/self-learning/pending.md)
+User persistent allow/deny instruction → buffer(.airein/self-learning/pending.md)
   → Stop hook archives → archive(~/.claude/projects/{key}/self-learning-archive.md)
   → same instruction count ≥ promotionThreshold (default 3) → promote to rules/30-self-learned.md (L0 auto-load)
 ```
@@ -328,34 +355,32 @@ The three self-learning tiers flow **only** in their own files and **never touch
 
 ## Appendix B: File Map
 
-### Key files under `~/.claude/`
+### Key files under `~/.airein/` (kernel)
 
 | File | In git | Notes |
 |------|--------|-------|
-| `CLAUDE.md` | ❌ user territory | Your global rules; Airein doesn't own/overwrite |
 | `hooks/hooks.json` | ✅ | Hook registry (source of truth) |
-| `rules/00-iron-rules.md` | ✅ | Iron rules (non-waivable + commit invariants + input validation) |
-| `rules/10-architecture.md` | ✅ | Architecture facts/invariants |
-| `rules/20-workflow.md` | ✅ | Operations manual (workflow + lifecycle + flow waivers) |
-| `rules/30-self-learned.md` | ❌ | Self-learning promotion output (personalized, .gitignore'd) |
+| `rules/00-iron-rules.md` | ✅ | Iron rules |
 | `scripts/hooks/*.js` | ✅ | Hook scripts |
-| `scripts/lib/*.js` | ✅ | Shared libs (quality-config / plan-parser / utils, etc.) |
 | `skills/*/SKILL.md` | ✅ | Airein skills |
-| `templates/` | ✅ | Doc templates + language-profiles + pipelines.json + quality.json |
-| `settings.json` | ❌ | Proxy address and keys; differ per machine |
+| `install-profile.json` | ❌ | Installed hosts (local) |
 
-### Project-level files
+CC registration `~/.claude/` symlinks back to the kernel; user `CLAUDE.md` / `settings.json` stay user territory.
+
+### Project-level files (canonical: `.airein/`)
 
 | File | In project git | Notes |
 |------|----------------|-------|
-| `.claude/session-state.md` | recommended ✅ | Session state; session-start auto-loads |
-| `.claude/config/quality.json` | recommended ✅ | Project-level quality gate config (recommended path) |
-| `.claude/contract-cache/` | ❌ | Export API cache (auto-generated) |
-| `.claude/self-learning/pending.md` | ❌ | Current round's captured self-learning instructions (project buffer) |
-| `docs/roadmap.md` | ✅ | Project overview (with Issues & Recent Changes) |
-| `docs/plans/P{NNN}-*/` | ✅ | Plan file directory (requirements/design/tasks, etc.) |
-| `docs/adr/` | ✅ | Architecture Decision Records (created on demand) |
-| `docs/conventions-{scope}.md` | ✅ | Tech-stack engineering conventions (injected on matching file edit) |
+| `.airein/memory/session-state.md` | recommended ✅ | Session state; session-start injects |
+| `.airein/config/quality.json` | recommended ✅ | Project quality gates (read/write priority) |
+| `.airein/self-learning/pending.md` | ❌ | Self-learning buffer |
+| `.airein/logs/` | ❌ | Hook diagnostic logs |
+| `.claude/rules/` (CC projects) | recommended ✅ | **shim** → `.airein/rules/` |
+| `docs/roadmap.md` | ✅ | Project overview |
+| `docs/plans/P{NNN}-*/` | ✅ | Plan directories |
+| `docs/conventions-{scope}.md` | ✅ | Convention leaf docs |
+
+> Legacy projects may still use `<project>/.claude/config|memory|…`; hooks read with fallback, new writes go to `.airein/`.
 
 ---
 
@@ -365,7 +390,7 @@ The three self-learning tiers flow **only** in their own files and **never touch
 A: Most of those are "prompt-level" constraints — written in rule files, relying on model self-discipline, bypassable under context bloat or instruction conflict. Airein's differentiator is **making non-negotiable constraints into hooks (`exit 2` code enforcement)**, plus cross-session project memory and a spec-driven planning flow. You can run it alongside existing rules: hard constraints to Airein's hooks, soft preferences in your CLAUDE.md.
 
 **Q: The quality gates are too strict — can I downgrade?**
-A: Yes, flexibly configure in `.claude/config/quality.json`: disable TDD (`testGuard.enabled: false`), TDD warn-only (`mode: "advisory"`), downgrade blocking (`blocking.testFailure: false`), turn off plan gate (`planGate.mode: "disabled"`). Or drag toggles directly in the Dashboard panel.
+A: Yes, flexibly configure in `.airein/config/quality.json` (or legacy `.claude/config/quality.json`): disable TDD (`testGuard.enabled: false`), TDD warn-only (`mode: "advisory"`), downgrade blocking (`blocking.testFailure: false`), turn off plan gate (`planGate.mode: "disabled"`). Or drag toggles directly in the Dashboard panel.
 
 **Q: Will self-learning memory be lost when I change machines?**
 A: The self-learning archive is at `~/.claude/projects/{key}/self-learning-archive.md`, project-isolated, not in git. Manually copy that directory on migration.
@@ -377,10 +402,10 @@ A: No. The hook detects project type (package.json / pom.xml / Cargo.toml, etc.)
 A: Yes. Delete unwanted skill directories and remove unwanted hooks from `hooks.json`. But `init-project` is recommended to keep — it's the foundation of project state management.
 
 **Q: What is `${CLAUDE_PLUGIN_ROOT}` in `hooks.json`?**
-A: An environment variable pointing to the airein install root (usually `~/.claude`). Claude Code sets it automatically in the plugin context; if your environment doesn't set it, replace the path in commands with the absolute path to `~/.claude`.
+A: Points to the airein **kernel root** (`~/.airein`). CC merge-hooks replaces hook command placeholders with the kernel absolute path.
 
 **Q: How do I verify self-learning is working?**
-A: Check whether `.claude/self-learning/pending.md` captured anything this round; after Stop, check whether the archive appended logs; once the same instruction hits the threshold, check whether `rules/30-self-learned.md` was generated — once promoted to L0, it auto-loads next session.
+A: Check whether `.airein/self-learning/pending.md` captured anything this round; after Stop, check whether the archive appended logs; once the same instruction hits the threshold, check whether `rules/30-self-learned.md` was generated — once promoted to L0, it auto-loads next session.
 
 ---
 

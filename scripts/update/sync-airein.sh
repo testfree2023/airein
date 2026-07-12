@@ -78,6 +78,14 @@ CORE_FILES=(
   "scripts/lib/resolve-formatter.js"    # hooks/post-edit-format.js + quality-gate.js require it
   "scripts/lib/commit-gate.js"          # hooks/pre-commit-gate.js requires it (classify staged files)
   "scripts/lib/install-helpers.sh"      # setup/chores/merge-hooks source it (node resolution + remote check)
+  # ── P004 unified install orchestrator ──
+  "airein"
+  "scripts/lib/install-orchestrator.js"
+  "scripts/lib/install-profile.js"
+  "scripts/lib/host-detect.js"
+  "scripts/lib/cc-register.js"
+  "scripts/lib/project-paths.js"
+  "scripts/lib/project-shim.js"
   # ── templates: reference config (always overwrite) ──
   "templates/quality.json"
   "templates/language-profiles/_default.json"
@@ -117,6 +125,7 @@ CORE_FILES=(
   "scripts/lib/rule-generate.js"       # K2 rule thin-shell generator (.mdc/AGENTS.md/...)
   "scripts/lib/stdin-normalize.js"     # K3 stdin → CC schema normalization
   "scripts/lib/host-adapter.js"        # K3 mapHookResult pure fn (block semantic mapping)
+  "scripts/lib/hook-timing.js"         # hook duration observability (run-with-flags)
   "scripts/hooks/host/host-runner.js"  # host entry IO runner (readStdin→norm→spawn→map)
   "scripts/hooks/host/cursor.js"       # CUR entry (camelCase events + permission:deny)
   "scripts/hooks/host/codex.js"        # CDX entry (stdin cwd resolve + permissionDecision)
