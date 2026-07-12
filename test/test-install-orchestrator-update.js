@@ -110,13 +110,21 @@ function run() {
   assertContains(help, 'update --source', 'usage mentions offline update');
   assertNotContains(help, 'setup-airein.sh', 'usage must not reference removed scripts');
 
+  assertContains(help, 'update --branch', 'usage mentions branch option');
+
+  const updateLogs = [];
   return update({
     homeDir: home,
     kernelRoot: kernel,
     sourceDir: srcB,
     skipVerify: true,
     skipClean: true,
+    log: (m) => { updateLogs.push(m); },
   }).then((upd) => {
+    const logText = updateLogs.join('\n');
+    assertContains(logText, 'airein update 开始', 'update logs start banner');
+    assertContains(logText, '同步内核', 'update logs sync step');
+    assertContains(logText, 'update 完成', 'update logs completion');
     assertEqual(upd.ok, true, 'update ok');
     assertEqual(fs.readFileSync(path.join(kernel, 'VERSION'), 'utf8').trim(), '2.02', 'kernel version');
     assertOk(fs.existsSync(path.join(kernel, 'setup-airein.sh')), 'sync copied legacy file before clean');

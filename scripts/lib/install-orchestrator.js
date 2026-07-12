@@ -94,11 +94,21 @@ function readInstalledVersion(kernelRoot) {
   }
 }
 
-function cloneRepoToTemp(repoUrl, execFn = execSync) {
+function cloneRepoToTemp(repoUrl, opts = {}) {
+  const execFn = opts.execFn || execSync;
+  const log = opts.log || (() => {});
+  const branch = opts.branch || '';
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'airein-update-'));
   const cloneDest = path.join(tmp, 'airein');
+  const branchArg = branch ? `--branch "${branch}" ` : '';
+  log('📥 正在从 GitHub 拉取 airein 源码（git clone，网络慢时可能需 1–3 分钟）...');
+  log(`   仓库: ${repoUrl}${branch ? ` · 分支: ${branch}` : ' · 默认分支（通常为 main）'}`);
+  log('   （feat 分支未合并前请用: airein update --source <本地仓库路径>）');
   try {
-    execFn(`git clone --depth 1 --quiet "${repoUrl}" "${cloneDest}"`, { stdio: 'pipe' });
+    execFn(
+      `git clone --depth 1 ${branchArg}--progress "${repoUrl}" "${cloneDest}"`,
+      { stdio: opts.stdio || 'inherit' },
+    );
   } catch (err) {
     fs.rmSync(tmp, { recursive: true, force: true });
     throw new Error(
@@ -174,7 +184,12 @@ function resolveUpdateSource(opts = {}) {
       cleanupDir: '',
     };
   }
-  const cloneFn = opts.cloneFn || (() => cloneRepoToTemp(REPO_HTTPS, opts.execSync));
+  const cloneFn = opts.cloneFn || (() => cloneRepoToTemp(REPO_HTTPS, {
+    execFn: opts.execSync,
+    log: opts.log,
+    branch: opts.branch,
+    stdio: opts.stdio,
+  }));
   return cloneFn();
 }
 
@@ -193,20 +208,26 @@ function runShellScript(scriptPath, args, opts = {}) {
  * 升级后维护：clean 废弃文件 + verify 回归（子脚本承载细节，编排器保持薄）。
  */
 function runPostUpdateMaintenance(kernelRoot, homeDir, profile, opts = {}) {
+  const log = opts.log || (() => {});
   const results = [];
+  const shellOpts = { ...opts, stdio: opts.stdio || 'inherit' };
   if (opts.skipClean !== true) {
     const clean = path.join(kernelRoot, 'scripts', 'update', 'clean-airein.sh');
+    log('🧹 清理废弃文件 (clean-airein.sh)...');
     results.push({
       step: 'clean',
-      ...runShellScript(clean, [kernelRoot], opts),
+      ...runShellScript(clean, [kernelRoot], shellOpts),
     });
+    log('   ✅ clean 完成');
   }
   if (opts.skipVerify !== true) {
     const verify = path.join(kernelRoot, 'scripts', 'update', 'verify-airein.sh');
+    log('🔍 完整性校验 (verify-airein.sh --full)...');
     results.push({
       step: 'verify-full',
-      ...runShellScript(verify, ['--full', '--home', homeDir, '--kernel', kernelRoot], opts),
+      ...runShellScript(verify, ['--full', '--home', homeDir, '--kernel', kernelRoot], shellOpts),
     });
+    log('   ✅ verify 完成');
   }
   return results;
 }
@@ -217,7 +238,7 @@ function printUsage(out = process.stdout) {
     '',
     '用法:',
     '  airein setup    [--hosts claude-code,cursor] [--yes] [--source <dir|tar.gz|zip>] [--sha256 <hex>]',
-    '  airein update   [--source <dir|tar.gz|zip>] [--sha256 <hex>]',
+    '  airein update   [--source <dir|tar.gz|zip>] [--sha256 <hex>] [--branch <name>]',
     '  airein uninstall [--keep-kernel]',
     '',
     '常见示例:',
@@ -234,8 +255,11 @@ function printUsage(out = process.stdout) {
     '  # 升级（在线拉取 GitHub 最新，推荐）',
     '  bash ~/.airein/airein update',
     '',
-    '  # 升级（本地仓库 / 离线 archive）',
+    '  # 升级（本地 feat 分支仓库，P004 真机验证推荐）',
     '  bash ~/.airein/airein update --source /path/to/airein-repo',
+    '',
+    '  # 升级（在线拉取指定分支）',
+    '  bash ~/.airein/airein update --branch feat/p004-unified-install-orchestrator',
     '  bash ~/.airein/airein update --source airein-main.tar.gz',
     '',
     '  # 卸载（保留内核目录备查）',
@@ -415,39 +439,74 @@ async function update(opts = {}) {
     throw new Error(`no install-profile at ${kernelRoot}; run airein setup first`);
   }
 
+  const installedVer = readInstalledVersion(kernelRoot);
+  log('');
+  log('🔄 airein update 开始');
+  log(`   内核目录: ${kernelRoot}`);
+  log(`   已装版本: ${installedVer || '(无 VERSION 记录)'}`);
+
+  if (opts.source || opts.sourceDir) {
+    log(`   源: ${opts.source || opts.sourceDir}（本地 --source）`);
+  } else if (opts.branch) {
+    log(`   源: ${REPO_HTTPS} · 分支 ${opts.branch}`);
+  } else {
+    log(`   源: ${REPO_HTTPS}（在线 clone 默认分支）`);
+  }
+
+  log('');
+  log('① 解析升级源...');
   const resolved = resolveUpdateSource({
     ...opts,
     kernelRoot,
     homeDir,
     scriptDir: opts.scriptDir || kernelRoot,
+    log,
   });
   const pkgVer = resolved.version;
-  const installedVer = readInstalledVersion(kernelRoot);
+  log(`   包版本: ${pkgVer || '(无 VERSION)'}`);
   if (pkgVer) {
     const guard = checkGuard({ pkgVer, installedVer });
     if (!guard.ok) throw new Error(guard.message);
-    if (guard.action === 'same' && guard.message) log(guard.message);
+    if (guard.action === 'upgrade') {
+      log(`   ⬆️  升级: ${installedVer} → ${pkgVer}`);
+    } else if (guard.action === 'same' && guard.message) {
+      log(`   ℹ️  ${guard.message}`);
+    } else if (guard.action === 'install') {
+      log('   📦 首次写入版本号');
+    }
   }
 
+  log('');
+  log('② 同步内核文件...');
   const sync = syncKernelFromSource(resolved.sourceDir, kernelRoot);
+  log(`   动作: ${sync.action}${sync.action === 'sync' ? '（覆盖更新）' : sync.action === 'install' ? '（新建）' : ''}`);
   if (sync.action === 'noop' && !opts.source && !opts.sourceDir) {
     throw new Error('update: 源与内核相同且无新版本；请使用 --source 指定外部目录或检查网络 clone');
   }
 
-  runPostUpdateMaintenance(kernelRoot, homeDir, profile, opts);
+  log('');
+  log('③ 升级后维护 (clean + verify)...');
+  runPostUpdateMaintenance(kernelRoot, homeDir, profile, { ...opts, log });
 
   try { resolved.cleanup(); } catch { /* noop */ }
 
+  log('');
+  log('④ 按 install-profile 刷新宿主注册层...');
   const results = [];
   for (const h of profile.hosts) {
+    log(`   · 注册 ${h.id}...`);
     const r = registerHost(h.id, { kernelRoot, homeDir, platform: h.platform });
     results.push({ hostId: h.id, ...r });
+    if (r.ok) log(`     ✅ ${h.id}`);
+    else log(`     ❌ ${h.id}: ${(r.errors || []).join('; ')}`);
   }
 
   profile.installedVersion = pkgVer || profile.installedVersion;
   profile.installedAt = new Date().toISOString();
   writeProfile(kernelRoot, profile);
 
+  log('');
+  log(`✅ airein update 完成 · 版本 ${pkgVer || installedVer || '?'}`);
   return { ok: results.every((r) => r.ok), kernelRoot, results, version: pkgVer, sync };
 }
 
@@ -496,6 +555,8 @@ function parseCliFlags(argv) {
     if (a === '--dry-run') { flags.dryRun = true; continue; }
     if (a === '--keep-kernel') { flags.keepKernel = true; continue; }
     if (a === '--kernel-root') { flags.kernelRoot = argv[++i]; continue; }
+    if (a === '--branch') { flags.branch = argv[++i]; continue; }
+    if (a.startsWith('--branch=')) { flags.branch = a.slice(9); continue; }
     if (!a.startsWith('-')) flags._.push(a);
   }
   return flags;
@@ -513,6 +574,7 @@ async function runCli(argv) {
     dryRun: flags.dryRun,
     keepKernel: flags.keepKernel,
     kernelRoot: flags.kernelRoot,
+    branch: flags.branch,
     scriptDir,
   };
 

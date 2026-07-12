@@ -141,7 +141,19 @@ bash ~/.airein/airein update
 # 或从仓库：bash /path/to/airein/airein update
 ```
 
-`airein update` 解析源（`--source` 本地目录/archive，或 **HTTPS git clone 到 /tmp**）→ 同步内核到 `~/.airein`（**入口脚本最后写入**）→ `clean-airein.sh` 清理废弃文件 → `verify-airein.sh` 回归 → 按 `install-profile.json` 重注册各宿主。
+`airein update` 解析源（`--source` 本地目录/archive，`--branch` 指定远程分支，或 **HTTPS git clone 到 /tmp**）→ 同步内核到 `~/.airein`（**入口脚本最后写入**）→ `clean-airein.sh` 清理废弃文件 → `verify-airein.sh --full` 回归 → 按 `install-profile.json` 重注册各宿主。
+
+**进度输出**：update 会分步打印 `① 解析源 → ② 同步内核 → ③ clean/verify → ④ 刷新注册层`；在线 clone 使用 `git clone --progress`（GitHub 慢时可能 1–3 分钟，并非卡死）。
+
+**P004 feat 分支真机验证**（未合并 main 前）：
+
+```bash
+# 推荐：本地仓库作源（最快、可验 2.00→2.01 升级）
+bash ~/.airein/airein update --source /path/to/airein-repo
+
+# 或在线拉 feat 分支
+bash ~/.airein/airein update --branch feat/p004-unified-install-orchestrator
+```
 
 无参数运行 `airein` 或 `airein --help` 会打印用法与常见示例。
 
