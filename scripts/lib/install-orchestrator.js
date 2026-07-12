@@ -145,15 +145,20 @@ function resolveSetupSource(opts) {
       scriptDir: opts.scriptDir,
     });
   }
-  const scriptDir = opts.scriptDir || path.resolve(__dirname, '..', '..');
-  if (isAireinSource(scriptDir)) {
+  const kernelRoot = path.resolve(opts.kernelRoot || getDefaultKernelRoot(opts.homeDir));
+  const scriptDir = opts.scriptDir ? path.resolve(opts.scriptDir) : path.resolve(__dirname, '..', '..');
+  // 外部 checkout（与内核目录不同）→ 直用
+  if (isAireinSource(scriptDir) && scriptDir !== kernelRoot) {
     return { sourceDir: scriptDir, version: readVersion(scriptDir), cleanup: () => {} };
   }
-  const kernelRoot = opts.kernelRoot || getDefaultKernelRoot(opts.homeDir);
-  if (isAireinSource(kernelRoot)) {
-    return { sourceDir: kernelRoot, version: readVersion(kernelRoot), cleanup: () => {} };
-  }
-  throw new Error('no local airein source; use --source <dir|archive> or run from airein repo');
+  // 禁止 scriptDir === kernelRoot 自指空转（缺 rules / 旧 verify 等无法自愈）→ git clone
+  const cloneFn = opts.cloneFn || (() => cloneRepoToTemp(REPO_HTTPS, {
+    execFn: opts.execSync,
+    log: opts.log,
+    branch: opts.branch,
+    stdio: opts.stdio,
+  }));
+  return cloneFn();
 }
 
 /**

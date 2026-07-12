@@ -12,6 +12,7 @@ const {
   uninstall,
   syncKernelFromSource,
   getDefaultKernelRoot,
+  resolveSetupSource,
 } = require('../scripts/lib/install-orchestrator');
 const { installHost } = require('../scripts/install-host');
 const { writeProfile, defaultProfile, upsertHost } = require('../scripts/lib/install-profile');
@@ -102,6 +103,26 @@ async function run() {
   assertOk(fs.existsSync(kernel4), 'kernel kept');
 
   assertEqual(getDefaultKernelRoot(HOME), path.join(HOME, '.airein'), 'default kernel path');
+
+  const incomplete = path.join(TMP, 'incomplete-kernel');
+  fs.mkdirSync(path.join(incomplete, 'scripts', 'lib'), { recursive: true });
+  fs.mkdirSync(path.join(incomplete, 'hooks'), { recursive: true });
+  fs.writeFileSync(path.join(incomplete, 'scripts', 'lib', 'utils.js'), '//');
+  fs.writeFileSync(path.join(incomplete, 'hooks', 'hooks.json'), '{}');
+  let cloneCalled = false;
+  const resolved = resolveSetupSource({
+    kernelRoot: incomplete,
+    scriptDir: incomplete,
+    homeDir: TMP,
+    cloneFn: () => {
+      cloneCalled = true;
+      return { sourceDir: SRC, version: '2.00', cleanup: () => {} };
+    },
+  });
+  assert(cloneCalled, 'kernel 自指应走 clone 而非 noop');
+  assertEqual(resolved.sourceDir, SRC, 'clone 返回外部源');
+  syncKernelFromSource(resolved.sourceDir, incomplete);
+  assertOk(fs.existsSync(path.join(incomplete, 'rules', '00-iron-rules.md')), 'sync 后 L0 rules 就位');
 }
 
 run()

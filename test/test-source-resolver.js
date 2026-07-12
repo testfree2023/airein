@@ -26,6 +26,8 @@ fs.mkdirSync(path.join(GOOD, 'scripts', 'lib'), { recursive: true });
 fs.mkdirSync(path.join(GOOD, 'hooks'), { recursive: true });
 fs.writeFileSync(path.join(GOOD, 'scripts', 'lib', 'utils.js'), '// placeholder');
 fs.writeFileSync(path.join(GOOD, 'hooks', 'hooks.json'), '{}');
+fs.mkdirSync(path.join(GOOD, 'rules'), { recursive: true });
+fs.writeFileSync(path.join(GOOD, 'rules', '00-iron-rules.md'), '# iron');
 fs.writeFileSync(path.join(GOOD, 'VERSION'), '2.00');
 
 // 缺关键文件（非 airein）
@@ -56,6 +58,8 @@ fs.mkdirSync(path.join(NOVER, 'scripts', 'lib'), { recursive: true });
 fs.mkdirSync(path.join(NOVER, 'hooks'), { recursive: true });
 fs.writeFileSync(path.join(NOVER, 'scripts', 'lib', 'utils.js'), '// placeholder');
 fs.writeFileSync(path.join(NOVER, 'hooks', 'hooks.json'), '{}');
+fs.mkdirSync(path.join(NOVER, 'rules'), { recursive: true });
+fs.writeFileSync(path.join(NOVER, 'rules', '00-iron-rules.md'), '# iron');
 
 // ── tests ──────────────────────────────────────────────────────────
 

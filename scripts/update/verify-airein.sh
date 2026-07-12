@@ -291,7 +291,7 @@ verify_cc_registration() {
       } catch { console.log('unified'); }
     " "$profile_file" 2>/dev/null || echo "unified")
   fi
-  echo "  📦 delivery: ${delivery}（skills/commands）；rules 固定 deploy"
+  echo "  📦 delivery: ${delivery} (skills/commands); rules always deploy"
 
   local shim
   for shim in skills commands; do
