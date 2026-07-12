@@ -271,7 +271,7 @@ verify_cc_registration() {
   echo "② Claude Code 注册层验证"
   echo "   CC 目录: $cc_home"
   echo "   内核:    $kernel"
-  echo "   检查: skills/commands/rules symlink → 内核 + settings.json hooks"
+  echo "   检查: skills/commands 按 delivery；rules deploy；settings.json hooks"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   if [ ! -d "$kernel" ]; then
@@ -279,28 +279,72 @@ verify_cc_registration() {
     return 1
   fi
 
+  local delivery="unified"
+  local profile_file="$kernel/install-profile.json"
+  if [ -f "$profile_file" ]; then
+    delivery=$(node -e "
+      const fs=require('fs');
+      try {
+        const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));
+        const d=(p.delivery||'unified').toLowerCase();
+        console.log(d==='copy'?'copy':'unified');
+      } catch { console.log('unified'); }
+    " "$profile_file" 2>/dev/null || echo "unified")
+  fi
+  echo "  📦 delivery: $delivery（skills/commands）；rules 固定 deploy"
+
   local shim
-  for shim in skills commands rules; do
+  for shim in skills commands; do
     local link="$cc_home/$shim"
     local expected="$kernel/$shim"
-    if [ -L "$link" ]; then
-      local real_link real_expected
-      real_link=$(node -e "const fs=require('fs');try{console.log(fs.realpathSync(process.argv[1]))}catch{process.exit(1)}" "$link" 2>/dev/null || echo "")
-      real_expected=$(node -e "const fs=require('fs');try{console.log(fs.realpathSync(process.argv[1]))}catch{process.exit(1)}" "$expected" 2>/dev/null || echo "")
-      if [ -n "$real_link" ] && [ "$real_link" = "$real_expected" ]; then
-        echo "  ✅ $shim symlink → $real_link"
+    if [ "$delivery" = "unified" ]; then
+      if [ -L "$link" ]; then
+        local real_link real_expected
+        real_link=$(node -e "const fs=require('fs');try{console.log(fs.realpathSync(process.argv[1]))}catch{process.exit(1)}" "$link" 2>/dev/null || echo "")
+        real_expected=$(node -e "const fs=require('fs');try{console.log(fs.realpathSync(process.argv[1]))}catch{process.exit(1)}" "$expected" 2>/dev/null || echo "")
+        if [ -n "$real_link" ] && [ "$real_link" = "$real_expected" ]; then
+          echo "  ✅ $shim symlink → $real_link"
+        else
+          echo "  ❌ $shim symlink 指向错误: $link → $real_link（期望 $real_expected）"
+          errors=$((errors + 1))
+        fi
+      elif [ -e "$link" ]; then
+        echo "  ❌ $shim 是实体路径而非 symlink（delivery=unified，应指向 $expected）"
+        errors=$((errors + 1))
       else
-        echo "  ❌ $shim symlink 指向错误: $link → $real_link（期望 $real_expected）"
+        echo "  ❌ 缺 $shim symlink: $link"
         errors=$((errors + 1))
       fi
-    elif [ -e "$link" ]; then
-      echo "  ❌ $shim 是实体路径而非 symlink（应指向 $expected）"
-      errors=$((errors + 1))
     else
-      echo "  ❌ 缺 $shim symlink: $link"
-      errors=$((errors + 1))
+      if [ -d "$link" ] && [ "$(find "$link" -mindepth 1 -maxdepth 1 2>/dev/null | head -1)" ]; then
+        echo "  ✅ $shim 目录已部署（copy）"
+      else
+        echo "  ❌ 缺 $shim 目录或为空（delivery=copy）: $link"
+        errors=$((errors + 1))
+      fi
     fi
   done
+
+  local rules_dir="$cc_home/rules"
+  echo ""
+  echo "  📜 检查 rules deploy（非 symlink）..."
+  if [ -L "$rules_dir" ]; then
+    echo "  ❌ rules 仍是 symlink（应 deploy 为实体文件）: $rules_dir"
+    errors=$((errors + 1))
+  elif [ ! -d "$rules_dir" ]; then
+    echo "  ❌ 缺 rules 目录: $rules_dir"
+    errors=$((errors + 1))
+  else
+    local rule_file
+    for rule_file in 00-iron-rules.md 10-architecture.md 20-workflow.md; do
+      if [ -f "$rules_dir/$rule_file" ]; then
+        echo "    ✅ $rule_file"
+      else
+        echo "    ❌ 缺 $rule_file"
+        errors=$((errors + 1))
+      fi
+    done
+  fi
 
   local settings="$cc_home/settings.json"
   echo ""

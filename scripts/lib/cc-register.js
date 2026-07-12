@@ -1,59 +1,39 @@
 /**
  * cc-register — P004 CC 用户级注册层（~/.claude shim + merge-hooks）
+ *
+ * skills/commands 跟 delivery（unified|copy）；rules 固定 deploy；hooks 固定 merge。
  */
 
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 const { mergeHooks } = require('../merge-hooks');
 const { upsertHost } = require('./install-profile');
+const {
+  DEFAULT_DELIVERY,
+  normalizeDelivery,
+  deliverAssetDir,
+  deployCcRules,
+  removeDeployedCcRules,
+  isSymlink,
+} = require('./asset-delivery');
 
-const CC_SHIM_DIRS = ['skills', 'commands', 'rules'];
+const CC_ASSET_DIRS = ['skills', 'commands'];
 
 function pathExists(p) {
   try { return fs.existsSync(p); } catch { return false; }
 }
 
-function isSymlink(p) {
-  try { return fs.lstatSync(p).isSymbolicLink(); } catch { return false; }
-}
-
-function createDirLink(linkPath, targetPath) {
-  const absTarget = path.resolve(targetPath);
-  const absLink = path.resolve(linkPath);
-  if (pathExists(absLink)) {
-    if (isSymlink(absLink)) {
-      return { ok: true, skipped: true };
-    }
-    if (fs.statSync(absLink).isDirectory()) {
-      const entries = fs.readdirSync(absLink);
-      if (entries.length > 0) {
-        return { ok: false, error: `refuse to replace non-link ${absLink}` };
-      }
-      fs.rmdirSync(absLink);
-    } else {
-      return { ok: false, error: `refuse to replace non-directory ${absLink}` };
-    }
-  }
-  fs.mkdirSync(path.dirname(absLink), { recursive: true });
-  if (process.platform === 'win32') {
-    execSync(`cmd /c mklink /J "${absLink}" "${absTarget}"`, { stdio: 'pipe' });
-  } else {
-    fs.symlinkSync(absTarget, absLink, 'dir');
-  }
-  return { ok: true };
-}
-
 /**
- * @param {{ kernelRoot: string, homeDir?: string, dryRun?: boolean }} opts
+ * @param {{ kernelRoot: string, homeDir?: string, delivery?: string, dryRun?: boolean }} opts
  */
 function registerCc(opts) {
   const kernelRoot = path.resolve(opts.kernelRoot);
   const homeDir = path.resolve(opts.homeDir || process.env.HOME || process.env.USERPROFILE || '');
   const ccHome = path.join(homeDir, '.claude');
   const dryRun = opts.dryRun === true;
+  const delivery = normalizeDelivery(opts.delivery || DEFAULT_DELIVERY);
   const written = [];
   const errors = [];
 
@@ -63,18 +43,30 @@ function registerCc(opts) {
     return { ok: false, written, errors };
   }
 
-  for (const name of CC_SHIM_DIRS) {
+  for (const name of CC_ASSET_DIRS) {
     const src = path.join(kernelRoot, name);
     const dest = path.join(ccHome, name);
     if (!pathExists(src)) continue;
-    if (dryRun) {
-      written.push({ kind: 'link', from: src, to: dest });
-      continue;
-    }
-    const r = createDirLink(dest, src);
+    const r = deliverAssetDir({ srcDir: src, destDir: dest, mode: delivery, dryRun });
     if (!r.ok) errors.push(r.error);
-    else written.push({ kind: 'link', from: src, to: dest, skipped: r.skipped });
+    else {
+      written.push({
+        kind: delivery === 'unified' ? 'link' : 'copy',
+        asset: name,
+        from: src,
+        to: dest,
+        method: r.method,
+        skipped: r.skipped,
+        merged: r.merged,
+        skippedNames: r.skipped,
+        backupPath: r.backupPath,
+      });
+    }
   }
+
+  const rulesDest = path.join(ccHome, 'rules');
+  const rulesRes = deployCcRules({ kernelRoot, destRulesDir: rulesDest, dryRun });
+  written.push({ kind: 'deploy', asset: 'rules', to: rulesDest, deployed: rulesRes.deployed });
 
   const settingsFile = path.join(ccHome, 'settings.json');
   if (!dryRun && errors.length === 0) {
@@ -93,37 +85,55 @@ function registerCc(opts) {
     written.push({ kind: 'settings', path: settingsFile });
   }
 
-  return { ok: errors.length === 0, written, errors, ccHome, kernelRoot };
+  return { ok: errors.length === 0, written, errors, ccHome, kernelRoot, delivery };
 }
 
 /**
- * @param {{ kernelRoot: string, homeDir?: string, dryRun?: boolean }} opts
+ * @param {{ kernelRoot: string, homeDir?: string, delivery?: string, dryRun?: boolean }} opts
  */
 function unregisterCc(opts) {
   const kernelRoot = path.resolve(opts.kernelRoot);
   const homeDir = path.resolve(opts.homeDir || process.env.HOME || process.env.USERPROFILE || '');
   const ccHome = path.join(homeDir, '.claude');
   const dryRun = opts.dryRun === true;
+  const delivery = normalizeDelivery(opts.delivery || DEFAULT_DELIVERY);
   const removed = [];
   const errors = [];
 
-  for (const name of CC_SHIM_DIRS) {
+  for (const name of CC_ASSET_DIRS) {
     const dest = path.join(ccHome, name);
     if (!pathExists(dest)) continue;
-    if (!isSymlink(dest)) {
-      errors.push(`skip non-link ${dest}`);
-      continue;
+    if (delivery === 'unified') {
+      if (!isSymlink(dest)) {
+        errors.push(`skip non-link ${dest}`);
+        continue;
+      }
+      const target = fs.readlinkSync(dest);
+      const resolved = path.resolve(ccHome, target);
+      const kernelTarget = path.join(kernelRoot, name);
+      if (resolved !== path.resolve(kernelTarget) && !resolved.startsWith(kernelRoot)) {
+        errors.push(`skip foreign link ${dest}`);
+        continue;
+      }
+      if (!dryRun) fs.unlinkSync(dest);
+      removed.push(dest);
+    } else {
+      // copy 模式：仅删除内核拥有的条目（目录/文件同名）
+      const src = path.join(kernelRoot, name);
+      if (!pathExists(src)) continue;
+      for (const entry of fs.readdirSync(src)) {
+        const fp = path.join(dest, entry);
+        if (!pathExists(fp)) continue;
+        if (!dryRun) fs.rmSync(fp, { recursive: true, force: true });
+        removed.push(fp);
+      }
     }
-    const target = fs.readlinkSync(dest);
-    if (!path.resolve(target).startsWith(kernelRoot)) {
-      errors.push(`skip foreign link ${dest}`);
-      continue;
-    }
-    if (!dryRun) fs.unlinkSync(dest);
-    removed.push(dest);
   }
 
-  return { ok: errors.length === 0, removed, errors };
+  const rulesRemoved = removeDeployedCcRules(path.join(ccHome, 'rules'), { dryRun });
+  removed.push(...rulesRemoved.removed.map((n) => path.join(ccHome, 'rules', n)));
+
+  return { ok: errors.length === 0, removed, errors, delivery };
 }
 
 function applyCcToProfile(profile, platform) {
@@ -131,9 +141,8 @@ function applyCcToProfile(profile, platform) {
 }
 
 module.exports = {
-  CC_SHIM_DIRS,
+  CC_ASSET_DIRS,
   registerCc,
   unregisterCc,
   applyCcToProfile,
-  createDirLink,
 };

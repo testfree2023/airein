@@ -18,9 +18,12 @@ const {
   readProfile,
   writeProfile,
   upsertHost,
+  readDelivery,
+  DEFAULT_DELIVERY,
 } = require('./install-profile');
 const { registerCc, unregisterCc } = require('./cc-register');
 const { installHost, uninstallHost } = require('../install-host');
+const { normalizeDelivery } = require('./asset-delivery');
 
 const DEFAULT_KERNEL_DIR = '.airein';
 const REPO_HTTPS = 'https://github.com/testfree2023/airein.git';
@@ -251,6 +254,7 @@ function printUsage(out = process.stdout) {
     '',
     '  # Claude Code + Cursor 同机',
     '  bash ./airein setup --hosts claude-code,cursor --yes',
+    '  bash ./airein setup --delivery copy --hosts cursor --yes   # skills/commands 拷贝模式',
     '',
     '  # 升级（在线拉取 GitHub 最新，推荐）',
     '  bash ~/.airein/airein update',
@@ -278,8 +282,9 @@ function printUsage(out = process.stdout) {
     '',
     '说明:',
     '  · 内核目录: ~/.airein/（skills / hooks / scripts 真相源）',
-    '  · CC 注册层: ~/.claude/（symlink + settings.json hooks）',
-    '  · Cursor 注册层: ~/.cursor/（skills / rules / hooks.json；全局安装 --root=$HOME）',
+    '  · delivery: unified（软链 skills/commands）| copy（拷贝）；rules 始终 deploy；hooks 始终 merge',
+    '  · CC 注册层: ~/.claude/（skills/commands 按 delivery + rules deploy + settings.json merge）',
+    '  · Cursor 注册层: ~/.cursor/（skills/commands 按 delivery + rules .mdc + hooks.json merge）',
     '  · update 后自动跑 verify --full；手动复验用上面 --full 命令',
     '  · 项目迁移（老 .claude 结构）: node ~/.airein/scripts/migrate-project-to-airein.js',
     '  · 更多文档: README.md · docs/deployment.md',
@@ -329,31 +334,38 @@ function hintDisabledHosts(detect, log = (m) => process.stderr.write(`${m}\n`)) 
   }
 }
 
+function normalizeDeliveryArg(value) {
+  if (!value) return null;
+  return normalizeDelivery(value);
+}
+
 function registerHost(hostId, opts) {
-  const { kernelRoot, homeDir, platform, dryRun } = opts;
+  const { kernelRoot, homeDir, platform, dryRun, delivery } = opts;
+  const mode = delivery || DEFAULT_DELIVERY;
   if (hostId === 'claude-code') {
-    return registerCc({ kernelRoot, homeDir, dryRun });
+    return registerCc({ kernelRoot, homeDir, dryRun, delivery: mode });
   }
   if (hostId === 'cursor') {
     if (dryRun) {
-      return { ok: true, written: [{ kind: 'cursor', dryRun: true }], errors: [] };
+      return { ok: true, written: [{ kind: 'cursor', dryRun: true, delivery: mode }], errors: [] };
     }
     const res = installHost('cursor', {
       repoRoot: kernelRoot,
       targetRoot: homeDir,
-      aireinRoot: kernelRoot.replace(/\\/g, '/'),
       platform: platform || (process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'macos' : 'linux'),
       dryRun: false,
+      delivery: mode,
     });
-    return { ok: res.errors.length === 0, written: res.written, errors: res.errors };
+    return { ok: res.errors.length === 0, written: res.written, errors: res.errors, delivery: mode };
   }
   return { ok: false, errors: [`unsupported host: ${hostId}`] };
 }
 
 function unregisterHostRecord(hostId, opts) {
-  const { kernelRoot, homeDir, dryRun } = opts;
+  const { kernelRoot, homeDir, dryRun, delivery } = opts;
+  const mode = delivery || DEFAULT_DELIVERY;
   if (hostId === 'claude-code') {
-    return unregisterCc({ kernelRoot, homeDir, dryRun });
+    return unregisterCc({ kernelRoot, homeDir, dryRun, delivery: mode });
   }
   if (hostId === 'cursor') {
     if (dryRun) return { ok: true, removed: [] };
@@ -384,6 +396,8 @@ async function setup(opts = {}) {
   }
   hosts = hosts.map(normalizeHostId).filter((id) => SELECTABLE_V1.has(id));
 
+  const delivery = normalizeDeliveryArg(opts.delivery) || DEFAULT_DELIVERY;
+
   const resolved = resolveSetupSource({ ...opts, kernelRoot, homeDir });
   const pkgVer = resolved.version;
   const installedVer = readInstalledVersion(kernelRoot);
@@ -407,6 +421,7 @@ async function setup(opts = {}) {
       homeDir,
       platform: opts.platform,
       dryRun,
+      delivery,
     });
     results.push({ hostId, ...r });
     if (!r.ok) {
@@ -415,9 +430,10 @@ async function setup(opts = {}) {
   }
 
   if (!dryRun) {
-    const profile = readProfile(kernelRoot) || defaultProfile(kernelRoot);
+    const profile = readProfile(kernelRoot) || defaultProfile(kernelRoot, { delivery });
     profile.installedVersion = pkgVer || profile.installedVersion;
     profile.installedAt = new Date().toISOString();
+    profile.delivery = delivery;
     for (const hostId of hosts) {
       upsertHost(profile, { id: hostId, platform: opts.platform });
     }
@@ -491,12 +507,14 @@ async function update(opts = {}) {
 
   try { resolved.cleanup(); } catch { /* noop */ }
 
+  const delivery = readDelivery(profile);
   log('');
   log('④ 按 install-profile 刷新宿主注册层...');
+  log(`   delivery: ${delivery}（skills/commands）；rules 固定 deploy；hooks 固定 merge`);
   const results = [];
   for (const h of profile.hosts) {
     log(`   · 注册 ${h.id}...`);
-    const r = registerHost(h.id, { kernelRoot, homeDir, platform: h.platform });
+    const r = registerHost(h.id, { kernelRoot, homeDir, platform: h.platform, delivery });
     results.push({ hostId: h.id, ...r });
     if (r.ok) log(`     ✅ ${h.id}`);
     else log(`     ❌ ${h.id}: ${(r.errors || []).join('; ')}`);
@@ -521,11 +539,15 @@ function uninstall(opts = {}) {
   const profile = readProfile(kernelRoot);
   const keepKernel = opts.keepKernel === true;
   const dryRun = opts.dryRun === true;
+  const delivery = profile ? readDelivery(profile) : DEFAULT_DELIVERY;
   const hosts = profile ? profile.hosts.map((h) => h.id) : [];
 
   const results = [];
   for (const hostId of hosts) {
-    results.push({ hostId, ...unregisterHostRecord(hostId, { kernelRoot, homeDir, dryRun }) });
+    results.push({
+      hostId,
+      ...unregisterHostRecord(hostId, { kernelRoot, homeDir, dryRun, delivery }),
+    });
   }
 
   if (!dryRun && profile) {
@@ -558,6 +580,8 @@ function parseCliFlags(argv) {
     if (a === '--kernel-root') { flags.kernelRoot = argv[++i]; continue; }
     if (a === '--branch') { flags.branch = argv[++i]; continue; }
     if (a.startsWith('--branch=')) { flags.branch = a.slice(9); continue; }
+    if (a === '--delivery') { flags.delivery = argv[++i]; continue; }
+    if (a.startsWith('--delivery=')) { flags.delivery = a.slice(11); continue; }
     if (!a.startsWith('-')) flags._.push(a);
   }
   return flags;
@@ -576,6 +600,7 @@ async function runCli(argv) {
     keepKernel: flags.keepKernel,
     kernelRoot: flags.kernelRoot,
     branch: flags.branch,
+    delivery: flags.delivery,
     scriptDir,
   };
 

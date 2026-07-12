@@ -18,21 +18,23 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'airein-profile-'));
 const KERNEL = path.join(TMP, 'kernel');
 
 describe('install-profile: defaultProfile', (suite) => {
-  suite.test('schema v1 + kernelRoot', () => {
+  suite.test('schema v1 + kernelRoot + delivery', () => {
     const p = defaultProfile(KERNEL);
     assertEqual(p.schema, PROFILE_SCHEMA, 'schema');
     assertEqual(p.kernelRoot, path.resolve(KERNEL), 'kernelRoot resolved');
+    assertEqual(p.delivery, 'unified', 'default delivery');
     assertEqual(p.hosts.length, 0, 'empty hosts');
   });
 });
 
 describe('install-profile: write/read round-trip', (suite) => {
-  suite.test('写入后读回', () => {
-    const data = defaultProfile(KERNEL);
-    data.installedVersion = '2.01';
+  suite.test('写入后读回 delivery', () => {
+    const data = defaultProfile(KERNEL, { delivery: 'copy' });
+    data.installedVersion = '2.02';
     writeProfile(KERNEL, data);
     const read = readProfile(KERNEL);
-    assertEqual(read.installedVersion, '2.01', 'version');
+    assertEqual(read.delivery, 'copy', 'delivery');
+    assertEqual(read.installedVersion, '2.02', 'version');
     assertEqual(read.kernelRoot, path.resolve(KERNEL), 'kernelRoot');
   });
 

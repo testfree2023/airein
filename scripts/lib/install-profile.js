@@ -9,15 +9,17 @@ const path = require('path');
 
 const PROFILE_SCHEMA = 'airein.install-profile.v1';
 const PROFILE_FILENAME = 'install-profile.json';
+const { DEFAULT_DELIVERY, normalizeDelivery } = require('./asset-delivery');
 
 function profilePath(kernelRoot) {
   return path.join(path.resolve(kernelRoot), PROFILE_FILENAME);
 }
 
-function defaultProfile(kernelRoot) {
+function defaultProfile(kernelRoot, opts = {}) {
   return {
     schema: PROFILE_SCHEMA,
     kernelRoot: path.resolve(kernelRoot),
+    delivery: normalizeDelivery(opts.delivery),
     installedVersion: null,
     installedAt: null,
     hosts: [],
@@ -45,7 +47,12 @@ function readProfile(kernelRoot) {
 function writeProfile(kernelRoot, data) {
   const fp = profilePath(kernelRoot);
   fs.mkdirSync(path.dirname(fp), { recursive: true });
-  const out = { ...data, schema: PROFILE_SCHEMA, kernelRoot: path.resolve(kernelRoot) };
+  const out = {
+    ...data,
+    schema: PROFILE_SCHEMA,
+    kernelRoot: path.resolve(kernelRoot),
+    delivery: normalizeDelivery(data.delivery),
+  };
   fs.writeFileSync(fp, `${JSON.stringify(out, null, 2)}\n`);
   return out;
 }
@@ -70,6 +77,10 @@ function upsertHost(profile, host) {
   return profile;
 }
 
+function readDelivery(profile) {
+  return normalizeDelivery(profile && profile.delivery);
+}
+
 module.exports = {
   PROFILE_SCHEMA,
   PROFILE_FILENAME,
@@ -78,4 +89,6 @@ module.exports = {
   readProfile,
   writeProfile,
   upsertHost,
+  readDelivery,
+  DEFAULT_DELIVERY,
 };

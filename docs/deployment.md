@@ -21,9 +21,19 @@ airein 仓库（GitHub）
   ├─ templates/
   └─ install-profile.json           ← 已装宿主记录
 
-宿主注册层（按 profile 写入）：
-  ~/.claude/   ← CC：symlink skills/commands/rules + merge-hooks → settings.json
-  ~/.cursor/   ← Cursor：项目级 .cursor/（install-host）
+宿主注册层（按 profile 写入；`install-profile.json` 含 `delivery: unified|copy`）：
+
+| 资产 | 策略 | CC | Cursor |
+|------|------|-----|--------|
+| skills | `delivery` | unified=软链 / copy=拷贝 | 同左 |
+| commands | `delivery` | unified=软链 / copy=拷贝 | 同左 |
+| rules | **固定 deploy** | 拷贝 `rules/` + `.claude/rules/` 薄壳 → `~/.claude/rules/` | `ruleGenerate` → `.cursor/rules/*.mdc` |
+| hooks | **固定 merge** | `merge-hooks` → `settings.json` | `cursor-hook-merge` → `hooks.json` |
+
+```
+  ~/.claude/   ← CC：skills/commands 按 delivery；rules deploy；hooks merge
+  ~/.cursor/   ← Cursor：skills/commands 按 delivery；rules .mdc；hooks merge
+```
 
 项目数据（per-repo）：
   <项目>/.airein/                   ← canonical：config / memory / logs / self-learning

@@ -7,16 +7,20 @@ const path = require('path');
 const os = require('os');
 const { describe, assertEqual, assert, assertOk, printSummary } = require('./helpers');
 const { registerCc, unregisterCc } = require('../scripts/lib/cc-register');
+const { isSymlink } = require('../scripts/lib/asset-delivery');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'airein-ccreg-'));
 const HOME = path.join(TMP, 'home');
 const KERNEL = path.join(TMP, 'kernel');
 
 function seedKernel() {
-  for (const d of ['skills/x', 'commands', 'rules', 'scripts/hooks', 'hooks']) {
+  for (const d of ['skills/x', 'commands', 'rules', 'scripts/hooks', 'hooks', '.claude/rules']) {
     fs.mkdirSync(path.join(KERNEL, d), { recursive: true });
   }
   fs.writeFileSync(path.join(KERNEL, 'skills', 'x', 'SKILL.md'), '---\nname: x\n---\n');
+  fs.writeFileSync(path.join(KERNEL, 'rules', '00-iron-rules.md'), '# iron\n');
+  fs.writeFileSync(path.join(KERNEL, '.claude', 'rules', 'conventions-javascript.md'), '# js\n');
+  fs.writeFileSync(path.join(KERNEL, 'commands', 'tdd.md'), '# tdd\n');
   fs.writeFileSync(path.join(KERNEL, 'scripts', 'hooks', 'test-guard.js'), '//');
   fs.writeFileSync(
     path.join(KERNEL, 'hooks', 'hooks.json'),
@@ -24,16 +28,28 @@ function seedKernel() {
   );
 }
 
-describe('cc-register: registerCc', (suite) => {
-  suite.test('创建 shim + settings hooks 指向 kernel', () => {
+describe('cc-register: registerCc unified', (suite) => {
+  suite.test('skills/commands 软链 + rules deploy + settings merge', () => {
     seedKernel();
-    const r = registerCc({ kernelRoot: KERNEL, homeDir: HOME });
+    const r = registerCc({ kernelRoot: KERNEL, homeDir: HOME, delivery: 'unified' });
     assertEqual(r.ok, true, 'ok');
     const settings = path.join(HOME, '.claude', 'settings.json');
     assertOk(fs.existsSync(settings), 'settings');
     const cmd = JSON.parse(fs.readFileSync(settings, 'utf8')).hooks.PreToolUse[0].hooks[0].command;
     assert(cmd.includes(KERNEL.replace(/\\/g, '/')), 'kernel in command');
-    assertOk(fs.existsSync(path.join(HOME, '.claude', 'skills', 'x', 'SKILL.md')), 'skills shim');
+    assertOk(isSymlink(path.join(HOME, '.claude', 'skills')), 'skills link');
+    assertOk(isSymlink(path.join(HOME, '.claude', 'commands')), 'commands link');
+    assert(!isSymlink(path.join(HOME, '.claude', 'rules')), 'rules not link');
+    assertOk(fs.existsSync(path.join(HOME, '.claude', 'rules', '00-iron-rules.md')), 'rules deployed');
+  });
+
+  suite.test('copy 模式 skills/commands 为实体目录', () => {
+    const homeCopy = path.join(TMP, 'home-copy');
+    fs.mkdirSync(homeCopy, { recursive: true });
+    const r = registerCc({ kernelRoot: KERNEL, homeDir: homeCopy, delivery: 'copy' });
+    assertEqual(r.ok, true, 'copy ok');
+    assert(!isSymlink(path.join(homeCopy, '.claude', 'skills')), 'skills not link');
+    assertOk(fs.existsSync(path.join(homeCopy, '.claude', 'skills', 'x', 'SKILL.md')), 'skill copied');
   });
 
   suite.test('dryRun 不写盘', () => {
@@ -46,13 +62,14 @@ describe('cc-register: registerCc', (suite) => {
 });
 
 describe('cc-register: unregisterCc', (suite) => {
-  suite.test('删除指向 kernel 的 symlink', () => {
+  suite.test('unified 删除指向 kernel 的 symlink', () => {
     const home3 = path.join(TMP, 'home3');
     fs.mkdirSync(home3, { recursive: true });
-    registerCc({ kernelRoot: KERNEL, homeDir: home3 });
-    const r = unregisterCc({ kernelRoot: KERNEL, homeDir: home3 });
+    registerCc({ kernelRoot: KERNEL, homeDir: home3, delivery: 'unified' });
+    const r = unregisterCc({ kernelRoot: KERNEL, homeDir: home3, delivery: 'unified' });
     assertEqual(r.ok, true, 'uninstall ok');
     assert(!fs.existsSync(path.join(home3, '.claude', 'skills')), 'skills link gone');
+    assert(!fs.existsSync(path.join(home3, '.claude', 'rules', '00-iron-rules.md')), 'airein rules removed');
   });
 });
 

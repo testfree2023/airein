@@ -136,14 +136,14 @@ describe('verify-airein.sh: ⑤ --cc-registration CC 注册层', (suite) => {
     } finally { rmTmp(tmp); }
   });
 
-  suite.test('缺 symlink → --cc-registration exit 1', () => {
+  suite.test('缺注册 → --cc-registration exit 1', () => {
     const tmp = mkTmp();
     const home = path.join(tmp, 'home');
     fs.mkdirSync(home, { recursive: true });
     try {
       const r = runVerify(['--cc-registration', '--home', home, '--kernel', ROOT]);
       assertOk(r.status !== 0, '未注册 CC → 非 0');
-      assertContains(r.stdout + r.stderr, 'symlink', '报告 symlink 问题');
+      assertContains(r.stdout + r.stderr, 'skills', '报告 skills 问题');
     } finally { rmTmp(tmp); }
   });
 });
