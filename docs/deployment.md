@@ -51,10 +51,11 @@ airein 仓库（GitHub）
 
 ```bash
 git clone git@github.com:testfree2023/airein.git /tmp/airein
-bash /tmp/airein/airein setup --yes
+cd /tmp/airein
+bash ./airein setup --yes
 ```
 
-`airein setup` 检测宿主、安装内核到 `~/.airein`、注册 CC/Cursor（首版）、跑 verify。非交互示例：`airein setup --hosts claude-code,cursor --yes`。
+`airein setup` 检测宿主、安装内核到 `~/.airein`、注册 CC/Cursor（首版）、跑 `verify --full`。非交互示例：`bash ./airein setup --hosts claude-code,cursor --yes`。
 
 ## Hook 注册机制
 
@@ -96,13 +97,42 @@ airein 的行为由 `quality.json` 驱动（项目级 `.claude/quality.json` 或
 
 ## 验证
 
-部署后跑回归门禁：
+部署后跑回归门禁（**推荐一条命令验全部层**）：
 
 ```bash
-bash ~/.claude/scripts/update/verify-airein.sh ~/.claude
+bash ~/.airein/scripts/update/verify-airein.sh --full
 ```
 
-执行 6 项完整性检查（hooks.json 引用脚本就位 / 依赖完整 / settings.json 注册 / lib 核心模块 / L0 rules 三文件），任一失败返回非 0。详见 [test-plan.md](test-plan.md#回归门禁)。
+`--full` 会依次检查：
+
+| 层 | 检查对象 | 内容 |
+|----|---------|------|
+| ① 内核 | `~/.airein/` | hooks.json 引用脚本 / 依赖 / lib / L0 rules |
+| ② CC 注册 | `~/.claude/` | skills/commands/rules symlink → 内核 + settings.json hooks |
+| ③ 宿主注册 | `~/.cursor/` 等 | install-host 产物矩阵（按 `install-profile.json`） |
+
+`airein update` 结束后会自动跑 `--full`；手动复验用上面命令。
+
+### 分层排查（定位失败层）
+
+```bash
+# ① 仅内核（sync 后脚本是否就位）
+bash ~/.airein/scripts/update/verify-airein.sh --kernel ~/.airein
+
+# ② 仅 CC 注册层
+bash ~/.airein/scripts/update/verify-airein.sh --cc-registration \
+  --home "$HOME" --kernel ~/.airein
+
+# ③ 仅 Cursor 注册层（全局安装：targetRoot=$HOME → ~/.cursor/）
+bash ~/.airein/scripts/update/verify-airein.sh --host cursor --root "$HOME"
+
+# ③ 项目级 Cursor（targetRoot=项目根 → <项目>/.cursor/）
+bash ~/.airein/scripts/update/verify-airein.sh --host cursor --root /path/to/project
+```
+
+**为何 `--kernel` 与 `--host cursor` 不同？** 前者只验内核真相源是否完整，不管 CC/Cursor 是否注册成功；后者只验 Cursor 侧 `.cursor/` 产物，不管内核是否最新。`--full` 按 profile 依次跑全部层。
+
+详见 [test-plan.md](test-plan.md#回归门禁)。
 
 ## 更新
 

@@ -103,7 +103,8 @@ function run() {
   const chunks = [];
   printUsage({ write: (s) => chunks.push(s) });
   const help = chunks.join('');
-  assertContains(help, 'airein setup', 'usage mentions setup');
+  assertContains(help, 'bash ./airein setup', 'usage uses repo-relative ./airein');
+  assertContains(help, 'verify-airein.sh --full', 'usage recommends --full verify');
   assertContains(help, 'airein update', 'usage mentions update');
   assertContains(help, '--hosts claude-code,cursor', 'usage mentions hosts example');
   assertContains(help, 'update --source', 'usage mentions offline update');
@@ -142,7 +143,7 @@ function run() {
     runPostUpdateMaintenance(kernel, home, profile, {
       execFn: (cmd) => {
         if (cmd.includes('clean-airein.sh')) maintenanceRan.clean = true;
-        if (cmd.includes('verify-airein.sh')) maintenanceRan.verify = true;
+        if (cmd.includes('verify-airein.sh') && cmd.includes('--full')) maintenanceRan.verify = true;
       },
     });
     assertOk(maintenanceRan.clean, 'maintenance runs clean');

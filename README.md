@@ -105,7 +105,7 @@ bash /tmp/airein/airein setup --yes; rm -rf /tmp/airein
 | 仅 Cursor | `airein setup --hosts cursor --yes` |
 | CC + Cursor 同机 | `airein setup --hosts claude-code,cursor --yes` |
 
-验证：`bash ~/.airein/scripts/update/verify-airein.sh --host cursor`（或 CC 模式见 [deployment.md](docs/deployment.md)）。
+验证：`bash ~/.airein/scripts/update/verify-airein.sh --full`（推荐；分层排查见 [deployment.md](docs/deployment.md)）。
 
 ### 进项目：直接用
 

@@ -16,6 +16,8 @@ const { spawnSync } = require('child_process');
 
 const { describe, assertEqual, assertOk, assertContains, printSummary, projectRoot } = require('./helpers');
 const { installHost, KNOWN_HOSTS } = require('../scripts/install-host');
+const { registerCc } = require('../scripts/lib/cc-register');
+const { writeProfile, defaultProfile, upsertHost } = require('../scripts/lib/install-profile');
 
 const ROOT = projectRoot();
 const VERIFY = path.join(ROOT, 'scripts', 'update', 'verify-airein.sh');
@@ -107,10 +109,72 @@ describe('verify-airein.sh --host: ③ 前置错误（未知 host / 缺 manifest
   });
 });
 
-describe('verify-airein.sh: ④ CC 模式（位置参数 <install_dir>）不回归', (suite) => {
-  suite.test('bash verify-airein.sh <repo-root> 仍 exit 0（airein 仓库结构完整）', () => {
+describe('verify-airein.sh: ④ 内核模式（--kernel / 位置参数）不回归', (suite) => {
+  suite.test('bash verify-airein.sh <repo-root> 仍 exit 0（内核结构完整）', () => {
     const r = runVerify([ROOT]);
-    assertEqual(r.status, 0, `CC 模式 exit 0（既有契约不破）\n${r.stdout}`);
+    assertEqual(r.status, 0, `内核模式 exit 0\n${r.stdout}`);
+    assertContains(r.stdout, '内核层', '输出标明内核层');
+  });
+
+  suite.test('--kernel <repo-root> 与位置参数等价', () => {
+    const r = runVerify(['--kernel', ROOT]);
+    assertEqual(r.status, 0, '--kernel exit 0');
+  });
+});
+
+describe('verify-airein.sh: ⑤ --cc-registration CC 注册层', (suite) => {
+  suite.test('registerCc 后 --cc-registration exit 0', () => {
+    const tmp = mkTmp();
+    const home = path.join(tmp, 'home');
+    fs.mkdirSync(home, { recursive: true });
+    try {
+      const reg = registerCc({ kernelRoot: ROOT, homeDir: home });
+      assertOk(reg.ok, `registerCc ok: ${reg.errors.join('; ')}`);
+      const r = runVerify(['--cc-registration', '--home', home, '--kernel', ROOT]);
+      assertEqual(r.status, 0, `--cc-registration exit 0\n${r.stdout}\n${r.stderr}`);
+      assertContains(r.stdout, 'CC 注册层', '输出标明 CC 注册层');
+    } finally { rmTmp(tmp); }
+  });
+
+  suite.test('缺 symlink → --cc-registration exit 1', () => {
+    const tmp = mkTmp();
+    const home = path.join(tmp, 'home');
+    fs.mkdirSync(home, { recursive: true });
+    try {
+      const r = runVerify(['--cc-registration', '--home', home, '--kernel', ROOT]);
+      assertOk(r.status !== 0, '未注册 CC → 非 0');
+      assertContains(r.stdout + r.stderr, 'symlink', '报告 symlink 问题');
+    } finally { rmTmp(tmp); }
+  });
+});
+
+describe('verify-airein.sh: ⑥ --full 按 profile 验全部层', (suite) => {
+  suite.test('profile 含 claude-code+cursor → --full exit 0', () => {
+    const tmp = mkTmp();
+    const home = path.join(tmp, 'home');
+    fs.mkdirSync(home, { recursive: true });
+    const profilePath = path.join(ROOT, 'install-profile.json');
+    const hadProfile = fs.existsSync(profilePath);
+    const backup = hadProfile ? fs.readFileSync(profilePath, 'utf8') : null;
+    try {
+      const reg = registerCc({ kernelRoot: ROOT, homeDir: home });
+      assertOk(reg.ok, 'registerCc');
+      installHost('cursor', { targetRoot: home, repoRoot: ROOT, platform: 'linux' });
+      const profile = defaultProfile(ROOT);
+      upsertHost(profile, { id: 'claude-code', platform: 'linux' });
+      upsertHost(profile, { id: 'cursor', platform: 'linux' });
+      writeProfile(ROOT, profile);
+      const r = runVerify(['--full', '--home', home, '--kernel', ROOT]);
+      assertEqual(r.status, 0, `--full exit 0\n${r.stdout}\n${r.stderr}`);
+      assertContains(r.stdout, '完整验证通过', '汇总通过');
+      assertContains(r.stdout, '内核层', '含内核层');
+      assertContains(r.stdout, 'CC 注册层', '含 CC 层');
+      assertContains(r.stdout, 'cursor', '含 cursor 层');
+    } finally {
+      if (hadProfile) fs.writeFileSync(profilePath, backup);
+      else if (fs.existsSync(profilePath)) fs.unlinkSync(profilePath);
+      rmTmp(tmp);
+    }
   });
 });
 

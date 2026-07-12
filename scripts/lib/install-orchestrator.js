@@ -204,17 +204,9 @@ function runPostUpdateMaintenance(kernelRoot, homeDir, profile, opts = {}) {
   if (opts.skipVerify !== true) {
     const verify = path.join(kernelRoot, 'scripts', 'update', 'verify-airein.sh');
     results.push({
-      step: 'verify-kernel',
-      ...runShellScript(verify, [kernelRoot], opts),
+      step: 'verify-full',
+      ...runShellScript(verify, ['--full', '--home', homeDir, '--kernel', kernelRoot], opts),
     });
-    for (const h of (profile && profile.hosts) || []) {
-      if (h.id === 'cursor') {
-        results.push({
-          step: 'verify-cursor',
-          ...runShellScript(verify, ['--host', 'cursor', '--root', homeDir], opts),
-        });
-      }
-    }
   }
   return results;
 }
@@ -230,14 +222,14 @@ function printUsage(out = process.stdout) {
     '',
     '常见示例:',
     '',
-    '  # 首次安装（自动探测本机宿主）',
-    '  bash airein setup --yes',
+    '  # 首次安装（在 airein 仓库内，自动探测本机宿主）',
+    '  bash ./airein setup --yes',
     '',
     '  # 仅 Claude Code',
-    '  bash airein setup --hosts claude-code --yes',
+    '  bash ./airein setup --hosts claude-code --yes',
     '',
     '  # Claude Code + Cursor 同机',
-    '  bash airein setup --hosts claude-code,cursor --yes',
+    '  bash ./airein setup --hosts claude-code,cursor --yes',
     '',
     '  # 升级（在线拉取 GitHub 最新，推荐）',
     '  bash ~/.airein/airein update',
@@ -249,14 +241,22 @@ function printUsage(out = process.stdout) {
     '  # 卸载（保留内核目录备查）',
     '  bash ~/.airein/airein uninstall --keep-kernel',
     '',
-    '  # 手动验证安装完整性',
-    '  bash ~/.airein/scripts/update/verify-airein.sh ~/.airein',
+    '  # 验证安装完整性（推荐：一条命令验内核 + 全部已注册宿主）',
+    '  bash ~/.airein/scripts/update/verify-airein.sh --full',
+    '',
+    '  # 分层排查（仅当 --full 报错、需定位哪一层失败时）',
+    '  bash ~/.airein/scripts/update/verify-airein.sh --kernel ~/.airein',
+    '    → ① 内核层：hooks/lib/rules 真相源是否完整',
+    '  bash ~/.airein/scripts/update/verify-airein.sh --cc-registration --home "$HOME" --kernel ~/.airein',
+    '    → ② CC 注册层：~/.claude symlink + settings.json hooks',
     '  bash ~/.airein/scripts/update/verify-airein.sh --host cursor --root "$HOME"',
+    '    → ③ Cursor 注册层：~/.cursor/ 产物（全局安装时 --root 为 $HOME）',
     '',
     '说明:',
     '  · 内核目录: ~/.airein/（skills / hooks / scripts 真相源）',
     '  · CC 注册层: ~/.claude/（symlink + settings.json hooks）',
-    '  · Cursor 注册层: ~/.cursor/（skills / rules / hooks.json）',
+    '  · Cursor 注册层: ~/.cursor/（skills / rules / hooks.json；全局安装 --root=$HOME）',
+    '  · update 后自动跑 verify --full；手动复验用上面 --full 命令',
     '  · 更多文档: README.md · docs/deployment.md',
     '',
   ];
