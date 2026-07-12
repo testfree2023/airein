@@ -108,8 +108,6 @@ bash /tmp/airein/airein setup --yes; rm -rf /tmp/airein
 
 Verify: `bash ~/.airein/scripts/update/verify-airein.sh --host cursor`.
 
-> **Deprecated**: `setup-airein.sh` / `update-airein.sh` still work but print deprecation and forward to `airein setup|update`.
-
 ### In a project: just use it
 
 ```bash
@@ -247,8 +245,6 @@ airein update --source <archive from that tag>
 ```
 
 **Uninstall**: `airein uninstall` (`--keep-kernel` retains `~/.airein`).
-
-> `setup-airein.sh` / `update-airein.sh` are deprecated; use the `airein` CLI.
 
 ---
 

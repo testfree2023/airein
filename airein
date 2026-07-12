@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # airein — unified install orchestrator (P004)
 # Usage: airein setup|update|uninstall [options]
+#        airein              # 打印用法与示例
 
 set -euo pipefail
 

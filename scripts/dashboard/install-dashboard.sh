@@ -2,7 +2,7 @@
 # install-dashboard.sh — 安装/更新 Dashboard 管理面板
 #
 # 从 airein 源码复制 dashboard 文件到 ~/dashboard/。
-# 可独立运行，也可被 update-airein.sh 调用。
+# 可独立运行，也可被 airein update 流程调用。
 #
 # 用法:
 #   bash install-dashboard.sh <airein_src> [--with-dashboard|--skip-dashboard]

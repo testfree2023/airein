@@ -107,8 +107,6 @@ bash /tmp/airein/airein setup --yes; rm -rf /tmp/airein
 
 验证：`bash ~/.airein/scripts/update/verify-airein.sh --host cursor`（或 CC 模式见 [deployment.md](docs/deployment.md)）。
 
-> **已废弃**：`setup-airein.sh` / `update-airein.sh` 仍可用但会打印 deprecation 并转发到 `airein setup|update`。
-
 ### 进项目：直接用
 
 ```bash
@@ -247,8 +245,6 @@ airein update --source <该 tag 的 archive>
 ```
 
 **卸载**：`airein uninstall`（`--keep-kernel` 保留 `~/.airein` 目录）。
-
-> `setup-airein.sh` / `update-airein.sh` 已 deprecated，请改用 `airein` CLI。
 
 ---
 

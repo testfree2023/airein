@@ -30,7 +30,7 @@ airein 仓库（GitHub）
   <项目>/.claude/rules/             ← CC 项目 shim → .airein/rules（可选）
 ```
 
-**用户入口**：`airein setup|update|uninstall`（根目录 `airein` bash CLI）。`setup-airein.sh` / `update-airein.sh` 已 deprecated，转发到上述命令。
+**用户入口**：`airein setup|update|uninstall`（根目录 `airein` bash CLI）。
 
 **回滚锚点**：P004 合并到 main 前，远程 `origin/main` 打 tag `pre-p004-2026-07-11`。出问题可 `git checkout pre-p004-2026-07-11` 或 `airein update --source <该 tag 的 archive>`。
 
@@ -55,12 +55,6 @@ bash /tmp/airein/airein setup --yes
 ```
 
 `airein setup` 检测宿主、安装内核到 `~/.airein`、注册 CC/Cursor（首版）、跑 verify。非交互示例：`airein setup --hosts claude-code,cursor --yes`。
-
-**已废弃**（仍可用，打印 deprecation）：
-
-```bash
-bash /tmp/airein/setup-airein.sh   # → airein setup
-```
 
 ## Hook 注册机制
 
@@ -113,15 +107,24 @@ bash ~/.claude/scripts/update/verify-airein.sh ~/.claude
 ## 更新
 
 ```bash
-bash ~/.claude/update-airein.sh
+bash ~/.airein/airein update
+# 或从仓库：bash /path/to/airein/airein update
 ```
 
-`update-airein.sh` 是薄编排器：clone 最新版 → `clean-airein.sh`（清理废弃文件）→ `sync-airein.sh`（增量同步）→ `verify-airein.sh`。实际逻辑下沉到 `scripts/update/` 子脚本，方便独立升级。
+`airein update` 解析源（`--source` 本地目录/archive，或 **HTTPS git clone 到 /tmp**）→ 同步内核到 `~/.airein`（**入口脚本最后写入**）→ `clean-airein.sh` 清理废弃文件 → `verify-airein.sh` 回归 → 按 `install-profile.json` 重注册各宿主。
+
+无参数运行 `airein` 或 `airein --help` 会打印用法与常见示例。
 
 ## 卸载
 
 ```bash
-bash ~/.claude/scripts/update/clean-airein.sh ~/.claude
+bash ~/.airein/airein uninstall
+```
+
+或仅清 airein 拥有的废弃文件（legacy `~/.claude` 副本）：
+
+```bash
+bash ~/.airein/scripts/update/clean-airein.sh ~/.airein
 ```
 
 移除 airein 拥有的文件与 hook 注册（保留第三方配置与用户领土 `~/.claude/CLAUDE.md`、`memory/`）。
@@ -149,8 +152,8 @@ bash ~/.claude/dashboard/start.sh   # 默认 http://localhost:3456
 GitHub 网页下载 source archive（tar.gz / zip）后本地安装（网络不畅场景，P002）：
 
 ```bash
-bash setup-airein.sh --source <dir|tar.gz|zip> [--sha256 <hex>]   # 首次安装
-bash update-airein.sh --source <dir|tar.gz|zip>                    # 升级
+airein setup --source <dir|tar.gz|zip> [--sha256 <hex>] [--hosts cc,cursor] --yes   # 首次安装
+airein update --source <dir|tar.gz|zip> [--sha256 <hex>]                            # 升级
 ```
 
 可选 sha256 校验（GitHub archive 无官方 checksum sidecar，自行计算后传入；不传则跳过校验）：
@@ -158,13 +161,13 @@ bash update-airein.sh --source <dir|tar.gz|zip>                    # 升级
 ```bash
 sha256sum airein-2.00.tar.gz          # Linux / Git Bash
 shasum -a 256 airein-2.00.tar.gz      # macOS
-bash setup-airein.sh --source airein-2.00.tar.gz --sha256 <上一步输出的 hash>
+airein setup --source airein-2.00.tar.gz --sha256 <上一步输出的 hash> --yes
 ```
 
 源目录直装（已解压或本地 `git clone` 的仓库）跳过解压，不触网、不调 git：
 
 ```bash
-bash setup-airein.sh --source /path/to/airein-repo
+airein setup --source /path/to/airein-repo --yes
 ```
 
 ## Dogfooding 工作流（开发源 → 运行安装）
@@ -180,7 +183,7 @@ bash scripts/merge-hooks.sh "$HOME/.claude" "$(pwd)"   # 若 hooks.json 有变
 bash scripts/update/verify-airein.sh "$HOME/.claude"
 ```
 
-或整包升级：`bash update-airein.sh --source <airein-repo-dir>`
+或整包升级：`airein update --source <airein-repo-dir>`
 
 ### Cursor / 多宿主（内核在 airein 仓库，注册表在 `~/.cursor/` 等）
 

@@ -341,6 +341,6 @@ else
   echo -e "$MISSING_SCRIPTS"
   echo -e "$REQUIRE_FAILS"
   echo ""
-  echo "修复建议: 重新运行 update-airein.sh 或手动复制缺失文件"
+  echo "修复建议: 重新运行 airein update 或手动复制缺失文件"
   exit 1
 fi

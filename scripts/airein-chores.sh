@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # airein-chores.sh — 打杂脚本：目录创建、模板初始化、验证
 #
-# 被 update-airein.sh 和 setup-airein.sh 调用。
+# 被 airein setup / airein-chores 调用。
 # 也可独立运行：bash scripts/airein-chores.sh [CLAUDE_DIR] [PROJECT_DIR]
 #
 # 功能：

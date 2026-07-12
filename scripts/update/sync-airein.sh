@@ -111,8 +111,6 @@ CORE_FILES=(
   "scripts/manage-profile.js"
   "scripts/manage-plugins.js"
   # ── top-level ──
-  "setup-airein.sh"
-  "update-airein.sh"
   "VERSION"                          # P002: 版本守卫读（安装目标 VERSION 供下次升级比较）
   "README.md"
   # ── P001 multi-host adaptation layer (v0.2) ──
@@ -287,11 +285,6 @@ for file in "${CORE_FILES[@]}"; do
   src="$SOURCE_DIR/$file"
   dst="$TARGET_DIR/$file"
 
-  if [ "$file" = "update-airein.sh" ]; then
-    # 不覆盖正在运行的脚本，最后处理
-    continue
-  fi
-
   if [ -f "$src" ]; then
     mkdir -p "$(dirname "$dst")"
     cp "$src" "$dst"
@@ -399,6 +392,6 @@ if [ -f "$TARGET_DIR/scripts/update/verify-airein.sh" ]; then
   fi
 fi
 
-# ── 输出统计（供 update-airein.sh 解析）──────────────────────
+# ── 输出统计（供 airein update / 人工解析）────────────────────
 echo ""
 echo "STATS:updated=$UPDATED missing=$MISSING created=$CREATED skills=$SKILL_UPDATED hooks=$HOOK_COUNT verify_ok=$VERIFY_OK verify_fail=$VERIFY_FAIL"

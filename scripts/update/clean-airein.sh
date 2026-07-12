@@ -25,6 +25,9 @@ STALE_FILES=(
   # 例如: "scripts/hooks/old-hook.js"
   # P018: conventions-trigger hook 退役 — L1 conventions 改走 CC 原生条件规则（薄壳）
   "scripts/hooks/conventions-trigger.js"
+  # P004: 统一入口 airein CLI，旧顶层安装脚本退役
+  "setup-airein.sh"
+  "update-airein.sh"
 )
 
 STALE_DIRS=(

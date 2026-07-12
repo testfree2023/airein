@@ -41,7 +41,8 @@ function seedSrc() {
   fs.copyFileSync(path.join(pr, 'hooks', 'hooks.json'), path.join(SRC, 'hooks', 'hooks.json'));
   copyDir(path.join(pr, 'scripts', 'hooks'), path.join(SRC, 'scripts', 'hooks'));
   copyDir(path.join(pr, 'scripts', 'lib'), path.join(SRC, 'scripts', 'lib'));
-  fs.writeFileSync(path.join(SRC, 'VERSION'), '2.01');
+  copyDir(path.join(pr, 'scripts', 'update'), path.join(SRC, 'scripts', 'update'));
+  fs.copyFileSync(path.join(pr, 'airein'), path.join(SRC, 'airein'));
 }
 
 async function run() {
@@ -84,7 +85,7 @@ async function run() {
   fs.mkdirSync(home3, { recursive: true });
   await setup({ homeDir: home3, kernelRoot: kernel3, sourceDir: SRC, hosts: 'cursor', yes: true });
   fs.writeFileSync(path.join(SRC, 'VERSION'), '2.02');
-  const upd = await update({ homeDir: home3, kernelRoot: kernel3, sourceDir: SRC, scriptDir: SRC });
+  const upd = await update({ homeDir: home3, kernelRoot: kernel3, sourceDir: SRC, scriptDir: SRC, skipVerify: true, skipClean: true });
   assertEqual(upd.ok, true, 'update ok');
   assertEqual(fs.readFileSync(path.join(kernel3, 'VERSION'), 'utf8').trim(), '2.02', 'version synced');
 
