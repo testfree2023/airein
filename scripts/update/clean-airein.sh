@@ -43,6 +43,9 @@ STALE_DIRS=(
   "rules/common"
   # P019: self-improving → self-learning（旧 skill 目录残留）
   "skills/self-improving"
+  # P004: 用户运行时 skill 根（应在 ~/.claude/skills/learned|imported，不在内核 skills/）
+  "skills/learned"
+  "skills/imported"
 )
 
 REMOVED=0

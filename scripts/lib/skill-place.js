@@ -30,6 +30,9 @@ const HOST_SKILLS_DIR = {
   codebuddy: '.codebuddy/skills',
 };
 
+/** Runtime / user skill roots — not kernel curated skills (see skill-evolution/provenance.js). */
+const SKIP_SKILL_DIRS = new Set(['learned', 'imported']);
+
 /**
  * Extract the `name` field from SKILL.md YAML frontmatter.
  * @param {string} content - Raw SKILL.md content.
@@ -69,6 +72,7 @@ function skillPlace(srcSkillsDir, host, targetRoot) {
   const actions = [];
   const errors = [];
   for (const name of entries) {
+    if (SKIP_SKILL_DIRS.has(name)) continue;
     const skillDir = path.join(srcSkillsDir, name);
     const mdPath = path.join(skillDir, 'SKILL.md');
     if (!fs.existsSync(mdPath)) {
@@ -105,5 +109,6 @@ function skillPlace(srcSkillsDir, host, targetRoot) {
 module.exports = {
   skillPlace,
   HOST_SKILLS_DIR,
+  SKIP_SKILL_DIRS,
   extractFrontmatterName,
 };
