@@ -14,6 +14,19 @@ const { AIREIN_PROJECT_DIR } = require('./project-paths');
 
 const CC_RULES_SHIM_REL = '.claude/rules';
 
+/**
+ * Whether to create/maintain the CC-only project rules shim.
+ * Default off — Cursor/other hosts must not get <project>/.claude/.
+ * @param {{ ccShim?: boolean }} [opts]
+ * @returns {boolean}
+ */
+function wantsCcRulesShim(opts = {}) {
+  if (opts.ccShim === true) return true;
+  if (opts.ccShim === false) return false;
+  if (process.env.AIREIN_CC_SHIM === '1') return true;
+  return false;
+}
+
 function canonicalRulesDir(projectRoot) {
   return path.join(projectRoot, AIREIN_PROJECT_DIR, 'rules');
 }
@@ -174,6 +187,13 @@ function applyPlan(plan, projectRoot, dryRun) {
  * @returns {{ ok: boolean, canonical?: string, shim?: string, method?: string, fallback?: string, error?: string }}
  */
 function ensureCcRulesShim(projectRoot, opts = {}) {
+  if (!wantsCcRulesShim(opts)) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'CC rules shim not requested (use --cc-shim in Claude Code projects only)',
+    };
+  }
   const dryRun = opts.dryRun === true;
   const plan = planCcRulesShim(projectRoot);
   if (plan.errors.length > 0) {
@@ -190,6 +210,7 @@ function ensureCcRulesShim(projectRoot, opts = {}) {
 
 module.exports = {
   CC_RULES_SHIM_REL,
+  wantsCcRulesShim,
   planCcRulesShim,
   ensureCcRulesShim,
   shimResolvesToCanonical,

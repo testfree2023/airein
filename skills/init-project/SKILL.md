@@ -46,9 +46,14 @@ mkdir -p docs/plans docs/adr .airein/config .airein/memory .airein/rules
 
 Verify: `ls -d docs/plans docs/adr .airein/config .airein/memory .airein/rules`
 
-**CC 项目**：运行 `bash ~/.airein/scripts/airein-chores.sh` 创建 `.claude/rules` shim → **本项目** `.airein/rules`（P004 项目 L1 薄壳 canonical）。
+**宿主判断（必做，再决定是否创建 `.claude/`）**：
 
-> **两层 rules 别混**：铁律 L0（`00/10/20-*.md`）在用户级 `~/.claude/rules/`（由内核 deploy）；项目级 `.claude/rules` 只承载本项目的 `conventions-*.md` 薄壳，**不应** symlink 到 `~/.airein/rules`。
+| 当前宿主 | 动作 |
+|----------|------|
+| **Claude Code** 打开本项目 | 运行 `bash ~/.airein/scripts/airein-chores.sh --cc-shim` → 创建 `.claude/rules` shim → 本项目 `.airein/rules` |
+| **Cursor / Codex / 其他** | **禁止**创建 `<项目>/.claude/`。铁律与全局 rules 已在用户级 `~/.cursor/rules/` 等（`airein setup` deploy）。本项目只维护 `.airein/rules/`（有代码后再生成 conventions 薄壳）。 |
+
+> **两层 rules 别混**：铁律 L0 在用户级（CC=`~/.claude/rules/`，CUR=`~/.cursor/rules/*.mdc`）；项目 `.airein/rules/` 是 L1 薄壳 canonical，仅 CC 需要额外 `.claude/rules` shim 让 CC 原生读到它。
 
 If any directory already has content, don't delete or empty — only fill gaps.
 

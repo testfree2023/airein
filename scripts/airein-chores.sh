@@ -32,6 +32,13 @@ else
 fi
 CREATED=0
 ERRORS=0
+CC_SHIM=0
+for arg in "$@"; do
+  if [[ "$arg" == "--cc-shim" ]]; then
+    CC_SHIM=1
+    break
+  fi
+done
 
 # ── 1. 创建目录 ──────────────────────────────────────────────────
 ensure_dirs() {
@@ -42,16 +49,16 @@ ensure_dirs() {
   mkdir -p "$PROJECT_DIR/.airein/logs"
   echo "  ✅ .airein/{config,memory,logs}"
 
-  # CC 项目：.claude/rules → .airein/rules shim（P004 project-shim；失败不阻断 chores）
-  if [[ -n "$NODE_BIN" && -f "$CHORES_DIR/lib/project-shim.js" ]]; then
+  # CC 专属：仅 --cc-shim 时创建 .claude/rules → .airein/rules（Cursor 等项目禁止）
+  if [[ "$CC_SHIM" -eq 1 && -n "$NODE_BIN" && -f "$CHORES_DIR/lib/project-shim.js" ]]; then
     if ! "$NODE_BIN" -e "
       const { ensureCcRulesShim } = require(process.argv[1]);
-      const r = ensureCcRulesShim(process.argv[2]);
+      const r = ensureCcRulesShim(process.argv[2], { ccShim: true });
       if (!r.ok) process.exit(1);
     " "$CHORES_DIR/lib/project-shim.js" "$PROJECT_DIR" 2>/dev/null; then
-      : # non-CC project or existing .claude/rules — skip silently
+      echo "  ⚠️  CC rules shim 失败（可稍后重试）"
     else
-      echo "  ✅ .claude/rules shim → <项目>/.airein/rules (CC 项目 L1；铁律 L0 在 ~/.claude/rules)"
+      echo "  ✅ .claude/rules shim → <项目>/.airein/rules (CC only)"
     fi
   fi
 }

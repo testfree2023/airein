@@ -197,7 +197,7 @@ function migrateProjectToAirein(projectRoot, opts = {}) {
 
   let shim = { ok: true };
   if (opts.skipShim !== true) {
-    shim = dryRun ? { ok: true, dryRun: true } : ensureCcRulesShim(root);
+    shim = dryRun ? { ok: true, dryRun: true } : ensureCcRulesShim(root, { ccShim: true });
     if (shim.ok) log.push('✅ .claude/rules → .airein/rules shim');
     else log.push(`⚠️  CC rules shim: ${shim.error || 'failed'}`);
   }

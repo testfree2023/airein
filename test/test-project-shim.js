@@ -66,9 +66,24 @@ describe('project-shim: planCcRulesShim', (suite) => {
 });
 
 describe('project-shim: ensureCcRulesShim', (suite) => {
+  suite.test('默认 skip：未请求时不创建 .claude/rules', () => {
+    const root = mk('skip-default');
+    const result = ensureCcRulesShim(root);
+    assertEqual(result.ok, true, 'ok');
+    assertEqual(result.skipped, true, 'skipped');
+    assert(!fs.existsSync(path.join(root, '.claude', 'rules')), 'no shim');
+  });
+
+  suite.test('ccShim:true 才创建 shim', () => {
+    const root = mk('opt-in');
+    const result = ensureCcRulesShim(root, { ccShim: true });
+    assertEqual(result.ok, true, 'ok');
+    assertOk(fs.existsSync(path.join(root, '.claude', 'rules')), 'shim created');
+  });
+
   suite.test('创建后 shim 可读 canonical 内容', () => {
     const root = mk('ensure');
-    const result = ensureCcRulesShim(root);
+    const result = ensureCcRulesShim(root, { ccShim: true });
     assertEqual(result.ok, true, 'ok');
     const canonical = path.join(root, '.airein', 'rules');
     fs.writeFileSync(path.join(canonical, 'conventions-test.md'), 'paths: []\n---\n@test\n');
@@ -85,8 +100,8 @@ describe('project-shim: ensureCcRulesShim', (suite) => {
 
   suite.test('幂等：重复 ensure 仍 ok', () => {
     const root = mk('idempotent');
-    assertOk(ensureCcRulesShim(root).ok, 'first');
-    assertOk(ensureCcRulesShim(root).ok, 'second');
+    assertOk(ensureCcRulesShim(root, { ccShim: true }).ok, 'first');
+    assertOk(ensureCcRulesShim(root, { ccShim: true }).ok, 'second');
   });
 
   suite.test('误指向内核的 legacy symlink 会重链到项目 .airein/rules', () => {
@@ -96,7 +111,7 @@ describe('project-shim: ensureCcRulesShim', (suite) => {
     fs.mkdirSync(kernelRules, { recursive: true });
     fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
     fs.symlinkSync(kernelRules, path.join(root, '.claude', 'rules'));
-    const result = ensureCcRulesShim(root);
+    const result = ensureCcRulesShim(root, { ccShim: true });
     assertEqual(result.ok, true, 'relink ok');
     const shim = path.join(root, '.claude', 'rules');
     const canonical = path.join(root, '.airein', 'rules');
