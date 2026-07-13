@@ -16,6 +16,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 PID_FILE="$SCRIPT_DIR/dashboard.pid"
+MODE_FILE="$SCRIPT_DIR/.dashboard-mode"
 PORT="${DASHBOARD_PORT:-3456}"
 
 # ── 平台检测 ─────────────────────────────────────────────────
@@ -69,6 +70,50 @@ check_port() {
   echo "$pid"
 }
 
+# 读取/保存 LAN 模式（restart 与 install-dashboard 自动重启时保留 --lan）
+read_persisted_lan_mode() {
+  if [ -f "$MODE_FILE" ] && grep -qx 'lan' "$MODE_FILE" 2>/dev/null; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
+
+write_persisted_lan_mode() {
+  if [ "$1" = true ]; then
+    echo "lan" > "$MODE_FILE"
+  else
+    echo "local" > "$MODE_FILE"
+  fi
+}
+
+# 当前端口监听地址（Mac/Linux: lsof；Windows: netstat）
+get_listen_addr() {
+  local port="$1"
+  if [ "$OS_TYPE" = "windows" ]; then
+    netstat -ano 2>/dev/null | grep -i LISTENING | grep -E ":$port\b" | awk '{print $2}' | head -1
+    return
+  fi
+  if command -v lsof &>/dev/null; then
+    lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | awk 'NR==2 {print $NF}'
+    return
+  fi
+  echo "unknown"
+}
+
+is_lan_listening() {
+  local port="$1"
+  local name host
+  name=$(get_listen_addr "$port")
+  case "$name" in
+    *:*)
+      host="${name%:*}"
+      [ "$host" = "*" ] || [ "$host" = "0.0.0.0" ] || [ "$host" = "[::]" ] || [ "$host" = "::" ]
+      ;;
+    *) false ;;
+  esac
+}
+
 # ── 清理端口占用 ─────────────────────────────────────────────
 cleanup_port() {
   local port="$1"
@@ -100,15 +145,17 @@ if [ "${1:-}" = "status" ]; then
     PID=$(cat "$PID_FILE")
     if is_process_alive "$PID"; then
       echo "✅ Dashboard 运行中 (PID: $PID)"
-      echo "   地址: http://localhost:$PORT"
-      # 检查绑定地址（Windows 用 netstat 反查，Mac/Linux 用 lsof）
-      if [ "$OS_TYPE" = "windows" ]; then
-        BIND_ADDR=$(netstat -ano 2>/dev/null | grep -i LISTENING | grep -E ":$PORT\b" | awk '{print $2}' | cut -d: -f1 | head -1)
+      LISTEN=$(get_listen_addr "$PORT")
+      if is_lan_listening "$PORT"; then
+        echo "   绑定: 0.0.0.0:$PORT (局域网可访问)"
+        echo "   本机: http://127.0.0.1:$PORT"
+        echo "   局域网: http://$(ipconfig getifaddr en0 2>/dev/null || hostname):$PORT"
       else
-        BIND_ADDR=$(lsof -p "$PID" 2>/dev/null | grep LISTEN | awk '{print $4}' | sed 's/\*$//' || echo "unknown")
+        echo "   绑定: 127.0.0.1:$PORT (仅本机；局域网请: bash start.sh --bg --lan)"
+        echo "   地址: http://localhost:$PORT"
       fi
-      if [ -n "$BIND_ADDR" ]; then
-        echo "   绑定: ${BIND_ADDR:-127.0.0.1}"
+      if [ -n "$LISTEN" ] && [ "$LISTEN" != "unknown" ]; then
+        echo "   监听: $LISTEN"
       fi
       exit 0
     else
@@ -161,24 +208,22 @@ fi
 
 # ── restart ──────────────────────────────────────────────────
 if [ "${1:-}" = "restart" ]; then
-  # 记住之前的 --lan 参数
-  RESTART_ARGS=""
+  RESTART_ARGS="--bg"
+  if [ "$(read_persisted_lan_mode)" = true ]; then
+    RESTART_ARGS="--bg --lan"
+  elif [ -f "$SCRIPT_DIR/dashboard.log" ] && grep -q 'Bound to 0.0.0.0' "$SCRIPT_DIR/dashboard.log" 2>/dev/null; then
+    RESTART_ARGS="--bg --lan"
+  fi
   if [ -f "$PID_FILE" ]; then
     PID=$(cat "$PID_FILE")
     if is_process_alive "$PID"; then
-      # 检查当前绑定地址判断是否是 lan 模式
-      if [ -f "$SCRIPT_DIR/dashboard.log" ] && grep -q '0.0.0.0' "$SCRIPT_DIR/dashboard.log" 2>/dev/null; then
-        RESTART_ARGS="--bg --lan"
-      else
-        RESTART_ARGS="--bg"
-      fi
       terminate_process "$PID"
       rm -f "$PID_FILE"
       sleep 1
-      echo "🔄 重启 Dashboard..."
+      echo "🔄 重启 Dashboard (${RESTART_ARGS})..."
     fi
   fi
-  exec bash "$SCRIPT_DIR/start.sh" ${RESTART_ARGS:---bg}
+  exec bash "$SCRIPT_DIR/start.sh" $RESTART_ARGS
 fi
 
 # ── 解析参数 ──────────────────────────────────────────────────
@@ -211,8 +256,12 @@ fi
 if [ "$LAN_MODE" = true ]; then
   export DASHBOARD_BIND="0.0.0.0"
   HOST_DISPLAY="0.0.0.0 (局域网可访问，Host 白名单自动含本机 hostname/IP)"
+  write_persisted_lan_mode true
 else
+  unset DASHBOARD_BIND
+  export DASHBOARD_BIND="127.0.0.1"
   HOST_DISPLAY="127.0.0.1 (仅本机)"
+  write_persisted_lan_mode false
 fi
 
 # ── 启动前端口检查 ───────────────────────────────────────────
@@ -223,7 +272,7 @@ fi
 
 # ── 后台模式 ────────────────────────────────────────────────
 if [ "$BG_MODE" = true ]; then
-  nohup "$NODE" server.js > "$SCRIPT_DIR/dashboard.log" 2>&1 &
+  nohup env DASHBOARD_BIND="$DASHBOARD_BIND" "$NODE" server.js > "$SCRIPT_DIR/dashboard.log" 2>&1 &
   WRAPPER_PID=$!
   # 反查真实监听 pid：Windows git bash 下 $! 是 nohup wrapper，非真实 node 进程 pid；
   # Mac/Linux 反查同样更准（直接拿监听进程）。10×0.3s 轮询，失败兜底 wrapper pid。
@@ -265,4 +314,4 @@ if [ "$OPEN_BROWSER" = true ]; then
   fi
 fi
 
-exec "$NODE" server.js
+exec env DASHBOARD_BIND="$DASHBOARD_BIND" "$NODE" server.js
