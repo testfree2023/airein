@@ -171,18 +171,18 @@ deleted `conventions-trigger` hook).
 2. **For each detected language `{lang}`**, generate BOTH:
 
    a. **`docs/conventions-{lang}.md`** — the convention content (single source
-      of truth). Generate from `templates/docs/design-conventions/{lang}.md`,
+      of truth). Generate from `~/.airein/templates/docs/design-conventions/{lang}.md`,
       filling template sections with conventions inferred from the codebase
       (naming, style, error handling, testing, etc.). Append `## Status: draft`.
       If `docs/conventions-{lang}.md` already exists, append — don't overwrite.
 
    b. **`.airein/rules/conventions-{lang}.md`** — the thin-shell pointer:
-      - Read skeleton `templates/rules/conventions-scope.md`
+      - Read skeleton `~/.airein/templates/rules/conventions-scope.md`
       - Replace `{scope}` → `{lang}`
       - Replace `{paths-globs}` → source file globs for that language
       - Write `.airein/rules/conventions-{lang}.md`. The frontmatter `---` MUST
         be the first line (CC's conditional-rule loader anchors on `^---`).
-      - Validate: `node scripts/lib/conventions-shell.js .airein/rules/conventions-{lang}.md`
+      - Validate: `node ~/.airein/scripts/lib/conventions-shell.js .airein/rules/conventions-{lang}.md`
         must report `"valid": true`.
 
    **scope → paths-globs reference** (adjust to the project's actual source tree):

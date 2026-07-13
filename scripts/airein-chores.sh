@@ -12,6 +12,7 @@
 CLAUDE_DIR="${1:-$HOME/.claude}"
 PROJECT_DIR="${2:-$(pwd)}"
 CHORES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KERNEL_ROOT="$(cd "$CHORES_DIR/.." && pwd)"
 HELPERS_LIB="$CHORES_DIR/lib/install-helpers.sh"
 if [ -f "$HELPERS_LIB" ]; then
   # shellcheck source=lib/install-helpers.sh
@@ -103,7 +104,7 @@ validate() {
     return
   fi
 
-  for jsonfile in "$CLAUDE_DIR/hooks/hooks.json" "$CLAUDE_DIR/templates/quality.json"; do
+  for jsonfile in "$KERNEL_ROOT/hooks/hooks.json" "$KERNEL_ROOT/templates/quality.json"; do
     if [ -f "$jsonfile" ]; then
       if ! "$NODE_BIN" -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$jsonfile" 2>/dev/null; then
         echo "  ❌ $(basename "$jsonfile") — JSON 语法错误"
@@ -112,7 +113,7 @@ validate() {
     fi
   done
 
-  for jsfile in "$CLAUDE_DIR"/scripts/hooks/*.js "$CLAUDE_DIR"/scripts/lib/*.js; do
+  for jsfile in "$KERNEL_ROOT"/scripts/hooks/*.js "$KERNEL_ROOT"/scripts/lib/*.js; do
     [ -f "$jsfile" ] || continue
     JS_COUNT=$((JS_COUNT + 1))
     if ! "$NODE_BIN" -c "$jsfile" 2>/dev/null; then

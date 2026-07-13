@@ -112,7 +112,7 @@ When the pipeline includes a `design` document, determine whether this plan
 **establishes** or **references** the project's design docs. Run the resolver:
 
 ```bash
-node scripts/lib/design-doc-resolver.js
+node ~/.airein/scripts/lib/design-doc-resolver.js
 ```
 
 It checks two locations for existing project-level design docs and prints JSON:
