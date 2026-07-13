@@ -76,6 +76,27 @@ describe('asset-delivery: deployCcRules', (suite) => {
     assertEqual(fs.readFileSync(path.join(dest, '00-iron-rules.md'), 'utf8'), '# iron v2\n', 'overwritten');
     assertEqual(fs.readFileSync(path.join(dest, 'my-own.md'), 'utf8'), '# own\n', 'user kept');
   });
+
+  suite.test('legacy rules symlink → 实体 deploy 目录', () => {
+    if (process.platform === 'win32') return; // Mac/Linux 真机场景；Windows 无 symlink 权限时常 EPERM
+    const kernel = path.join(TMP, 'k-symlink');
+    const ccHome = path.join(TMP, 'cc-symlink');
+    const rulesLink = path.join(ccHome, 'rules');
+    seedKernel(kernel);
+    fs.mkdirSync(ccHome, { recursive: true });
+    fs.symlinkSync(path.join(kernel, 'rules'), rulesLink);
+    fs.writeFileSync(path.join(kernel, 'rules', 'user-custom.md'), '# custom via symlink\n');
+    const r = deployCcRules({ kernelRoot: kernel, destRulesDir: rulesLink });
+    assertEqual(r.ok, true, 'ok');
+    assert(!fs.lstatSync(rulesLink).isSymbolicLink(), 'rules no longer symlink');
+    assertOk(fs.existsSync(path.join(rulesLink, '00-iron-rules.md')), 'L0 deployed');
+    assertOk(fs.existsSync(path.join(rulesLink, 'conventions-javascript.md')), 'L1 deployed');
+    assertEqual(
+      fs.readFileSync(path.join(rulesLink, 'user-custom.md'), 'utf8'),
+      '# custom via symlink\n',
+      'user file preserved from legacy target',
+    );
+  });
 });
 
 describe('asset-delivery: deliverAssetDir', (suite) => {

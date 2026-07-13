@@ -238,6 +238,43 @@ function listAireinCcRuleFiles(kernelRoot) {
 }
 
 /**
+ * Ensure dest rules dir is a real directory (migrate legacy symlink → deploy dir).
+ * Preserves non-airein files that lived behind a legacy rules symlink.
+ * @param {string} destRulesDir
+ * @param {boolean} dryRun
+ */
+function prepareCcRulesDestDir(destRulesDir, dryRun) {
+  if (dryRun || !pathExists(destRulesDir)) {
+    if (!dryRun) fs.mkdirSync(destRulesDir, { recursive: true });
+    return;
+  }
+  let st;
+  try { st = fs.lstatSync(destRulesDir); } catch { st = null; }
+  if (st && st.isSymbolicLink()) {
+    const linkTarget = fs.realpathSync(destRulesDir);
+    if (!dryRun) fs.unlinkSync(destRulesDir);
+    if (!dryRun) fs.mkdirSync(destRulesDir, { recursive: true });
+    if (!dryRun && pathExists(linkTarget)) {
+      try {
+        const targetSt = fs.statSync(linkTarget);
+        if (targetSt.isDirectory()) {
+          for (const name of fs.readdirSync(linkTarget)) {
+            copyEntryIfAbsent(path.join(linkTarget, name), path.join(destRulesDir, name));
+          }
+        }
+      } catch { /* best effort */ }
+    }
+    return;
+  }
+  if (st && !st.isDirectory()) {
+    if (!dryRun) fs.rmSync(destRulesDir, { force: true });
+    if (!dryRun) fs.mkdirSync(destRulesDir, { recursive: true });
+    return;
+  }
+  if (!dryRun) fs.mkdirSync(destRulesDir, { recursive: true });
+}
+
+/**
  * Deploy CC rules (always copy/regenerate — never symlink).
  * @param {{ kernelRoot: string, destRulesDir: string, dryRun?: boolean }} opts
  */
@@ -247,7 +284,7 @@ function deployCcRules(opts) {
   const dryRun = opts.dryRun === true;
   const deployed = [];
 
-  if (!dryRun) fs.mkdirSync(destRulesDir, { recursive: true });
+  prepareCcRulesDestDir(destRulesDir, dryRun);
 
   for (const name of AIREIN_L0_RULES) {
     const src = path.join(kernelRoot, 'rules', name);

@@ -43,6 +43,17 @@ describe('cc-register: registerCc unified', (suite) => {
     assertOk(fs.existsSync(path.join(HOME, '.claude', 'rules', '00-iron-rules.md')), 'rules deployed');
   });
 
+  suite.test('legacy rules symlink 迁移为 deploy 实体目录', () => {
+    if (process.platform === 'win32') return;
+    const homeLegacy = path.join(TMP, 'home-legacy');
+    fs.mkdirSync(path.join(homeLegacy, '.claude'), { recursive: true });
+    fs.symlinkSync(path.join(KERNEL, 'rules'), path.join(homeLegacy, '.claude', 'rules'));
+    const r = registerCc({ kernelRoot: KERNEL, homeDir: homeLegacy, delivery: 'unified' });
+    assertEqual(r.ok, true, 'legacy migrate ok');
+    assert(!isSymlink(path.join(homeLegacy, '.claude', 'rules')), 'rules not link after register');
+    assertOk(fs.existsSync(path.join(homeLegacy, '.claude', 'rules', '00-iron-rules.md')), 'rules deployed');
+  });
+
   suite.test('copy 模式 skills/commands 为实体目录', () => {
     const homeCopy = path.join(TMP, 'home-copy');
     fs.mkdirSync(homeCopy, { recursive: true });
