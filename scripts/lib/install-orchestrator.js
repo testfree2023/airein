@@ -247,7 +247,7 @@ function printUsage(out = process.stdout) {
     '用法:',
     '  airein setup    [--hosts claude-code,cursor] [--yes] [--source <dir|tar.gz|zip>] [--sha256 <hex>]',
     '  airein update   [--source <dir|tar.gz|zip>] [--sha256 <hex>] [--branch <name>]',
-    '  airein uninstall [--keep-kernel]',
+    '  airein uninstall [--keep-kernel] [--force]',
     '',
     '常见示例:',
     '',
@@ -273,6 +273,9 @@ function printUsage(out = process.stdout) {
     '',
     '  # 卸载（保留内核目录备查）',
     '  bash ~/.airein/airein uninstall --keep-kernel',
+    '',
+    '  # 卸载（manifest 文件被改动时强制清理宿主产物）',
+    '  bash ~/.airein/airein uninstall --force',
     '',
     '  # 验证安装完整性（推荐：一条命令验内核 + 全部已注册宿主）',
     '  bash ~/.airein/scripts/update/verify-airein.sh --full',
@@ -367,14 +370,19 @@ function registerHost(hostId, opts) {
 }
 
 function unregisterHostRecord(hostId, opts) {
-  const { kernelRoot, homeDir, dryRun, delivery } = opts;
+  const { kernelRoot, homeDir, dryRun, delivery, force } = opts;
   const mode = delivery || DEFAULT_DELIVERY;
   if (hostId === 'claude-code') {
     return unregisterCc({ kernelRoot, homeDir, dryRun, delivery: mode });
   }
   if (hostId === 'cursor') {
     if (dryRun) return { ok: true, removed: [] };
-    return uninstallHost('cursor', { targetRoot: homeDir });
+    try {
+      const res = uninstallHost('cursor', { targetRoot: homeDir, force: force === true });
+      return { ok: true, removed: res.removed, warnings: res.warnings || [] };
+    } catch (err) {
+      return { ok: false, errors: [err.message], removed: [] };
+    }
   }
   return { ok: false, errors: [`unsupported host: ${hostId}`] };
 }
@@ -544,6 +552,7 @@ function uninstall(opts = {}) {
   const profile = readProfile(kernelRoot);
   const keepKernel = opts.keepKernel === true;
   const dryRun = opts.dryRun === true;
+  const force = opts.force === true;
   const delivery = profile ? readDelivery(profile) : DEFAULT_DELIVERY;
   const hosts = profile ? profile.hosts.map((h) => h.id) : [];
 
@@ -551,7 +560,7 @@ function uninstall(opts = {}) {
   for (const hostId of hosts) {
     results.push({
       hostId,
-      ...unregisterHostRecord(hostId, { kernelRoot, homeDir, dryRun, delivery }),
+      ...unregisterHostRecord(hostId, { kernelRoot, homeDir, dryRun, delivery, force }),
     });
   }
 
@@ -565,7 +574,8 @@ function uninstall(opts = {}) {
     fs.rmSync(kernelRoot, { recursive: true, force: true });
   }
 
-  return { ok: results.every((r) => r.ok !== false), kernelRoot, results, keepKernel };
+  const hostOk = results.every((r) => r.ok !== false);
+  return { ok: hostOk, kernelRoot, results, keepKernel, force };
 }
 
 function parseCliFlags(argv) {
@@ -582,6 +592,7 @@ function parseCliFlags(argv) {
     if (a === '--yes' || a === '-y') { flags.yes = true; continue; }
     if (a === '--dry-run') { flags.dryRun = true; continue; }
     if (a === '--keep-kernel') { flags.keepKernel = true; continue; }
+    if (a === '--force') { flags.force = true; continue; }
     if (a === '--kernel-root') { flags.kernelRoot = argv[++i]; continue; }
     if (a === '--branch') { flags.branch = argv[++i]; continue; }
     if (a.startsWith('--branch=')) { flags.branch = a.slice(9); continue; }
@@ -603,6 +614,7 @@ async function runCli(argv) {
     yes: flags.yes,
     dryRun: flags.dryRun,
     keepKernel: flags.keepKernel,
+    force: flags.force,
     kernelRoot: flags.kernelRoot,
     branch: flags.branch,
     delivery: flags.delivery,
@@ -627,6 +639,17 @@ async function runCli(argv) {
   if (cmd === 'uninstall') {
     const r = uninstall(base);
     process.stdout.write(`uninstall: ok=${r.ok} kernel=${r.kernelRoot}\n`);
+    for (const res of r.results || []) {
+      for (const e of res.errors || []) {
+        process.stderr.write(`  ${res.hostId}: ${e}\n`);
+      }
+      for (const w of res.warnings || []) {
+        process.stderr.write(`  ${res.hostId}: ⚠ ${w}\n`);
+      }
+    }
+    if (!r.ok && !base.force) {
+      process.stderr.write('hint: manifest 文件 install 后被改动；加 --force 强制清理宿主产物\n');
+    }
     process.exit(r.ok ? 0 : 1);
   }
 

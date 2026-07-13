@@ -287,11 +287,11 @@ function installHost(host, opts) {
 /**
  * Uninstall a host's airein artifacts by install-manifest (hash-checked, deployment §8).
  * Refuses to delete files whose current hash ≠ recorded hash (protect user edits).
- * @returns {{removed:string[]}}
- * @throws {Error} missing state / hash mismatch / .claude/ violation
+ * @returns {{removed:string[], warnings:string[]}}
+ * @throws {Error} missing state / hash mismatch (unless force) / .claude/ violation
  */
 function uninstallHost(host, opts) {
-  const { targetRoot } = opts || {};
+  const { targetRoot, force = false } = opts || {};
   if (!targetRoot) throw new Error('uninstallHost: opts.targetRoot required');
   const statePath = toAbs(targetRoot, STATE_FILE);
   if (!fs.existsSync(statePath)) {
@@ -304,6 +304,7 @@ function uninstallHost(host, opts) {
     throw new Error(`uninstallHost: manifest host="${state.host}" ≠ requested "${host}"`);
   }
   const removed = [];
+  const warnings = [];
   for (const f of state.files || []) {
     assertNotClaudeDir(f.path);
     const abs = toAbs(targetRoot, f.path);
@@ -313,9 +314,12 @@ function uninstallHost(host, opts) {
     if (st.isSymbolicLink()) {
       const cur = hashContent(fs.realpathSync(abs));
       if (cur !== f.hash) {
-        throw new Error(
-          `uninstallHost: symlink target drift for ${f.path} — manual review required`,
-        );
+        if (!force) {
+          throw new Error(
+            `uninstallHost: symlink target drift for ${f.path} — manual review required`,
+          );
+        }
+        warnings.push(`force removed symlink ${f.path} (target drift)`);
       }
       fs.unlinkSync(abs);
       removed.push(f.path);
@@ -323,9 +327,12 @@ function uninstallHost(host, opts) {
     }
     const cur = hashFile(abs);
     if (cur !== f.hash) {
-      throw new Error(
-        `uninstallHost: hash mismatch for ${f.path} (file changed since install) — manual review required`,
-      );
+      if (!force) {
+        throw new Error(
+          `uninstallHost: hash mismatch for ${f.path} (file changed since install) — manual review required`,
+        );
+      }
+      warnings.push(`force removed ${f.path} (hash drift)`);
     }
     fs.rmSync(abs, { force: true });
     removed.push(f.path);
@@ -333,7 +340,7 @@ function uninstallHost(host, opts) {
   fs.rmSync(statePath, { force: true });
   // 清理 airein 创建的空目录外壳（deployment §8）—— rmdirSync 仅删空目录，用户文件受保护
   pruneEmptyDirs(targetRoot, removed);
-  return { removed };
+  return { removed, warnings };
 }
 
 /**
@@ -420,8 +427,9 @@ function main(argv) {
 
   if (sub === 'uninstall') {
     if (!host) { process.stderr.write('error: --host required\n'); process.exit(2); }
-    const res = uninstallHost(host, { targetRoot });
+    const res = uninstallHost(host, { targetRoot, force: Boolean(flags.force) });
     process.stdout.write(`uninstall ${host}: removed ${res.removed.length} files\n`);
+    for (const w of res.warnings || []) process.stderr.write(`  ⚠ ${w}\n`);
     process.exit(0);
   }
 
@@ -434,7 +442,7 @@ function main(argv) {
   }
 
   process.stderr.write(
-    'usage: install-host.js <install|plan|uninstall|verify> --host <X> [--platform <windows|macos|linux>] [--root <dir>] [--dry-run]\n',
+    'usage: install-host.js <install|plan|uninstall|verify> --host <X> [--platform <windows|macos|linux>] [--root <dir>] [--dry-run] [--force]\n',
   );
   process.exit(2);
 }

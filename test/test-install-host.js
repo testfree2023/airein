@@ -264,6 +264,42 @@ describe('installHost: install 回滚（deployment §8 · 中途失败回滚已�
   });
 });
 
+describe('uninstallHost: hash drift 保护 + --force', (suite) => {
+  suite.test('install 后改动 manifest 文件 → 默认 uninstall 抛 hash mismatch', () => {
+    const tmp = mkTmp();
+    try {
+      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
+      const st = JSON.parse(read(tmp, '.airein-install-state.json'));
+      const rule = st.files.find((f) => f.path.endsWith('.mdc'));
+      assertOk(rule, 'manifest 含 .mdc 规则');
+      fs.appendFileSync(path.join(tmp, ...rule.path.split('/')), '\n# user edit\n');
+      let threw = false;
+      try {
+        uninstallHost('cursor', { targetRoot: tmp });
+      } catch (err) {
+        threw = true;
+        assertContains(err.message, 'hash mismatch', '默认拒绝删已改动文件');
+      }
+      assertOk(threw, 'hash mismatch 应 throw');
+      assertOk(exists(tmp, '.airein-install-state.json'), '失败时 manifest 保留');
+    } finally { rmTmp(tmp); }
+  });
+
+  suite.test('install 后改动 manifest 文件 → uninstall --force 仍删除', () => {
+    const tmp = mkTmp();
+    try {
+      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
+      const st = JSON.parse(read(tmp, '.airein-install-state.json'));
+      const rule = st.files.find((f) => f.path.endsWith('.mdc'));
+      fs.appendFileSync(path.join(tmp, ...rule.path.split('/')), '\n# user edit\n');
+      const res = uninstallHost('cursor', { targetRoot: tmp, force: true });
+      assertOk(res.removed.includes(rule.path), 'force 删除 drift 文件');
+      assertOk(res.warnings.length > 0, 'force 记录 warnings');
+      assertOk(!exists(tmp, '.airein-install-state.json'), 'force 后 manifest 已删');
+    } finally { rmTmp(tmp); }
+  });
+});
+
 describe('uninstallHost: 清空目录外壳（deployment §8 · 不残留空壳）', (suite) => {
   suite.test('install cursor → uninstall → airein 创建的空目录外壳清理', () => {
     const tmp = mkTmp();

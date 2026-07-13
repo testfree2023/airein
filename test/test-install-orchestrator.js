@@ -102,6 +102,38 @@ async function run() {
   assertEqual(un.ok, true, 'uninstall ok');
   assertOk(fs.existsSync(kernel4), 'kernel kept');
 
+  const home5 = path.join(TMP, 'home5');
+  const kernel5 = path.join(home5, '.airein');
+  fs.mkdirSync(home5, { recursive: true });
+  syncKernelFromSource(SRC, kernel5);
+  installHost('cursor', { repoRoot: kernel5, targetRoot: home5, platform: 'linux', delivery: 'copy' });
+  const p5 = defaultProfile(kernel5);
+  upsertHost(p5, { id: 'cursor', platform: 'macos' });
+  writeProfile(kernel5, p5);
+  const st5 = JSON.parse(fs.readFileSync(path.join(home5, '.airein-install-state.json'), 'utf8'));
+  const rule5 = st5.files.find((f) => f.path.endsWith('.mdc'));
+  fs.appendFileSync(path.join(home5, ...rule5.path.split('/')), '\n# drift\n');
+  const un5 = uninstall({ homeDir: home5, kernelRoot: kernel5 });
+  assertEqual(un5.ok, false, 'hash drift 时 ok=false');
+  assertOk(!fs.existsSync(kernel5), 'hash drift 不阻塞内核删除');
+  assertOk(fs.existsSync(path.join(home5, ...rule5.path.split('/'))), '未 --force 时 drift 文件保留');
+
+  const home6 = path.join(TMP, 'home6');
+  const kernel6 = path.join(home6, '.airein');
+  fs.mkdirSync(home6, { recursive: true });
+  syncKernelFromSource(SRC, kernel6);
+  installHost('cursor', { repoRoot: kernel6, targetRoot: home6, platform: 'linux', delivery: 'copy' });
+  const p6 = defaultProfile(kernel6);
+  upsertHost(p6, { id: 'cursor', platform: 'macos' });
+  writeProfile(kernel6, p6);
+  const st6 = JSON.parse(fs.readFileSync(path.join(home6, '.airein-install-state.json'), 'utf8'));
+  const rule6 = st6.files.find((f) => f.path.endsWith('.mdc'));
+  fs.appendFileSync(path.join(home6, ...rule6.path.split('/')), '\n# drift\n');
+  const un6 = uninstall({ homeDir: home6, kernelRoot: kernel6, force: true });
+  assertEqual(un6.ok, true, 'force uninstall ok');
+  assertOk(!fs.existsSync(kernel6), 'force 后内核已删');
+  assertOk(!fs.existsSync(path.join(home6, '.airein-install-state.json')), 'force 后 manifest 已删');
+
   assertEqual(getDefaultKernelRoot(HOME), path.join(HOME, '.airein'), 'default kernel path');
 
   const incomplete = path.join(TMP, 'incomplete-kernel');
