@@ -253,6 +253,22 @@ if [ -z "$NODE" ]; then
   exit 1
 fi
 
+# P004：standalone ~/dashboard 从 ~/.airein 加载 lib（config.json / 环境变量）
+if [ -f "$SCRIPT_DIR/config.json" ] && command -v "$NODE" &>/dev/null; then
+  KERNEL_FROM_CFG=$("$NODE" -e "
+    try {
+      const c = require(process.argv[1]);
+      if (c.kernelRoot) process.stdout.write(String(c.kernelRoot));
+    } catch {}
+  " "$SCRIPT_DIR/config.json" 2>/dev/null || true)
+  if [ -n "$KERNEL_FROM_CFG" ]; then
+    export AIREIN_KERNEL="$KERNEL_FROM_CFG"
+  fi
+fi
+if [ -z "${AIREIN_KERNEL:-}" ] && [ -f "$HOME/.airein/scripts/lib/utils.js" ]; then
+  export AIREIN_KERNEL="$HOME/.airein"
+fi
+
 if [ "$LAN_MODE" = true ]; then
   export DASHBOARD_BIND="0.0.0.0"
   HOST_DISPLAY="0.0.0.0 (局域网可访问，Host 白名单自动含本机 hostname/IP)"
@@ -284,6 +300,14 @@ if [ "$BG_MODE" = true ]; then
   done
   PID="${PID:-$WRAPPER_PID}"
   echo "$PID" > "$SCRIPT_DIR/dashboard.pid"
+  sleep 0.5
+  if grep -q 'Cannot find module' "$SCRIPT_DIR/dashboard.log" 2>/dev/null \
+    || grep -q 'cannot find airein kernel' "$SCRIPT_DIR/dashboard.log" 2>/dev/null; then
+    echo "❌ Dashboard 启动失败，见日志:"
+    tail -n 15 "$SCRIPT_DIR/dashboard.log"
+    rm -f "$SCRIPT_DIR/dashboard.pid"
+    exit 1
+  fi
   echo "✅ Dashboard 后台启动 (PID: $PID)"
   echo "   绑定: $HOST_DISPLAY"
   echo "   地址: http://localhost:$PORT"

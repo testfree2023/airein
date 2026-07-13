@@ -69,6 +69,32 @@ done < <(find "$DASHBOARD_SRC" -type f -print0)
 
 echo "  ✅ 复制了 $COPIED 个文件到 $DASHBOARD_DIR"
 
+# ── 写入内核路径（P004：lib 在 ~/.airein，非 ~/.claude）────────────────
+KERNEL_ROOT="$HOME/.airein"
+if [ ! -f "$KERNEL_ROOT/scripts/lib/utils.js" ] && [ -f "$AIREIN_SRC/scripts/lib/utils.js" ]; then
+  KERNEL_ROOT="$AIREIN_SRC"
+elif [ ! -f "$KERNEL_ROOT/scripts/lib/utils.js" ] && [ -f "$HOME/.claude/scripts/lib/utils.js" ]; then
+  KERNEL_ROOT="$HOME/.claude"
+fi
+
+NODE_BIN="$(command -v node 2>/dev/null || true)"
+CONFIG_FILE="$DASHBOARD_DIR/config.json"
+if [ -n "$NODE_BIN" ]; then
+  "$NODE_BIN" -e "
+    const fs = require('fs');
+    const cfgPath = process.argv[1];
+    const kernelRoot = process.argv[2];
+    let cfg = {};
+    try { cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')); } catch {}
+    cfg.kernelRoot = kernelRoot;
+    if (!cfg.dashboard) cfg.dashboard = {};
+    fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+  " "$CONFIG_FILE" "$KERNEL_ROOT"
+  echo "  ✅ kernelRoot → $KERNEL_ROOT (config.json)"
+else
+  echo "  ⚠️  Node 不可用，未写入 config.json kernelRoot"
+fi
+
 # ── 自动重启 ──────────────────────────────────────────────────
 # 如果 dashboard 正在运行，自动重启以加载新代码
 if [ -f "$DASHBOARD_DIR/dashboard.pid" ]; then

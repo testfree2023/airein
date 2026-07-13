@@ -14,13 +14,12 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
+const { resolveKernelRoot } = require('./lib/kernel-resolve');
 
-// Resolve airein kernel: repo checkout > ~/.airein > legacy ~/.claude
+const DASHBOARD_DIR = __dirname;
+const AIREIN_ROOT = resolveKernelRoot(DASHBOARD_DIR);
 const KERNEL_HOME = path.join(os.homedir(), '.airein');
 const CLAUDE_DIR = path.join(os.homedir(), '.claude');
-const AIREIN_ROOT = fs.existsSync(path.join(__dirname, '..', 'scripts', 'lib', 'utils.js'))
-  ? path.resolve(__dirname, '..')
-  : (fs.existsSync(path.join(KERNEL_HOME, 'scripts', 'lib', 'utils.js')) ? KERNEL_HOME : CLAUDE_DIR);
 const SCRIPTS_LIB = path.join(AIREIN_ROOT, 'scripts', 'lib');
 
 const planParser = require(path.join(SCRIPTS_LIB, 'plan-parser'));
@@ -2134,6 +2133,7 @@ module.exports = {
   invalidateProjectsCache,
   isDiscoverableProject,
   resolveAllowedHosts,
+  resolveKernelRoot,
   findProject,
   readQualityConfig,
   handleGetConfig,

@@ -237,6 +237,15 @@ function runPostUpdateMaintenance(kernelRoot, homeDir, profile, opts = {}) {
     });
     log('   ✅ verify 完成');
   }
+  const installDash = path.join(kernelRoot, 'scripts', 'dashboard', 'install-dashboard.sh');
+  if (opts.skipDashboard !== true && fs.existsSync(installDash)) {
+    log('🖥️  同步 Dashboard (~/dashboard)...');
+    results.push({
+      step: 'dashboard',
+      ...runShellScript(installDash, [kernelRoot, '--with-dashboard'], shellOpts),
+    });
+    log('   ✅ Dashboard 同步完成');
+  }
   return results;
 }
 
