@@ -46,7 +46,7 @@ AI 编程的另一个老大难：**上下文一旦超限压缩，关键信息就
 
 Airein 用一组机制让新 session 能快速恢复"上次干到哪、为什么这么决策、改过哪些文件"：
 
-- **`/init-project`**：进入一个新项目时执行一次。自动判断是空项目还是已有项目——空项目只创建精简骨架（roadmap + session-state + memory），已有项目则扫描代码库、现有文档、隐藏配置，生成 `docs/roadmap.md`（含 Issues 与 Recent Changes），检测主语言写入配置。
+- **`/init-project`**：进入一个新项目时执行一次。自动判断是空项目还是已有项目——空项目只创建精简骨架（roadmap + session-state + memory），已有项目则扫描代码库、现有文档、隐藏配置，生成 `docs/roadmap.md`（含 Issues 与 Recent Changes），检测主语言写入配置；同时将项目路径注册到 Dashboard（`~/.airein/dashboard/projects.json`）。
 - **会话状态恢复**：每个 session 结束时，`session-end` 把"当前计划、活跃任务、上次编辑的文件、待办"写进 `<项目>/.airein/memory/session-state.md`；下次 `session-start` 自动注入（约几百 token），AI 接着上次干，而不是从零问起。（legacy 项目仍可读 `.claude/memory/`）
 - **压缩前抢救**：`pre-compact` 在上下文压缩前提取 Active Task / Decisions / Files / Pending，避免压缩把关键决策抹掉。
 - **自动归档**：完成的计划归档进 `docs/plans/`，不挤占活跃视野；`/next` 会基于 roadmap 主动告诉你"当前最该做的是 XXX"。
@@ -57,20 +57,24 @@ Airein 用一组机制让新 session 能快速恢复"上次干到哪、为什么
 文档和质量管理不能只靠命令行记忆。Airein 自带一个**极轻量**的浏览器面板，让你看得见、管得了：
 
 ```bash
-node dashboard/server.js   # 开箱即用，浏览器自动打开 http://localhost:3456
+bash ~/.airein/dashboard/start.sh          # 安装后推荐（部署在 ~/.airein/dashboard/）
+# 或从源码目录：node dashboard/server.js
 ```
+
+浏览器自动打开 `http://localhost:3456`。LAN 访问：`bash ~/.airein/dashboard/start.sh --lan`。
 
 它有多轻：**零 npm 依赖**（纯 Node 内建 `http`）、**单文件 SPA**（一个 `index.html` 内嵌 CSS+JS，无构建步骤）、hash 路由。不需要装任何东西，`node` 一跑就起来。
 
 它能做什么：
 
-- **项目自动发现**：扫描 `~/.claude/projects/`，任何有 `docs/plans/` 或 quality 配置的项目自动出现，无需注册。
+- **项目发现**：`/init-project` 自动写入 `~/.airein/dashboard/projects.json`；面板 **工具** 页（`#/tools`）可注册/移除/清理失效路径；另兼容 CC 注册表 `~/.claude/projects/` 作为 fallback。
 - **计划管理**：可视化查看计划进度、编辑 requirements/design/tasks、按流水线审批、归档完成的计划。
 - **模板管理**：浏览和在线编辑 airein 的文档模板、language profiles、pipelines。
 - **配置可视化**：把项目的 `quality.json` 渲染成结构化表单（开关、阈值、下拉），每个字段标注默认值，只持久化你改过的字段——不用手写 JSON。
+- **工具页**：项目注册表维护（register / unregister / prune stale），无需记 CLI。
 - **i18n**：中英文切换。
 
-Dashboard 不是独立的系统，而是 airein 已有能力的可视化层——它读的是同一份 roadmap、同一份 quality.json、同一套 plan 目录。你在面板里改的配置，就是 hook 实际读的配置。
+Dashboard 不是独立的系统，而是 airein 已有能力的可视化层——它读的是同一份 roadmap、同一份 `.airein/config/quality.json`、同一套 plan 目录。你在面板里改的配置，就是 hook 实际读的配置。详见 [dashboard/README.md](dashboard/README.md)。
 
 ---
 

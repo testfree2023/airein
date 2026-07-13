@@ -47,7 +47,7 @@ Another chronic pain of AI coding: **once the context is compressed past its lim
 
 Airein uses a set of mechanisms so a new session quickly recovers "where I left off, why this decision was made, which files I changed":
 
-- **`/init-project`**: run once when entering a new project. Automatically detects whether it's an empty or existing project — empty projects get a minimal skeleton (roadmap + session-state + memory); existing projects get a codebase scan, existing docs, and hidden config, generating `docs/roadmap.md` (with Issues & Recent Changes), and detecting the primary language into config.
+- **`/init-project`**: run once when entering a new project. Automatically detects whether it's an empty or existing project — empty projects get a minimal skeleton (roadmap + session-state + memory); existing projects get a codebase scan, existing docs, and hidden config, generating `docs/roadmap.md` (with Issues & Recent Changes), detecting the primary language into config, and registering the project path with the Dashboard (`~/.airein/dashboard/projects.json`).
 - **Session state recovery**: at the end of each session, `session-end` writes current plan, active tasks, last edited files, and pending todos to `<project>/.airein/memory/session-state.md`; next time, `session-start` auto-injects it (a few hundred tokens) so AI picks up where it left off. (Legacy: `.claude/memory/`.)
 - **Rescue before compression**: `pre-compact` extracts Active Task / Decisions / Files / Pending before context compression, preventing key decisions from being wiped.
 - **Auto archive**: completed plans archive into `docs/plans/`, not crowding the active view; `/next` proactively tells you "the most important thing to do right now is X" based on the roadmap.
@@ -58,20 +58,24 @@ Airein uses a set of mechanisms so a new session quickly recovers "where I left 
 Docs and quality management can't rely on command-line memory alone. Airein ships a **very lightweight** browser panel so you can see and manage:
 
 ```bash
-node dashboard/server.js   # works out of the box, browser auto-opens http://localhost:3456
+bash ~/.airein/dashboard/start.sh          # after install (lives under ~/.airein/dashboard/)
+# or from source: node dashboard/server.js
 ```
+
+Browser auto-opens at `http://localhost:3456`. LAN: `bash ~/.airein/dashboard/start.sh --lan`.
 
 How light: **zero npm dependencies** (pure Node built-in `http`), **single-file SPA** (one `index.html` with inline CSS+JS, no build step), hash routing. Nothing to install — `node` runs it.
 
 What it does:
 
-- **Auto project discovery**: scans `~/.claude/projects/`; any project with `docs/plans/` or quality config shows up automatically, no registration.
+- **Project discovery**: `/init-project` registers the path in `~/.airein/dashboard/projects.json`; the **Tools** page (`#/tools`) supports register / unregister / prune stale entries; CC registry `~/.claude/projects/` remains a fallback.
 - **Plan management**: visualize plan progress, edit requirements/design/tasks, approve by pipeline, archive completed plans.
 - **Template management**: browse and edit airein's doc templates, language profiles, pipelines online.
 - **Config visualization**: render the project's `quality.json` into a structured form (toggles, thresholds, dropdowns), each field annotated with its default, persisting only the fields you changed — no hand-writing JSON.
+- **Tools page**: maintain the project registry without memorizing CLI commands.
 - **i18n**: switch between Chinese and English.
 
-The Dashboard isn't a separate system — it's the visualization layer over airein's existing capabilities. It reads the same roadmap, the same quality.json, the same plan directories. The config you change in the panel is the config the hooks actually read.
+The Dashboard isn't a separate system — it's the visualization layer over airein's existing capabilities. It reads the same roadmap, the same `.airein/config/quality.json`, the same plan directories. The config you change in the panel is the config the hooks actually read. See [dashboard/README.md](dashboard/README.md).
 
 ---
 

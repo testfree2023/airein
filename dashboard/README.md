@@ -5,10 +5,12 @@ Lightweight browser-based management console for Airein plans, templates, and co
 ## Quick Start
 
 ```bash
+bash ~/.airein/dashboard/start.sh
+# or from airein source checkout:
 node dashboard/server.js
 ```
 
-Opens automatically at `http://localhost:3456`.
+Opens automatically at `http://localhost:3456`. Background + LAN: `bash ~/.airein/dashboard/start.sh --bg --lan`.
 
 ### Options
 
@@ -47,6 +49,15 @@ node ~/.airein/scripts/lib/dashboard-projects.js prune   # remove stale paths fr
 ```
 
 Or use the **Tools** page in the dashboard (`#/tools`): view registry, register/unregister paths, prune stale entries.
+
+### Tools (Project Registry)
+
+Manage `projects.json` from the UI without CLI:
+
+- View all registered paths and **OK / Missing** status (deleted dirs are hidden from the project list but remain in the file until pruned)
+- Register a new absolute path
+- Remove a single entry
+- **Prune stale** — delete rows whose directories no longer exist
 
 `bash start.sh --lan` binds `0.0.0.0` and **automatically allows** hostname + local IPv4 addresses in Host/Origin checks (no manual `allowedHosts` required for LAN access).
 
@@ -91,6 +102,10 @@ Each field shows its default value. Only customized fields are persisted.
 | GET | `/api/templates` | List all templates |
 | GET/PUT | `/api/templates/*path` | Get/save a template |
 | GET/PUT | `/api/projects/:id/config` | Get/save project configuration |
+| GET | `/api/tools/registry` | List registry entries (includes missing paths) |
+| POST | `/api/tools/registry/register` | Register `{ "path": "..." }` |
+| POST | `/api/tools/registry/unregister` | Unregister `{ "path": "..." }` |
+| POST | `/api/tools/registry/prune` | Remove stale paths from `projects.json` |
 
 ## Architecture
 
