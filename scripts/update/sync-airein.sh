@@ -75,6 +75,7 @@ CORE_FILES=(
   "scripts/lib/conventions-shell.js"
   "scripts/lib/self-learning.js"
   "scripts/lib/runtime-metrics.js"      # dashboard/server.js requires it (omission crashed dashboard on deploy)
+  "scripts/lib/dashboard-projects.js"   # init-project → dashboard project registry
   "scripts/lib/resolve-formatter.js"    # hooks/post-edit-format.js + quality-gate.js require it
   "scripts/lib/commit-gate.js"          # hooks/pre-commit-gate.js requires it (classify staged files)
   "scripts/lib/install-helpers.sh"      # setup/chores/merge-hooks source it (node resolution + remote check)

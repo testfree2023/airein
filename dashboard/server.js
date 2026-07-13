@@ -27,6 +27,7 @@ const qualityConfig = require(path.join(SCRIPTS_LIB, 'quality-config'));
 const utils = require(path.join(SCRIPTS_LIB, 'utils'));
 const runtimeMetrics = require(path.join(SCRIPTS_LIB, 'runtime-metrics'));
 const projectPaths = require(path.join(SCRIPTS_LIB, 'project-paths'));
+const dashboardProjects = require(path.join(SCRIPTS_LIB, 'dashboard-projects'));
 
 const loadGlobalPipelines = qualityConfig.loadGlobalPipelines;
 const loadGlobalLanguageProfiles = qualityConfig.loadGlobalLanguageProfiles;
@@ -117,6 +118,20 @@ function scanProjectId(projectPath) {
   return 'scan-' + crypto.createHash('sha256').update(key).digest('hex').slice(0, 16);
 }
 
+function registryProjectId(projectPath) {
+  return scanProjectId(projectPath);
+}
+
+function discoverProjectsFromRegistry() {
+  const entries = dashboardProjects.listRegisteredProjects();
+  return entries.map((entry) => ({
+    id: registryProjectId(entry.path),
+    name: entry.name || extractProjectName(entry.path, path.basename(entry.path)),
+    path: entry.path,
+    ...loadProjectMeta(entry.path),
+  }));
+}
+
 function collectProjectsFromScanDirs() {
   const results = [];
   for (const scanRoot of loadScanDirs()) {
@@ -186,6 +201,7 @@ function discoverProjects() {
     projects.push(project);
   };
 
+  for (const project of discoverProjectsFromRegistry()) addProject(project);
   for (const project of discoverProjectsFromClaudeRegistry()) addProject(project);
   for (const project of collectProjectsFromScanDirs()) addProject(project);
 

@@ -46,6 +46,14 @@ mkdir -p docs/plans docs/adr .airein/config .airein/memory .airein/rules
 
 Verify: `ls -d docs/plans docs/adr .airein/config .airein/memory .airein/rules`
 
+**Register with Dashboard** (writes project path to `~/.airein/dashboard/projects.json` — panel auto-discovers, no scanDirs config):
+
+```bash
+node ~/.airein/scripts/lib/dashboard-projects.js register "$(pwd)"
+```
+
+Verify: `node ~/.airein/scripts/lib/dashboard-projects.js list`
+
 **宿主判断（必做，再决定是否创建 `.claude/`）**：
 
 | 当前宿主 | 动作 |

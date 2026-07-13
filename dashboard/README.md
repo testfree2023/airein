@@ -23,18 +23,26 @@ Opens automatically at `http://localhost:3456`.
 
 Projects are discovered automatically from:
 
-1. **`~/.claude/projects/`** — CC-registered projects (any with `docs/plans/` or `.airein/` / legacy `.claude/` markers)
-2. **Optional scan dirs** — set `DASHBOARD_SCAN_DIRS` or `dashboard.scanDirs` in `~/.airein/dashboard/config.json`
+1. **`~/.airein/dashboard/projects.json`** — written by `init-project` (`dashboard-projects.js register`); primary source
+2. **`~/.claude/projects/`** — CC-registered projects (fallback)
+3. **Optional `scanDirs`** — legacy/advanced only; most users do not need this
 
-Example `~/.airein/dashboard/config.json`:
+Example `~/.airein/dashboard/config.json` (optional — only for LAN hosts or legacy scan):
 
 ```json
 {
+  "kernelRoot": "/Users/you/.airein",
   "dashboard": {
-    "scanDirs": ["~/codes", "~/projects"],
     "allowedHosts": ["my-host.local"]
   }
 }
+```
+
+Manual register / list:
+
+```bash
+node ~/.airein/scripts/lib/dashboard-projects.js register /path/to/project
+node ~/.airein/scripts/lib/dashboard-projects.js list
 ```
 
 `bash start.sh --lan` binds `0.0.0.0` and **automatically allows** hostname + local IPv4 addresses in Host/Origin checks (no manual `allowedHosts` required for LAN access).
