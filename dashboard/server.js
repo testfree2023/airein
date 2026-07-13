@@ -12,19 +12,22 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 
-// Resolve airein root: if running from ~/dashboard (standalone install), use ~/.claude
+// Resolve airein kernel: repo checkout > ~/.airein > legacy ~/.claude
+const KERNEL_HOME = path.join(os.homedir(), '.airein');
 const CLAUDE_DIR = path.join(os.homedir(), '.claude');
 const AIREIN_ROOT = fs.existsSync(path.join(__dirname, '..', 'scripts', 'lib', 'utils.js'))
   ? path.resolve(__dirname, '..')
-  : CLAUDE_DIR;
+  : (fs.existsSync(path.join(KERNEL_HOME, 'scripts', 'lib', 'utils.js')) ? KERNEL_HOME : CLAUDE_DIR);
 const SCRIPTS_LIB = path.join(AIREIN_ROOT, 'scripts', 'lib');
 
 const planParser = require(path.join(SCRIPTS_LIB, 'plan-parser'));
 const qualityConfig = require(path.join(SCRIPTS_LIB, 'quality-config'));
 const utils = require(path.join(SCRIPTS_LIB, 'utils'));
 const runtimeMetrics = require(path.join(SCRIPTS_LIB, 'runtime-metrics'));
+const projectPaths = require(path.join(SCRIPTS_LIB, 'project-paths'));
 
 const loadGlobalPipelines = qualityConfig.loadGlobalPipelines;
 const loadGlobalLanguageProfiles = qualityConfig.loadGlobalLanguageProfiles;
@@ -58,41 +61,134 @@ const PROJECTS_CACHE_TTL_MS = 3000;
 let _projectsCache = null;
 let _projectsCacheAt = 0;
 
+function invalidateProjectsCache() {
+  _projectsCache = null;
+  _projectsCacheAt = 0;
+}
+
+function isDiscoverableProject(projectPath) {
+  if (!projectPath || !fs.existsSync(projectPath)) return false;
+  if (fs.existsSync(path.join(projectPath, 'docs', 'plans'))) return true;
+  return projectPaths.hasAireinMarkers(projectPath) || projectPaths.hasLegacyMarkers(projectPath);
+}
+
+function loadScanDirs() {
+  const dirs = [];
+  const addDir = (raw) => {
+    if (!raw || typeof raw !== 'string') return;
+    const trimmed = raw.trim();
+    let expanded = trimmed;
+    if (trimmed === '~') {
+      expanded = os.homedir();
+    } else if (trimmed.startsWith('~/') || trimmed.startsWith('~\\')) {
+      expanded = path.join(os.homedir(), trimmed.slice(2));
+    }
+    if (!expanded) return;
+    dirs.push(path.resolve(expanded));
+  };
+
+  const env = process.env.DASHBOARD_SCAN_DIRS;
+  if (env) {
+    for (const part of env.split(/[;,]/)) addDir(part);
+  }
+
+  const configCandidates = [
+    path.join(__dirname, 'config.json'),
+    path.join(KERNEL_HOME, 'dashboard.json'),
+    path.join(CLAUDE_DIR, 'settings.json'),
+  ];
+  for (const configFile of configCandidates) {
+    if (!fs.existsSync(configFile)) continue;
+    try {
+      const config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+      const scanDirs = config.dashboard && Array.isArray(config.dashboard.scanDirs)
+        ? config.dashboard.scanDirs
+        : null;
+      if (scanDirs) {
+        for (const part of scanDirs) addDir(part);
+      }
+    } catch {}
+  }
+
+  return [...new Set(dirs)];
+}
+
+function scanProjectId(projectPath) {
+  const key = dedupeKey(projectPath);
+  return 'scan-' + crypto.createHash('sha256').update(key).digest('hex').slice(0, 16);
+}
+
+function collectProjectsFromScanDirs() {
+  const results = [];
+  for (const scanRoot of loadScanDirs()) {
+    if (!fs.existsSync(scanRoot)) continue;
+
+    const candidates = [scanRoot];
+    try {
+      for (const name of fs.readdirSync(scanRoot)) {
+        const full = path.join(scanRoot, name);
+        try {
+          if (fs.statSync(full).isDirectory()) candidates.push(full);
+        } catch {}
+      }
+    } catch {}
+
+    for (const candidate of candidates) {
+      if (!isDiscoverableProject(candidate)) continue;
+      results.push({
+        id: scanProjectId(candidate),
+        name: extractProjectName(candidate, path.basename(candidate)),
+        path: candidate,
+        ...loadProjectMeta(candidate),
+      });
+    }
+  }
+  return results;
+}
+
+function discoverProjectsFromClaudeRegistry() {
+  const claudeProjects = path.join(os.homedir(), '.claude', 'projects');
+  if (!fs.existsSync(claudeProjects)) return [];
+
+  const dirs = fs.readdirSync(claudeProjects).filter(d => {
+    const full = path.join(claudeProjects, d);
+    return fs.statSync(full).isDirectory();
+  });
+
+  const projects = [];
+  for (const dir of dirs) {
+    const projectDir = path.join(claudeProjects, dir);
+    const projectPath = resolveProjectPath(projectDir);
+    if (!projectPath || !isDiscoverableProject(projectPath)) continue;
+
+    projects.push({
+      id: dir,
+      name: extractProjectName(projectPath, dir),
+      path: projectPath,
+      ...loadProjectMeta(projectPath),
+    });
+  }
+  return projects;
+}
+
 function discoverProjects() {
   const now = Date.now();
   if (_projectsCache && (now - _projectsCacheAt) < PROJECTS_CACHE_TTL_MS) {
     return _projectsCache;
   }
 
-  const claudeProjects = path.join(os.homedir(), '.claude', 'projects');
-  let projects;
-  if (!fs.existsSync(claudeProjects)) {
-    projects = [];
-  } else {
-    const dirs = fs.readdirSync(claudeProjects).filter(d => {
-      const full = path.join(claudeProjects, d);
-      return fs.statSync(full).isDirectory();
-    });
+  const seen = new Set();
+  const projects = [];
 
-    const seen = new Set();
-    projects = [];
-    for (const dir of dirs) {
-      const projectDir = path.join(claudeProjects, dir);
-      const projectPath = resolveProjectPath(projectDir);
-      if (!projectPath) continue;
-      const key = dedupeKey(projectPath);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      if (!hasAireinMarker(projectPath)) continue;
+  const addProject = (project) => {
+    const key = dedupeKey(project.path);
+    if (seen.has(key)) return;
+    seen.add(key);
+    projects.push(project);
+  };
 
-      projects.push({
-        id: dir,
-        name: extractProjectName(projectPath, dir),
-        path: projectPath,
-        ...loadProjectMeta(projectPath)
-      });
-    }
-  }
+  for (const project of discoverProjectsFromClaudeRegistry()) addProject(project);
+  for (const project of collectProjectsFromScanDirs()) addProject(project);
 
   _projectsCache = projects;
   _projectsCacheAt = now;
@@ -163,10 +259,14 @@ function extractFilePathFromJsonl(line) {
 }
 
 function findProjectRootFromPath(filePath) {
+  const fromMarkers = projectPaths.findProjectRoot(path.dirname(path.resolve(filePath)));
+  if (fromMarkers) return fromMarkers;
+
   let dir = path.dirname(path.resolve(filePath));
   let fallback = null;
   for (let i = 0; i < 20; i++) {
     if (fs.existsSync(path.join(dir, '.git'))) return dir;
+    if (fs.existsSync(path.join(dir, '.airein'))) return dir;
     if (fs.existsSync(path.join(dir, '.claude'))) return dir;
     if (!fallback && fs.existsSync(path.join(dir, 'package.json'))) fallback = dir;
     const parent = path.dirname(dir);
@@ -177,9 +277,7 @@ function findProjectRootFromPath(filePath) {
 }
 
 function hasAireinMarker(projectPath) {
-  return fs.existsSync(path.join(projectPath, 'docs', 'plans')) ||
-         fs.existsSync(path.join(projectPath, '.claude', 'config', 'quality.json')) ||
-         fs.existsSync(path.join(projectPath, '.claude', 'quality.json'));
+  return isDiscoverableProject(projectPath);
 }
 
 function extractProjectName(projectPath, fallback) {
@@ -252,8 +350,8 @@ function loadProjectMeta(projectPath) {
   }
 
   let techStack = [];
-  const configPath = path.join(projectPath, '.claude', 'config', 'quality.json');
-  if (fs.existsSync(configPath)) {
+  const configPath = projectPaths.qualityConfigPath(projectPath, { forRead: true });
+  if (configPath) {
     try {
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       if (cfg.framework) techStack.push(cfg.framework);
@@ -271,33 +369,58 @@ function loadProjectMeta(projectPath) {
 // (when present) to also be loopback.
 //
 // Extension: Load allowed hosts from config.json for LAN access.
-// Config file path: ~/.claude/settings.json or <dashboard>/config.json
+// When DASHBOARD_BIND=0.0.0.0 (--lan), hostname + local IPv4 addresses are added automatically.
+// Config file path: <dashboard>/config.json, ~/.airein/dashboard.json, or ~/.claude/settings.json
 // Format: { "dashboard": { "allowedHosts": ["localhost", "127.0.0.1", "192.168.1.100"] } }
 
-function loadAllowedHosts() {
-  const hosts = ['localhost', '127.0.0.1', '::1'];
+function lanBindHosts() {
+  if ((process.env.DASHBOARD_BIND || '127.0.0.1') !== '0.0.0.0') return [];
+  const hosts = [];
   try {
-    // Try project-local config first
-    const localConfig = path.join(__dirname, 'config.json');
-    const globalConfig = path.join(os.homedir(), '.claude', 'settings.json');
-    const configFile = fs.existsSync(localConfig) ? localConfig :
-                       fs.existsSync(globalConfig) ? globalConfig : null;
-    if (configFile) {
-      const config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
-      if (config.dashboard && config.dashboard.allowedHosts) {
-        return config.dashboard.allowedHosts;
+    const hn = os.hostname();
+    if (hn) hosts.push(hn.toLowerCase());
+    for (const entries of Object.values(os.networkInterfaces())) {
+      for (const iface of entries || []) {
+        if (iface && iface.family === 'IPv4' && !iface.internal && iface.address) {
+          hosts.push(String(iface.address).toLowerCase());
+        }
       }
     }
   } catch {}
   return hosts;
 }
 
-const LOOPBACK_HOSTS = new Set(loadAllowedHosts());
+function loadAllowedHosts() {
+  const hosts = new Set(['localhost', '127.0.0.1', '::1']);
+  for (const host of lanBindHosts()) hosts.add(host);
+
+  try {
+    const configCandidates = [
+      path.join(__dirname, 'config.json'),
+      path.join(KERNEL_HOME, 'dashboard.json'),
+      path.join(CLAUDE_DIR, 'settings.json'),
+    ];
+    for (const configFile of configCandidates) {
+      if (!fs.existsSync(configFile)) continue;
+      const config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+      if (config.dashboard && Array.isArray(config.dashboard.allowedHosts)) {
+        for (const host of config.dashboard.allowedHosts) {
+          if (host) hosts.add(String(host).toLowerCase());
+        }
+      }
+    }
+  } catch {}
+  return [...hosts];
+}
+
+function resolveAllowedHosts() {
+  return loadAllowedHosts();
+}
 
 function isHostAllowed(hostHeader) {
   if (!hostHeader) return false;
   const hostname = hostHeader.split(':')[0].toLowerCase();
-  return LOOPBACK_HOSTS.has(hostname);
+  return new Set(resolveAllowedHosts()).has(hostname);
 }
 
 function isOriginAllowed(originHeader) {
@@ -306,7 +429,7 @@ function isOriginAllowed(originHeader) {
   // absence so the SPA's own fetches and curl both keep working.
   if (!originHeader) return true;
   try {
-    return LOOPBACK_HOSTS.has(new URL(originHeader).hostname.toLowerCase());
+    return new Set(resolveAllowedHosts()).has(new URL(originHeader).hostname.toLowerCase());
   } catch {
     return false;
   }
@@ -366,16 +489,20 @@ function findProject(id) {
 }
 
 function readQualityConfig(projectPath) {
-  const configPath = path.join(projectPath, '.claude', 'config', 'quality.json');
-  const legacyPath = path.join(projectPath, '.claude', 'quality.json');
+  const configPath = projectPaths.qualityConfigPath(projectPath, { forRead: true });
+  if (!configPath) return {};
+  try {
+    return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
 
-  if (fs.existsSync(configPath)) {
-    try { return JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch { return {}; }
-  }
-  if (fs.existsSync(legacyPath)) {
-    try { return JSON.parse(fs.readFileSync(legacyPath, 'utf-8')); } catch { return {}; }
-  }
-  return {};
+function writeQualityConfig(projectPath, config) {
+  const configPath = projectPaths.qualityConfigPath(projectPath, { forWrite: true });
+  utils.ensureDir(path.dirname(configPath));
+  utils.writeFile(configPath, JSON.stringify(config, null, 2) + '\n');
+  return configPath;
 }
 
 function getEffectiveConfig(projectPath) {
@@ -1595,17 +1722,9 @@ async function handleSaveConfig(projectPath, req, res) {
     return json(res, 400, { error: 'Missing updates object' });
   }
 
-  const configDir = path.join(projectPath, '.claude', 'config');
-  const configPath = path.join(configDir, 'quality.json');
-  let existing = {};
-  if (fs.existsSync(configPath)) {
-    try { existing = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch {}
-  }
-
+  const existing = readQualityConfig(projectPath);
   const merged = qualityConfig.deepMerge(existing, updates);
-
-  utils.ensureDir(configDir);
-  utils.writeFile(configPath, JSON.stringify(merged, null, 2) + '\n');
+  writeQualityConfig(projectPath, merged);
   json(res, 200, { ok: true, config: merged });
 }
 
@@ -1628,8 +1747,6 @@ async function handleSaveLanguageProfiles(projectPath, req, res) {
   let parsed;
   try { parsed = JSON.parse(body); } catch { return json(res, 400, { error: 'Invalid JSON' }); }
 
-  const configDir = path.join(projectPath, '.claude', 'config');
-  const configPath = path.join(configDir, 'quality.json');
   const existing = readQualityConfig(projectPath);
 
   // Support both new active[] and legacy overrides
@@ -1646,8 +1763,7 @@ async function handleSaveLanguageProfiles(projectPath, req, res) {
   }
 
   const merged = qualityConfig.deepMerge(existing, update);
-  utils.ensureDir(configDir);
-  utils.writeFile(configPath, JSON.stringify(merged, null, 2) + '\n');
+  writeQualityConfig(projectPath, merged);
   json(res, 200, { ok: true, active: merged.languageProfiles?.active || [] });
 }
 
@@ -2015,7 +2131,11 @@ server.listen(PORT, BIND, () => {
 module.exports = {
   handler,
   discoverProjects,
+  invalidateProjectsCache,
+  isDiscoverableProject,
+  resolveAllowedHosts,
   findProject,
+  readQualityConfig,
   handleGetConfig,
   handleSaveConfig,
   handleGetLanguageProfiles,

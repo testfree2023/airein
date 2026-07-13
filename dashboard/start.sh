@@ -210,7 +210,7 @@ fi
 
 if [ "$LAN_MODE" = true ]; then
   export DASHBOARD_BIND="0.0.0.0"
-  HOST_DISPLAY="0.0.0.0 (局域网可访问)"
+  HOST_DISPLAY="0.0.0.0 (局域网可访问，Host 白名单自动含本机 hostname/IP)"
 else
   HOST_DISPLAY="127.0.0.1 (仅本机)"
 fi

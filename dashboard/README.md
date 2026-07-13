@@ -21,7 +21,23 @@ Opens automatically at `http://localhost:3456`.
 
 ### Project Discovery
 
-Projects are discovered automatically by scanning `~/.claude/projects/`. Any project with `docs/plans/` or `.claude/config/quality.json` appears in the dashboard — no manual registration needed.
+Projects are discovered automatically from:
+
+1. **`~/.claude/projects/`** — CC-registered projects (any with `docs/plans/` or `.airein/` / legacy `.claude/` markers)
+2. **Optional scan dirs** — set `DASHBOARD_SCAN_DIRS` (comma/semicolon-separated) or `dashboard.scanDirs` in `config.json` / `~/.airein/dashboard.json` to find Cursor-only or unregistered projects
+
+Example `~/dashboard/config.json`:
+
+```json
+{
+  "dashboard": {
+    "scanDirs": ["~/codes", "~/projects"],
+    "allowedHosts": ["my-host.local"]
+  }
+}
+```
+
+`bash start.sh --lan` binds `0.0.0.0` and **automatically allows** hostname + local IPv4 addresses in Host/Origin checks (no manual `allowedHosts` required for LAN access).
 
 ### Plan Management
 
@@ -38,7 +54,7 @@ Projects are discovered automatically by scanning `~/.claude/projects/`. Any pro
 
 ### Configuration
 
-Per-project `quality.json` editing with structured form controls:
+Per-project `quality.json` editing with structured form controls (read/write canonical **`.airein/config/quality.json`**, legacy `.claude/config/` read-only fallback):
 - Test Guard (enabled, mode)
 - Approval Guard (mode)
 - Plan Gate (mode, requireActiveTask)
