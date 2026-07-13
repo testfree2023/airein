@@ -9,12 +9,12 @@
  *           SSH/cron shell (nvm not sourced), `command -v node` failed AND
  *           the hardcoded fallback (homebrew + /usr/local) missed nvm →
  *           false "Node.js 未安装" + abort.
- *   Bug 2 — setup-airein.sh blindly `git pull`ed any existing ~/.claude/.git.
+ *   Bug 2 — legacy installer blindly `git pull`ed any existing ~/.claude/.git.
  *           A foreign harness repo was silently pulled instead of installing
- *           airein.
+ *           airein. (`is_airein_remote_url` guard retained in install-helpers.)
  *
- * Both pieces of logic live in scripts/lib/install-helpers.sh (extracted so
- * setup-airein.sh / airein-chores.sh / merge-hooks.sh share ONE resolver and
+ * Logic lives in scripts/lib/install-helpers.sh (extracted so
+ * airein CLI / airein-chores.sh / merge-hooks.sh share ONE resolver and
  * the logic is unit-testable — per conventions-bash §7, scripts with logic
  * branches need smoke tests).
  *
@@ -31,7 +31,6 @@ const {
 } = require('./helpers');
 
 const LIB_BASH_NATIVE = path.join(projectRoot(), 'scripts', 'lib', 'install-helpers.sh');
-const SETUP_BASH_NATIVE = path.join(projectRoot(), 'setup-airein.sh');
 
 // ── Path conversion ────────────────────────────────────────────────
 // fs uses native Windows paths; bash (Git Bash) wants /c/... /f/... form.
@@ -189,72 +188,6 @@ describe('resolve_node_bin: finds node off the default PATH', suite => {
     rmTempDir(home);
     assertOk(r.stdout.length > 0, 'should find the real node on PATH');
     assertContains(r.stdout, 'node', 'result should be a node path');
-  });
-});
-
-// ═══════════════════════════════════════════════════════════════════
-// Suite 3 — integration: setup-airein.sh refuses a foreign ~/.claude/.git (Bug 2 wiring)
-// ═══════════════════════════════════════════════════════════════════
-
-describe('setup-airein.sh: refuses foreign ~/.claude/.git (Bug 2)', suite => {
-  const gitOk = spawnSync('git', ['--version'], { encoding: 'utf8' }).status === 0;
-  let runnerDir = null;
-  let homeDir = null;
-
-  if (!gitOk) {
-    suite.test('git unavailable — integration suite skipped', () => {
-      console.log('  ⏭️  git not found on PATH; skipping integration test');
-      assertOk(true, 'skipped cleanly');
-    });
-    return;
-  }
-
-  suite.test('aborts with exit 1 and does NOT pull a foreign repo', () => {
-    // Build a fake HOME whose ~/.claude is a foreign git repo.
-    homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'airein-setup-home-'));
-    const claudeNative = path.join(homeDir, '.claude');
-    fs.mkdirSync(claudeNative, { recursive: true });
-    const homeBash = toBashPath(homeDir);
-    const claudeBash = toBashPath(claudeNative);
-
-    const setup = spawnSync(BASH, ['-c', [
-      `git -C "${claudeBash}" init -q`,
-      `git -C "${claudeBash}" remote add origin https://github.com/someone/my-ai-coder.git`,
-      `git -C "${claudeBash}" -c user.email=t@t -c user.name=t commit -q --allow-empty -m foreign-init`,
-    ].join(' && ')], { env: process.env, encoding: 'utf8', timeout: 8000 });
-    assertEqual(setup.status, 0, 'foreign git repo scaffolded');
-
-    // Runner dir: copy setup-airein.sh + the lib so SCRIPT_DIR/scripts/lib
-    // resolves. Deliberately NO rules/00-iron-rules.md → IS_FROM_REPO=false, so
-    // the installer reaches the ~/.claude/.git branch.
-    runnerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'airein-setup-runner-'));
-    fs.copyFileSync(SETUP_BASH_NATIVE, path.join(runnerDir, 'setup-airein.sh'));
-    fs.mkdirSync(path.join(runnerDir, 'scripts', 'lib'), { recursive: true });
-    fs.copyFileSync(LIB_BASH_NATIVE, path.join(runnerDir, 'scripts', 'lib', 'install-helpers.sh'));
-
-    const r = spawnSync(BASH, [toBashPath(path.join(runnerDir, 'setup-airein.sh'))], {
-      env: { ...process.env, HOME: homeBash },
-      encoding: 'utf8',
-      timeout: 15000,
-    });
-    const combined = (r.stdout || '') + (r.stderr || '');
-
-    assertEqual(r.status, 1, 'setup must abort (exit 1) on foreign .git');
-    assertContains(combined, '不是 airein', 'must explain the repo is not airein');
-    assertNotContains(combined, '已是 airein 仓库，更新到最新', 'must NOT take the pull path');
-
-    // Foreign repo untouched: still exactly 1 commit, no airein files merged in.
-    const log = spawnSync(BASH, ['-c', `git -C "${claudeBash}" rev-list --count HEAD`],
-      { env: process.env, encoding: 'utf8', timeout: 8000 });
-    assertEqual((log.stdout || '').trim(), '1', 'foreign repo must not receive airein commits');
-    assertOk(!fs.existsSync(path.join(claudeNative, 'rules', '00-iron-rules.md')),
-      'must not install airein files over the foreign repo');
-  });
-
-  suite.test('cleanup temp dirs', () => {
-    rmTempDir(runnerDir);
-    rmTempDir(homeDir);
-    assertOk(true, 'cleaned up');
   });
 });
 

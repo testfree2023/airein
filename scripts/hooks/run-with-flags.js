@@ -12,6 +12,9 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { isHookEnabled } = require('../lib/hook-flags');
+const { durationLogLevel, formatDurationMessage } = require('../lib/hook-timing');
+const { aireinLog } = require('../lib/airein-logger');
+const { loadQualityConfig } = require('../lib/quality-config');
 
 const MAX_STDIN = 1024 * 1024;
 
@@ -68,6 +71,15 @@ async function main() {
     process.exit(0);
   }
 
+  const startedAt = Date.now();
+  const logHookDuration = (exitCode) => {
+    const cfg = loadQualityConfig().aireinLog || {};
+    const slowHookMs = cfg.slowHookMs ?? 2000;
+    const durationMs = Date.now() - startedAt;
+    const level = durationLogLevel(durationMs, slowHookMs);
+    aireinLog(level, 'hook-timing', `${formatDurationMessage(hookId, durationMs)} exit=${exitCode}`);
+  };
+
   // Prefer direct require() when the hook exports a run(rawInput) function.
   // This eliminates one Node.js process spawn (~50-100ms savings per hook).
   //
@@ -88,14 +100,17 @@ async function main() {
   }
 
   if (hookModule && typeof hookModule.run === 'function') {
+    let exitCode = 0;
     try {
       const output = hookModule.run(raw);
       if (output !== null && output !== undefined) process.stdout.write(output);
     } catch (runErr) {
       process.stderr.write(`[Hook] run() error for ${hookId}: ${runErr.message}\n`);
       process.stdout.write(raw);
+      exitCode = 0;
     }
-    process.exit(0);
+    logHookDuration(exitCode);
+    process.exit(exitCode);
   }
 
   // Legacy path: spawn a child Node process for hooks without run() export
@@ -112,6 +127,7 @@ async function main() {
   if (result.stderr) process.stderr.write(result.stderr);
 
   const code = Number.isInteger(result.status) ? result.status : 0;
+  logHookDuration(code);
   process.exit(code);
 }
 

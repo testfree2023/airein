@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 # airein-chores.sh — 打杂脚本：目录创建、模板初始化、验证
 #
-# 被 update-airein.sh 和 setup-airein.sh 调用。
+# 被 airein setup / airein-chores 调用。
 # 也可独立运行：bash scripts/airein-chores.sh [CLAUDE_DIR] [PROJECT_DIR]
 #
 # 功能：
-#   1. 创建项目目录（.claude/config/, .claude/memory/, .claude/logs/）
+#   1. 创建项目目录（.airein/{config,memory,logs}；CC 项目额外 shim .claude/rules）
 #   2. 补缺模板文件
 #   3. 语法验证
 
 CLAUDE_DIR="${1:-$HOME/.claude}"
 PROJECT_DIR="${2:-$(pwd)}"
 CHORES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KERNEL_ROOT="$(cd "$CHORES_DIR/.." && pwd)"
 HELPERS_LIB="$CHORES_DIR/lib/install-helpers.sh"
 if [ -f "$HELPERS_LIB" ]; then
   # shellcheck source=lib/install-helpers.sh
@@ -32,16 +33,35 @@ else
 fi
 CREATED=0
 ERRORS=0
+CC_SHIM=0
+for arg in "$@"; do
+  if [[ "$arg" == "--cc-shim" ]]; then
+    CC_SHIM=1
+    break
+  fi
+done
 
 # ── 1. 创建目录 ──────────────────────────────────────────────────
 ensure_dirs() {
   echo "📁 创建目录..."
 
-  # 项目级目录
-  mkdir -p "$PROJECT_DIR/.claude/config"
-  mkdir -p "$PROJECT_DIR/.claude/memory"
-  mkdir -p "$PROJECT_DIR/.claude/logs"
-  echo "  ✅ .claude/{config,memory,logs}"
+  mkdir -p "$PROJECT_DIR/.airein/config"
+  mkdir -p "$PROJECT_DIR/.airein/memory"
+  mkdir -p "$PROJECT_DIR/.airein/logs"
+  echo "  ✅ .airein/{config,memory,logs}"
+
+  # CC 专属：仅 --cc-shim 时创建 .claude/rules → .airein/rules（Cursor 等项目禁止）
+  if [[ "$CC_SHIM" -eq 1 && -n "$NODE_BIN" && -f "$CHORES_DIR/lib/project-shim.js" ]]; then
+    if ! "$NODE_BIN" -e "
+      const { ensureCcRulesShim } = require(process.argv[1]);
+      const r = ensureCcRulesShim(process.argv[2], { ccShim: true });
+      if (!r.ok) process.exit(1);
+    " "$CHORES_DIR/lib/project-shim.js" "$PROJECT_DIR" 2>/dev/null; then
+      echo "  ⚠️  CC rules shim 失败（可稍后重试）"
+    else
+      echo "  ✅ .claude/rules shim → <项目>/.airein/rules (CC only)"
+    fi
+  fi
 }
 
 # ── 2. 补缺模板文件 ──────────────────────────────────────────────
@@ -84,7 +104,7 @@ validate() {
     return
   fi
 
-  for jsonfile in "$CLAUDE_DIR/hooks/hooks.json" "$CLAUDE_DIR/templates/quality.json"; do
+  for jsonfile in "$KERNEL_ROOT/hooks/hooks.json" "$KERNEL_ROOT/templates/quality.json"; do
     if [ -f "$jsonfile" ]; then
       if ! "$NODE_BIN" -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$jsonfile" 2>/dev/null; then
         echo "  ❌ $(basename "$jsonfile") — JSON 语法错误"
@@ -93,7 +113,7 @@ validate() {
     fi
   done
 
-  for jsfile in "$CLAUDE_DIR"/scripts/hooks/*.js "$CLAUDE_DIR"/scripts/lib/*.js; do
+  for jsfile in "$KERNEL_ROOT"/scripts/hooks/*.js "$KERNEL_ROOT"/scripts/lib/*.js; do
     [ -f "$jsfile" ] || continue
     JS_COUNT=$((JS_COUNT + 1))
     if ! "$NODE_BIN" -c "$jsfile" 2>/dev/null; then

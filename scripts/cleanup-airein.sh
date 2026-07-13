@@ -9,7 +9,7 @@
 #   bash scripts/cleanup-airein.sh /path/to/repo     # 指定源目录
 #   bash scripts/cleanup-airein.sh --dry-run         # 只报告不删除
 #
-# 通常在 update-airein.sh 之后运行。
+# 通常在 airein update 之后运行。
 
 set -e
 
@@ -82,8 +82,8 @@ for f in README.md RELEASES.md; do
 $f"
 done
 
-# 安装/更新/打包脚本（顶层）
-for f in setup-airein.sh update-airein.sh; do
+# 安装/更新脚本（顶层）
+for f in airein; do
   [ -f "$AIREIN_SRC/$f" ] && SOURCE_FILES="$SOURCE_FILES
 $f"
 done
@@ -130,7 +130,7 @@ $rel"
   done < <(find "$AIREIN_SRC/scripts" -maxdepth 1 \( -name '*.sh' -o -name '*.js' \) -type f 2>/dev/null)
 fi
 
-# skills — 只扫描 airein 管理的 skill 列表（与 update-airein.sh SKILL_DIRS 一致）
+# skills — 只扫描 airein 管理的 skill 列表（与 sync-airein.sh SKILL_DIRS 一致）
 MANAGED_SKILLS=(
   "init-project"
   "new-plan"
@@ -171,6 +171,10 @@ for f in README.md RELEASES.md CHANGELOG.md; do
 $f"
 done
 
+for f in airein; do
+  [ -f "$CLAUDE_DIR/$f" ] && TARGET_FILES="$TARGET_FILES
+$f"
+done
 for f in setup-airein.sh update-airein.sh; do
   [ -f "$CLAUDE_DIR/$f" ] && TARGET_FILES="$TARGET_FILES
 $f"
@@ -273,7 +277,7 @@ if [ "$MISSING_COUNT" -gt 0 ]; then
     [ -z "$f" ] && continue
     echo "    $f"
   done <<< "$MISSING_FILES"
-  echo "  → 运行 bash ~/.claude/update-airein.sh 补齐"
+  echo "  → 运行 airein update 补齐"
   echo ""
 fi
 

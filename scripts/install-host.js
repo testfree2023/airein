@@ -22,6 +22,8 @@ const { skillPlace, HOST_SKILLS_DIR } = require('./lib/skill-place');
 const { commandPlace, HOST_COMMANDS_DIR } = require('./lib/command-place');
 const { ruleGenerate } = require('./lib/rule-generate');
 const { translateHooks } = require('./lib/hook-register');
+const { mergeCursorHooks } = require('./lib/cursor-hook-merge');
+const { DEFAULT_DELIVERY, normalizeDelivery, deliverAssetDir } = require('./lib/asset-delivery');
 const { hashContent, hashFile, buildManifest } = require('./lib/install-manifest');
 
 const KNOWN_HOSTS = ['cursor', 'codex', 'codebuddy', 'opencode'];
@@ -128,7 +130,7 @@ function readInstalledVersion(repoRoot) {
 /**
  * Install airein into a host target (K1 + K2 + K3 + K4 + install-manifest).
  * @param {string} host - cursor/codex/codebuddy/opencode
- * @param {{targetRoot:string, repoRoot:string, platform?:string, dryRun?:boolean}} opts
+ * @param {{targetRoot:string, repoRoot:string, platform?:string, dryRun?:boolean, delivery?:string}} opts
  * @returns {{written:Array<{path:string,hash:string,kind:string}>, state:object, errors:string[]}}
  * @throws {Error} unknown host / missing opts / .claude/ violation
  */
@@ -139,7 +141,14 @@ function installHost(host, opts) {
         'See docs/plans/P001-cross-platform/deployment.md §2.',
     );
   }
-  const { targetRoot, repoRoot, dryRun = false, platform = detectPlatform() } = opts || {};
+  const {
+    targetRoot,
+    repoRoot,
+    dryRun = false,
+    platform = detectPlatform(),
+    delivery: deliveryRaw,
+  } = opts || {};
+  const delivery = normalizeDelivery(deliveryRaw || DEFAULT_DELIVERY);
   if (!targetRoot) throw new Error('installHost: opts.targetRoot required');
   if (!repoRoot) throw new Error('installHost: opts.repoRoot required (airein truth source)');
 
@@ -147,39 +156,105 @@ function installHost(host, opts) {
   const written = [];
 
   try {
-    // K1 — skills（OC 零放置；其余 copy 整个 skill 目录到宿主发现路径）
+    // K1 — skills（unified=目录软链；copy=逐文件复制；OC 零放置）
     const skillRes = skillPlace(path.join(repoRoot, 'skills'), host, targetRoot);
     errors.push(...skillRes.errors);
-    for (const a of skillRes.actions) {
-      if (a.type !== 'copy') continue; // OC type:'none' 跳过
-      const rel = `${HOST_SKILLS_DIR[host]}/${a.name}`;
-      copyTree(a.src, rel, targetRoot, written, 'skill', dryRun);
+    if (host !== 'opencode' && HOST_SKILLS_DIR[host]) {
+      const skillsRel = HOST_SKILLS_DIR[host];
+      const skillsDest = toAbs(targetRoot, skillsRel);
+      const skillsSrc = path.join(repoRoot, 'skills');
+      if (delivery === 'unified') {
+        const linkRes = deliverAssetDir({
+          srcDir: skillsSrc,
+          destDir: skillsDest,
+          mode: 'unified',
+          dryRun,
+        });
+        if (!linkRes.ok) errors.push(linkRes.error);
+        else {
+          written.push({
+            path: skillsRel,
+            hash: hashContent(path.resolve(skillsSrc)),
+            kind: 'skill-link',
+          });
+        }
+      } else {
+        for (const a of skillRes.actions) {
+          if (a.type !== 'copy') continue;
+          const rel = `${skillsRel}/${a.name}`;
+          copyTree(a.src, rel, targetRoot, written, 'skill', dryRun);
+        }
+      }
     }
 
-    // K2 — rules 入口（ruleGenerate 读真相源 rules/ + docs/ + .claude/rules/）
+    // K2 — rules 入口（固定 deploy：ruleGenerate 读真相源 rules/ + docs/ + .claude/rules/）
     const ruleRes = ruleGenerate(repoRoot, host);
     errors.push(...ruleRes.errors);
     for (const f of ruleRes.files) {
       writeRel(targetRoot, f.path, f.content, written, 'rule', dryRun);
     }
 
-    // K3 — hook 注册配置（翻译 hooks.json → 宿主配置；OC N/A 进 errors）
-    // Bug A 修复：aireinRoot = 仓库绝对路径（正斜杠），由 translateHooks 注入到各宿主 hook command
-    // （node "<aireinRoot>/scripts/hooks/host/<host>.js" <hookId>）。入口脚本留在仓库不复制。
+    // K3 — hook 注册配置（Cursor merge；其余宿主整文件写入）
     const hooksJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'hooks', 'hooks.json'), 'utf8'));
-    const hookRes = translateHooks(host, hooksJson, { platform, aireinRoot: repoRoot.replace(/\\/g, '/') });
-    errors.push(...hookRes.errors);
-    for (const f of hookRes.files) {
-      writeRel(targetRoot, f.path, f.content, written, 'hook-config', dryRun);
+    const aireinRootPosix = repoRoot.replace(/\\/g, '/');
+    if (host === 'cursor') {
+      const destHooks = toAbs(targetRoot, '.cursor/hooks.json');
+      if (!dryRun) {
+        const mergeRes = mergeCursorHooks({
+          hooksFile: path.join(repoRoot, 'hooks', 'hooks.json'),
+          aireinRoot: aireinRootPosix,
+          destFile: destHooks,
+          platform,
+        });
+        errors.push(...mergeRes.errors);
+        if (mergeRes.ok) {
+          const content = fs.readFileSync(destHooks, 'utf8');
+          written.push({ path: '.cursor/hooks.json', hash: hashContent(content), kind: 'hook-config' });
+        }
+      } else {
+        const hookRes = translateHooks(host, hooksJson, { platform, aireinRoot: aireinRootPosix });
+        errors.push(...hookRes.errors);
+        for (const f of hookRes.files) {
+          written.push({ path: f.path, hash: hashContent(f.content), kind: 'hook-config' });
+        }
+      }
+    } else {
+      const hookRes = translateHooks(host, hooksJson, { platform, aireinRoot: aireinRootPosix });
+      errors.push(...hookRes.errors);
+      for (const f of hookRes.files) {
+        writeRel(targetRoot, f.path, f.content, written, 'hook-config', dryRun);
+      }
     }
 
-    // K4 — commands（CDX N/A → errors；CUR/CB/OC copy 扁平 commands/*.md）
+    // K4 — commands（unified=目录软链；copy=逐文件；CDX N/A）
     const commandRes = commandPlace(path.join(repoRoot, 'commands'), host, targetRoot);
     errors.push(...commandRes.errors);
-    for (const a of commandRes.actions) {
-      if (a.type !== 'copy') continue;
-      const rel = `${HOST_COMMANDS_DIR[host]}/${a.name}.md`;
-      writeRel(targetRoot, rel, fs.readFileSync(a.src, 'utf8'), written, 'command', dryRun);
+    if (HOST_COMMANDS_DIR[host]) {
+      const commandsRel = HOST_COMMANDS_DIR[host];
+      const commandsDest = toAbs(targetRoot, commandsRel);
+      const commandsSrc = path.join(repoRoot, 'commands');
+      if (delivery === 'unified') {
+        const linkRes = deliverAssetDir({
+          srcDir: commandsSrc,
+          destDir: commandsDest,
+          mode: 'unified',
+          dryRun,
+        });
+        if (!linkRes.ok) errors.push(linkRes.error);
+        else {
+          written.push({
+            path: commandsRel,
+            hash: hashContent(path.resolve(commandsSrc)),
+            kind: 'command-link',
+          });
+        }
+      } else {
+        for (const a of commandRes.actions) {
+          if (a.type !== 'copy') continue;
+          const rel = `${commandsRel}/${a.name}.md`;
+          writeRel(targetRoot, rel, fs.readFileSync(a.src, 'utf8'), written, 'command', dryRun);
+        }
+      }
     }
 
     // OC 独轨（design §6.3 · T08）：复制 bridge.ts 实体到 .opencode/plugin/，注入 AIREIN_ROOT
@@ -212,11 +287,11 @@ function installHost(host, opts) {
 /**
  * Uninstall a host's airein artifacts by install-manifest (hash-checked, deployment §8).
  * Refuses to delete files whose current hash ≠ recorded hash (protect user edits).
- * @returns {{removed:string[]}}
- * @throws {Error} missing state / hash mismatch / .claude/ violation
+ * @returns {{removed:string[], warnings:string[]}}
+ * @throws {Error} missing state / hash mismatch (unless force) / .claude/ violation
  */
 function uninstallHost(host, opts) {
-  const { targetRoot } = opts || {};
+  const { targetRoot, force = false } = opts || {};
   if (!targetRoot) throw new Error('uninstallHost: opts.targetRoot required');
   const statePath = toAbs(targetRoot, STATE_FILE);
   if (!fs.existsSync(statePath)) {
@@ -229,15 +304,35 @@ function uninstallHost(host, opts) {
     throw new Error(`uninstallHost: manifest host="${state.host}" ≠ requested "${host}"`);
   }
   const removed = [];
+  const warnings = [];
   for (const f of state.files || []) {
     assertNotClaudeDir(f.path);
     const abs = toAbs(targetRoot, f.path);
     if (!fs.existsSync(abs)) continue; // 已删（幂等）
+    let st;
+    try { st = fs.lstatSync(abs); } catch { continue; }
+    if (st.isSymbolicLink()) {
+      const cur = hashContent(fs.realpathSync(abs));
+      if (cur !== f.hash) {
+        if (!force) {
+          throw new Error(
+            `uninstallHost: symlink target drift for ${f.path} — manual review required`,
+          );
+        }
+        warnings.push(`force removed symlink ${f.path} (target drift)`);
+      }
+      fs.unlinkSync(abs);
+      removed.push(f.path);
+      continue;
+    }
     const cur = hashFile(abs);
     if (cur !== f.hash) {
-      throw new Error(
-        `uninstallHost: hash mismatch for ${f.path} (file changed since install) — manual review required`,
-      );
+      if (!force) {
+        throw new Error(
+          `uninstallHost: hash mismatch for ${f.path} (file changed since install) — manual review required`,
+        );
+      }
+      warnings.push(`force removed ${f.path} (hash drift)`);
     }
     fs.rmSync(abs, { force: true });
     removed.push(f.path);
@@ -245,7 +340,7 @@ function uninstallHost(host, opts) {
   fs.rmSync(statePath, { force: true });
   // 清理 airein 创建的空目录外壳（deployment §8）—— rmdirSync 仅删空目录，用户文件受保护
   pruneEmptyDirs(targetRoot, removed);
-  return { removed };
+  return { removed, warnings };
 }
 
 /**
@@ -265,6 +360,16 @@ function verifyHost(host, opts) {
     const abs = toAbs(targetRoot, f.path);
     if (!fs.existsSync(abs)) {
       errors.push(`verify: missing ${f.path}`);
+      continue;
+    }
+    let st;
+    try { st = fs.lstatSync(abs); } catch {
+      errors.push(`verify: cannot stat ${f.path}`);
+      continue;
+    }
+    if (st.isSymbolicLink()) {
+      const cur = hashContent(fs.realpathSync(abs));
+      if (cur !== f.hash) errors.push(`verify: symlink drift ${f.path}`);
       continue;
     }
     if (hashFile(abs) !== f.hash) {
@@ -322,8 +427,9 @@ function main(argv) {
 
   if (sub === 'uninstall') {
     if (!host) { process.stderr.write('error: --host required\n'); process.exit(2); }
-    const res = uninstallHost(host, { targetRoot });
+    const res = uninstallHost(host, { targetRoot, force: Boolean(flags.force) });
     process.stdout.write(`uninstall ${host}: removed ${res.removed.length} files\n`);
+    for (const w of res.warnings || []) process.stderr.write(`  ⚠ ${w}\n`);
     process.exit(0);
   }
 
@@ -336,7 +442,7 @@ function main(argv) {
   }
 
   process.stderr.write(
-    'usage: install-host.js <install|plan|uninstall|verify> --host <X> [--platform <windows|macos|linux>] [--root <dir>] [--dry-run]\n',
+    'usage: install-host.js <install|plan|uninstall|verify> --host <X> [--platform <windows|macos|linux>] [--root <dir>] [--dry-run] [--force]\n',
   );
   process.exit(2);
 }

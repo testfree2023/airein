@@ -3,13 +3,13 @@
  * Airein Logger — synchronous daily-rotated logging for hook diagnostics
  *
  * Features:
- *   - Daily-rotated log files: <project>/.claude/logs/airein-YYYY-MM-DD.log
+ *   - Daily-rotated log files: <project>/.airein/logs/airein-YYYY-MM-DD.log
  *   - Synchronous writes (appendFileSync) — guaranteed to flush before process.exit
  *   - Auto-cleanup of logs older than retentionDays (default 7)
  *   - Toggle via quality.json: aireinLog.enabled (default true)
  *   - Log level filtering: debug/info/warn/error (default info)
  *
- * Config (in .claude/config/quality.json):
+ * Config (in .airein/config/quality.json):
  *   "aireinLog": { "enabled": true, "level": "info", "retentionDays": 7 }
  *
  * Usage in hook scripts:
@@ -21,11 +21,12 @@ const fs = require('fs');
 const path = require('path');
 const { loadQualityConfig } = require('./quality-config');
 const { getProjectDir } = require('./utils');
+const { projectDataSubpath } = require('./project-paths');
 
 const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
 
 function getLogsDir() {
-  return path.join(getProjectDir(), '.claude', 'logs');
+  return projectDataSubpath(getProjectDir(), 'logs');
 }
 
 function getDateString() {

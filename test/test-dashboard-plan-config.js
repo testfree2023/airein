@@ -287,6 +287,44 @@ describe('archive: server API and dashboard UI', suite => {
   });
 });
 
+describe('dashboard: P004 project registry (init-project → projects.json)', suite => {
+  const server = fs.readFileSync(SERVER_PATH, 'utf8');
+  const readme = fs.readFileSync(path.join(projectRoot(), 'dashboard', 'README.md'), 'utf8');
+  const initSkill = fs.readFileSync(path.join(projectRoot(), 'skills', 'init-project', 'SKILL.md'), 'utf8');
+
+  suite.test('server discovers projects from registry first', () => {
+    assertContains(server, 'discoverProjectsFromRegistry', 'registry discovery function');
+    assertContains(server, 'dashboard-projects', 'requires dashboard-projects lib');
+    assertMatch(server, /discoverProjectsFromRegistry\(\)/, 'calls registry discovery');
+  });
+
+  suite.test('init-project registers project with dashboard', () => {
+    assertContains(initSkill, 'dashboard-projects.js register', 'init-project runs register CLI');
+  });
+
+  suite.test('README documents projects.json as primary discovery', () => {
+    assertContains(readme, 'projects.json', 'README mentions projects.json');
+    assertContains(readme, 'dashboard-projects.js register', 'README shows register command');
+  });
+});
+
+describe('dashboard: tools page registry API', suite => {
+  const server = fs.readFileSync(SERVER_PATH, 'utf8');
+  const index = fs.readFileSync(INDEX_PATH, 'utf8');
+
+  suite.test('server exposes registry tools handlers', () => {
+    assertContains(server, 'handleGetRegistryTools', 'GET registry handler');
+    assertContains(server, 'handlePruneRegistry', 'prune handler');
+    assertContains(server, '/api/tools/registry', 'registry route');
+  });
+
+  suite.test('UI has tools nav and renderer', () => {
+    assertContains(index, 'href="#/tools"', 'tools nav link');
+    assertContains(index, 'renderToolsPage', 'tools page renderer');
+    assertContains(index, '/tools/registry', 'registry API call');
+  });
+});
+
 describe('dashboard: configForm aligned with quality-config DEFAULTS (P020)', suite => {
   const index = fs.readFileSync(INDEX_PATH, 'utf8');
 

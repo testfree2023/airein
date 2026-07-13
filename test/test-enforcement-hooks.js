@@ -75,6 +75,30 @@ tasks: draft
 - none
 `;
 
+const PENDING_ARCHIVE_PROGRESS = `# Progress: Pre-Archive
+updated: 2026-07-11
+plan: P099-pre-archive
+complexity: m-feature
+status: in_progress
+
+## Task Stats
+total: 3
+completed: 3
+in_progress: 0
+pending: 0
+
+## Approval State
+requirements: approved
+design: approved
+tasks: approved
+
+## Active Task
+none
+
+## Blockers
+- none
+`;
+
 const COMPLEX_PROGRESS = `# Progress: Complex Feature
 updated: 2026-06-10
 plan: P003-complex
@@ -162,6 +186,18 @@ describe('plan-gate: advisory mode (default)', suite => {
       const result = runHook(PLAN_GATE_PATH, path.join(tmp, 'src', 'feature.js'), tmp);
       assertNotContains(result.stderr, '[Plan Gate]', 'should not warn with approved plan');
       assertEqual(result.exitCode, 0, 'should allow with approved plan');
+    } finally {
+      removeTempProject(tmp);
+    }
+  });
+
+  suite.test('allows source edit when all tasks done but status in_progress (pre-archive)', () => {
+    const tmp = createTempProject();
+    try {
+      createPlanDir(tmp, 'P099-pre-archive', PENDING_ARCHIVE_PROGRESS);
+      const result = runHook(PLAN_GATE_PATH, path.join(tmp, 'src', 'fix-before-archive.js'), tmp);
+      assertEqual(result.exitCode, 0, 'pre-archive plan should still allow edits');
+      assertNotContains(result.stderr, '[Plan Gate]', 'should not block pre-archive fixes');
     } finally {
       removeTempProject(tmp);
     }

@@ -43,10 +43,10 @@ describe('conventions-shell validator (P018 T3)', suite => {
 
   suite.test('valid shell (paths + @include target exists) → valid', () => {
     const dir = makeTempProject({
-      '.claude/rules/conventions-nodejs.md': '---\npaths: ["scripts/**/*.js"]\n---\n@../../docs/conventions-nodejs.md\n',
+      '.airein/rules/conventions-nodejs.md': '---\npaths: ["scripts/**/*.js"]\n---\n@../../docs/conventions-nodejs.md\n',
       'docs/conventions-nodejs.md': '# Node Conventions',
     });
-    const shell = path.join(dir, '.claude/rules', 'conventions-nodejs.md');
+    const shell = path.join(dir, '.airein/rules', 'conventions-nodejs.md');
     const r = validateConventionsShell(shell);
     assertEqual(r.valid, true, 'valid shell → valid:true; errors: ' + JSON.stringify(r.errors || []));
     fs.rmSync(dir, { recursive: true, force: true });
@@ -54,10 +54,10 @@ describe('conventions-shell validator (P018 T3)', suite => {
 
   suite.test('@include target missing → invalid with clear error', () => {
     const dir = makeTempProject({
-      '.claude/rules/conventions-nodejs.md': '---\npaths: ["scripts/**/*.js"]\n---\n@../../docs/conventions-nodejs.md\n',
+      '.airein/rules/conventions-nodejs.md': '---\npaths: ["scripts/**/*.js"]\n---\n@../../docs/conventions-nodejs.md\n',
       // docs/conventions-nodejs.md intentionally absent
     });
-    const shell = path.join(dir, '.claude/rules', 'conventions-nodejs.md');
+    const shell = path.join(dir, '.airein/rules', 'conventions-nodejs.md');
     const r = validateConventionsShell(shell);
     assertEqual(r.valid, false, 'missing target → invalid');
     assertOk(r.errors.some(e => /not found/i.test(e)), 'error mentions "not found"');
@@ -66,10 +66,10 @@ describe('conventions-shell validator (P018 T3)', suite => {
 
   suite.test('frontmatter missing → invalid', () => {
     const dir = makeTempProject({
-      '.claude/rules/x.md': '@../../docs/conventions-x.md\n',
+      '.airein/rules/x.md': '@../../docs/conventions-x.md\n',
       'docs/conventions-x.md': '# X',
     });
-    const shell = path.join(dir, '.claude/rules', 'x.md');
+    const shell = path.join(dir, '.airein/rules', 'x.md');
     const r = validateConventionsShell(shell);
     assertEqual(r.valid, false, 'no frontmatter → invalid');
     assertOk(r.errors.some(e => /frontmatter/i.test(e)), 'error mentions frontmatter');
@@ -78,10 +78,10 @@ describe('conventions-shell validator (P018 T3)', suite => {
 
   suite.test('paths missing or empty → invalid', () => {
     const dir = makeTempProject({
-      '.claude/rules/x.md': '---\n---\n@../../docs/conventions-x.md\n',
+      '.airein/rules/x.md': '---\n---\n@../../docs/conventions-x.md\n',
       'docs/conventions-x.md': '# X',
     });
-    const shell = path.join(dir, '.claude/rules', 'x.md');
+    const shell = path.join(dir, '.airein/rules', 'x.md');
     const r = validateConventionsShell(shell);
     assertEqual(r.valid, false, 'empty frontmatter (no paths) → invalid');
     assertOk(r.errors.some(e => /paths/i.test(e)), 'error mentions paths');
@@ -90,9 +90,9 @@ describe('conventions-shell validator (P018 T3)', suite => {
 
   suite.test('no @include directive → invalid', () => {
     const dir = makeTempProject({
-      '.claude/rules/x.md': '---\npaths: ["**/*.js"]\n---\nSome prose without include.\n',
+      '.airein/rules/x.md': '---\npaths: ["**/*.js"]\n---\nSome prose without include.\n',
     });
-    const shell = path.join(dir, '.claude/rules', 'x.md');
+    const shell = path.join(dir, '.airein/rules', 'x.md');
     const r = validateConventionsShell(shell);
     assertEqual(r.valid, false, 'no @include → invalid');
     assertOk(r.errors.some(e => /include/i.test(e)), 'error mentions include');
@@ -108,10 +108,10 @@ describe('conventions-shell validator (P018 T3)', suite => {
 
   suite.test('relative @include with .. resolves across dirs', () => {
     const dir = makeTempProject({
-      '.claude/rules/conventions-bash.md': '---\npaths: ["**/*.sh"]\n---\n@../../docs/conventions-bash.md\n',
+      '.airein/rules/conventions-bash.md': '---\npaths: ["**/*.sh"]\n---\n@../../docs/conventions-bash.md\n',
       'docs/conventions-bash.md': '# Bash',
     });
-    const shell = path.join(dir, '.claude/rules', 'conventions-bash.md');
+    const shell = path.join(dir, '.airein/rules', 'conventions-bash.md');
     const r = validateConventionsShell(shell);
     assertEqual(r.valid, true, '@../../ resolves to project docs/; errors: ' + JSON.stringify(r.errors || []));
     fs.rmSync(dir, { recursive: true, force: true });

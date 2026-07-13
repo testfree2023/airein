@@ -10,6 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { URL } = require('url');
 
 const {
@@ -98,6 +99,23 @@ function createProjectFixture() {
       testGuard: { enabled: true, mode: 'strict' },
       planGate: { mode: 'advisory' }
     }, null, 2) + '\n'
+  );
+
+  return dir;
+}
+
+function createP004ProjectFixture() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dash-p004-'));
+  const planDir = path.join(dir, 'docs', 'plans', 'P002-p004-plan');
+  fs.mkdirSync(planDir, { recursive: true });
+  fs.mkdirSync(path.join(dir, '.airein', 'config'), { recursive: true });
+
+  fs.writeFileSync(path.join(planDir, 'progress.md'),
+    '# Progress: P004 Plan\nupdated: 2026-07-13\nplan: P002-p004-plan\ncomplexity: simple\n'
+  );
+
+  fs.writeFileSync(path.join(dir, '.airein', 'config', 'quality.json'),
+    JSON.stringify({ testGuard: { enabled: true, mode: 'strict' } }, null, 2) + '\n'
   );
 
   return dir;
@@ -676,6 +694,123 @@ describe('Static asset serving', suite => {
     const res = mockRes();
     mod.handler(mockReq('GET', '/missing.css'), res);
     assertEqual(res.status, 404, '404 for absent css');
+  });
+});
+
+// ── P004: .airein discovery, config paths, LAN hosts ─────
+
+describe('Dashboard: P004 project discovery', suite => {
+  suite.test('isDiscoverableProject accepts .airein/config marker', () => {
+    const fixtureDir = createP004ProjectFixture();
+    try {
+      const mod = require(SERVER_PATH);
+      assertOk(mod.isDiscoverableProject(fixtureDir), 'P004 project is discoverable');
+    } finally {
+      cleanup(fixtureDir);
+    }
+  });
+
+  suite.test('discoverProjects finds project via DASHBOARD_SCAN_DIRS', () => {
+    const fixtureDir = createP004ProjectFixture();
+    const scanParent = path.dirname(fixtureDir);
+    const prevScan = process.env.DASHBOARD_SCAN_DIRS;
+    process.env.DASHBOARD_SCAN_DIRS = scanParent;
+    try {
+      const mod = require(SERVER_PATH);
+      mod.invalidateProjectsCache();
+      const projects = mod.discoverProjects();
+      const found = projects.some(p => path.resolve(p.path) === path.resolve(fixtureDir));
+      assertOk(found, 'scan dir discovers .airein-only project');
+    } finally {
+      if (prevScan === undefined) delete process.env.DASHBOARD_SCAN_DIRS;
+      else process.env.DASHBOARD_SCAN_DIRS = prevScan;
+      require(SERVER_PATH).invalidateProjectsCache();
+      cleanup(fixtureDir);
+    }
+  });
+});
+
+describe('Dashboard: P004 quality.json paths', suite => {
+  suite.test('handleGetConfig reads .airein/config/quality.json', () => {
+    const fixtureDir = createP004ProjectFixture();
+    try {
+      const mod = require(SERVER_PATH);
+      const res = mockRes();
+      mod.handleGetConfig(fixtureDir, res);
+      assertEqual(res.status, 200, 'config returns 200');
+      assertEqual(res.json.raw.testGuard.enabled, true, 'reads .airein config');
+    } finally {
+      cleanup(fixtureDir);
+    }
+  });
+
+  suite.test('handleGetConfig prefers .airein over legacy .claude', () => {
+    const fixtureDir = createP004ProjectFixture();
+    try {
+      fs.mkdirSync(path.join(fixtureDir, '.claude', 'config'), { recursive: true });
+      fs.writeFileSync(path.join(fixtureDir, '.claude', 'config', 'quality.json'),
+        JSON.stringify({ testGuard: { enabled: false } }, null, 2) + '\n'
+      );
+      const mod = require(SERVER_PATH);
+      const res = mockRes();
+      mod.handleGetConfig(fixtureDir, res);
+      assertEqual(res.json.raw.testGuard.enabled, true, 'canonical .airein wins over legacy');
+    } finally {
+      cleanup(fixtureDir);
+    }
+  });
+
+  suite.test('handleSaveConfig writes to .airein/config/quality.json', async () => {
+    const fixtureDir = createP004ProjectFixture();
+    try {
+      const mod = require(SERVER_PATH);
+      const res = mockRes();
+      const req = mockReq('PUT', '/api/projects/x/config', { updates: { testGuard: { enabled: false } } });
+      await mod.handleSaveConfig(fixtureDir, req, res);
+      assertEqual(res.status, 200, 'save returns 200');
+      const canonical = path.join(fixtureDir, '.airein', 'config', 'quality.json');
+      assertOk(fs.existsSync(canonical), 'writes canonical path');
+      const saved = JSON.parse(fs.readFileSync(canonical, 'utf-8'));
+      assertEqual(saved.testGuard.enabled, false, 'persisted update');
+      assertOk(!fs.existsSync(path.join(fixtureDir, '.claude', 'config', 'quality.json')),
+        'does not write legacy .claude path');
+    } finally {
+      cleanup(fixtureDir);
+    }
+  });
+});
+
+describe('Dashboard: LAN allowedHosts when bound to 0.0.0.0', suite => {
+  suite.test('resolveAllowedHosts expands beyond loopback when DASHBOARD_BIND=0.0.0.0', () => {
+    const prev = process.env.DASHBOARD_BIND;
+    process.env.DASHBOARD_BIND = '0.0.0.0';
+    try {
+      const mod = require(SERVER_PATH);
+      const hosts = mod.resolveAllowedHosts();
+      assertOk(hosts.length > 3, 'LAN mode adds hostnames/IPs beyond loopback defaults');
+    } finally {
+      if (prev === undefined) delete process.env.DASHBOARD_BIND;
+      else process.env.DASHBOARD_BIND = prev;
+    }
+  });
+
+  suite.test('allows non-loopback Host when DASHBOARD_BIND=0.0.0.0', () => {
+    const prev = process.env.DASHBOARD_BIND;
+    process.env.DASHBOARD_BIND = '0.0.0.0';
+    try {
+      const mod = require(SERVER_PATH);
+      const hosts = mod.resolveAllowedHosts();
+      const lanHost = hosts.find(h => h !== 'localhost' && h !== '127.0.0.1' && h !== '::1');
+      assertOk(lanHost, 'LAN host candidate exists');
+      const handler = mod.handler;
+      const req = mockReq('GET', '/api/projects', null, { host: lanHost + ':3456' });
+      const res = mockRes();
+      handler(req, res);
+      assertOk(res.status === 200, 'LAN host allowed (got ' + res.status + ')');
+    } finally {
+      if (prev === undefined) delete process.env.DASHBOARD_BIND;
+      else process.env.DASHBOARD_BIND = prev;
+    }
   });
 });
 

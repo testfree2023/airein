@@ -80,6 +80,7 @@ const COMPLETED_PROGRESS = `# Progress: Done Feature
 updated: 2026-06-09
 plan: P001-done
 complexity: simple
+status: completed
 
 ## Task Stats
 total: 3
@@ -90,6 +91,24 @@ pending: 0
 ## Approval State
 requirements: none
 design: none
+tasks: approved
+`;
+
+const PENDING_ARCHIVE_PROGRESS = `# Progress: Pre-Archive Feature
+updated: 2026-07-11
+plan: P099-pre-archive
+complexity: m-feature
+status: in_progress
+
+## Task Stats
+total: 3
+completed: 3
+in_progress: 0
+pending: 0
+
+## Approval State
+requirements: approved
+design: approved
 tasks: approved
 
 ## Active Task
@@ -185,12 +204,26 @@ describe('plan-parser: findActivePlan', suite => {
     }
   });
 
-  suite.test('skips completed plans', () => {
+  suite.test('skips completed plans (status completed + all tasks done)', () => {
     const tmp = createTempProject();
     try {
       createPlanDir(path.join(tmp, 'docs', 'plans'), 'P001-done', COMPLETED_PROGRESS);
       const result = parser.findActivePlan(tmp);
       assertEqual(result, null, 'should skip completed plans');
+    } finally {
+      removeTempProject(tmp);
+    }
+  });
+
+  suite.test('keeps plan active when all tasks done but status in_progress (pre-archive)', () => {
+    const tmp = createTempProject();
+    try {
+      createPlanDir(path.join(tmp, 'docs', 'plans'), 'P099-pre-archive', PENDING_ARCHIVE_PROGRESS);
+      const result = parser.findActivePlan(tmp);
+      assertOk(result, 'pre-archive plan should stay active');
+      assertContains(result.dir, 'P099-pre-archive', 'found pre-archive plan');
+      assertEqual(parser.isPlanCompleted(result.progress), true, 'tasks are all done');
+      assertEqual(parser.getStatus(result.progress), 'in_progress', 'status still in_progress');
     } finally {
       removeTempProject(tmp);
     }

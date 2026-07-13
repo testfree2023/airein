@@ -83,7 +83,7 @@ function main() {
   const config = loadQualityConfig();
   const gateConfig = config.planGate || {};
   const mode = gateConfig.mode || 'advisory';
-  const exemptPaths = gateConfig.exemptPaths || ['docs/', '.claude/', 'scripts/hooks/', 'test/'];
+  const exemptPaths = gateConfig.exemptPaths || ['docs/', '.airein/', '.claude/', 'scripts/hooks/', 'test/'];
 
   // Disabled mode: allow everything
   if (mode === 'disabled') {

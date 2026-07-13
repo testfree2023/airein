@@ -46,8 +46,8 @@ AI 编程的另一个老大难：**上下文一旦超限压缩，关键信息就
 
 Airein 用一组机制让新 session 能快速恢复"上次干到哪、为什么这么决策、改过哪些文件"：
 
-- **`/init-project`**：进入一个新项目时执行一次。自动判断是空项目还是已有项目——空项目只创建精简骨架（roadmap + session-state + memory），已有项目则扫描代码库、现有文档、隐藏配置，生成 `docs/roadmap.md`（含 Issues 与 Recent Changes），检测主语言写入配置。
-- **会话状态恢复**：每个 session 结束时，`session-end` 把"当前计划、活跃任务、上次编辑的文件、待办"写进 `.claude/session-state.md`；下次 `session-start` 自动注入（约几百 token），AI 接着上次干，而不是从零问起。
+- **`/init-project`**：进入一个新项目时执行一次。自动判断是空项目还是已有项目——空项目只创建精简骨架（roadmap + session-state + memory），已有项目则扫描代码库、现有文档、隐藏配置，生成 `docs/roadmap.md`（含 Issues 与 Recent Changes），检测主语言写入配置；同时将项目路径注册到 Dashboard（`~/.airein/dashboard/projects.json`）。
+- **会话状态恢复**：每个 session 结束时，`session-end` 把"当前计划、活跃任务、上次编辑的文件、待办"写进 `<项目>/.airein/memory/session-state.md`；下次 `session-start` 自动注入（约几百 token），AI 接着上次干，而不是从零问起。（legacy 项目仍可读 `.claude/memory/`）
 - **压缩前抢救**：`pre-compact` 在上下文压缩前提取 Active Task / Decisions / Files / Pending，避免压缩把关键决策抹掉。
 - **自动归档**：完成的计划归档进 `docs/plans/`，不挤占活跃视野；`/next` 会基于 roadmap 主动告诉你"当前最该做的是 XXX"。
 - **自学习晋升**：你纠正过的偏好（"不要 X""以后都 Y"）， Airein 会累计识别，同一指令累计达到阈值就晋升为永久 L0 规则，下次 session 自动生效——不用你每次重复纠正。
@@ -57,36 +57,59 @@ Airein 用一组机制让新 session 能快速恢复"上次干到哪、为什么
 文档和质量管理不能只靠命令行记忆。Airein 自带一个**极轻量**的浏览器面板，让你看得见、管得了：
 
 ```bash
-node dashboard/server.js   # 开箱即用，浏览器自动打开 http://localhost:3456
+bash ~/.airein/dashboard/start.sh          # 安装后推荐（部署在 ~/.airein/dashboard/）
+# 或从源码目录：node dashboard/server.js
 ```
+
+浏览器自动打开 `http://localhost:3456`。LAN 访问：`bash ~/.airein/dashboard/start.sh --lan`。
 
 它有多轻：**零 npm 依赖**（纯 Node 内建 `http`）、**单文件 SPA**（一个 `index.html` 内嵌 CSS+JS，无构建步骤）、hash 路由。不需要装任何东西，`node` 一跑就起来。
 
 它能做什么：
 
-- **项目自动发现**：扫描 `~/.claude/projects/`，任何有 `docs/plans/` 或 quality 配置的项目自动出现，无需注册。
+- **项目发现**：`/init-project` 自动写入 `~/.airein/dashboard/projects.json`；面板 **工具** 页（`#/tools`）可注册/移除/清理失效路径；另兼容 CC 注册表 `~/.claude/projects/` 作为 fallback。
 - **计划管理**：可视化查看计划进度、编辑 requirements/design/tasks、按流水线审批、归档完成的计划。
 - **模板管理**：浏览和在线编辑 airein 的文档模板、language profiles、pipelines。
 - **配置可视化**：把项目的 `quality.json` 渲染成结构化表单（开关、阈值、下拉），每个字段标注默认值，只持久化你改过的字段——不用手写 JSON。
+- **工具页**：项目注册表维护（register / unregister / prune stale），无需记 CLI。
 - **i18n**：中英文切换。
 
-Dashboard 不是独立的系统，而是 airein 已有能力的可视化层——它读的是同一份 roadmap、同一份 quality.json、同一套 plan 目录。你在面板里改的配置，就是 hook 实际读的配置。
+Dashboard 不是独立的系统，而是 airein 已有能力的可视化层——它读的是同一份 roadmap、同一份 `.airein/config/quality.json`、同一套 plan 目录。你在面板里改的配置，就是 hook 实际读的配置。详见 [dashboard/README.md](dashboard/README.md)。
 
 ---
 
 ## 5 分钟上手
 
-### 新机器：一键安装
+### 三层目录模型（P004）
 
-前提：已装 Claude Code、git、Node.js，已配 SSH key。
+| 层 | 路径 | 作用 |
+|----|------|------|
+| **内核** | `~/.airein/` | skills / rules / hooks / scripts 真相源；`install-profile.json` 记录已装宿主 |
+| **宿主注册层** | `~/.claude/`（CC）/ `~/.cursor/`（Cursor）… | 各宿主原生配置入口；CC 经 symlink + merge-hooks 指回内核 |
+| **项目数据** | `<项目>/.airein/` | `config/quality.json`、`memory/`、`logs/`、自学习 buffer 等 |
+
+CC 项目额外有 **L1 shim**：`<项目>/.claude/rules` → symlink 到 `<项目>/.airein/rules`（CC 原生读 `.claude/rules`，canonical 在 `.airein`）。详见 [deployment.md](docs/deployment.md)。
+
+### 新机器：统一安装（推荐）
+
+前提：git、Node.js ≥ 18、bash ≥ 4（Windows 用 Git Bash）。
 
 ```bash
-# clone → 合并到 ~/.claude → 配置 → 验证 → 清理临时文件（一条命令）
 git clone git@github.com:testfree2023/airein.git /tmp/airein && \
-bash /tmp/airein/setup-airein.sh; rm -rf /tmp/airein
+bash /tmp/airein/airein setup --yes; rm -rf /tmp/airein
 ```
 
-脚本不会覆盖你已有的 `~/.claude` 配置（settings.json、CLAUDE.md 等用户领土完全不动）。
+`airein setup` 会探测本机宿主，首版完整支持 **Claude Code + Cursor**；Codex / CodeBuddy / OpenCode 仅提示「已探测、后续启用」。
+
+**分叉 Quickstart**（非交互可加 `--hosts`）：
+
+| 场景 | 命令 |
+|------|------|
+| 仅 Claude Code | `airein setup --hosts claude-code --yes` |
+| 仅 Cursor | `airein setup --hosts cursor --yes` |
+| CC + Cursor 同机 | `airein setup --hosts claude-code,cursor --yes` |
+
+验证：`bash ~/.airein/scripts/update/verify-airein.sh --full`（推荐；分层排查见 [deployment.md](docs/deployment.md)）。
 
 ### 进项目：直接用
 
@@ -96,7 +119,13 @@ claude
 ```
 
 - **新项目**：模型自动检测到没有 `docs/roadmap.md`，引导你执行 `/init-project`，只创建精简骨架。
-- **进行中项目**：首次迁移时执行一次 `/init-project`，扫描代码库生成 roadmap 和项目文档；之后每次 session 自动恢复上次位置，AI 会主动告诉你下一步该做什么。
+- **进行中项目**：首次迁移时在每个项目根执行一次：
+  ```bash
+  cd /path/to/your-project
+  node ~/.airein/scripts/migrate-project-to-airein.js
+  # 预览：加 --dry-run
+  ```
+  将 legacy `.claude/config|memory|…` 迁到 canonical `.airein/`，并为 CC 建 `.claude/rules` shim。之后可用 `/init-project` 补全 roadmap 等文档。
 - **建议第一件事**：告诉模型项目的构建/测试命令（写进项目级 `CLAUDE.md` 即可）。
 
 ### 日常：你会用到的几个命令
@@ -109,7 +138,7 @@ claude
 | `/tdd` | 进入 RED → GREEN → REFACTOR 的 TDD 流程 |
 | `/code-review` `/quality-gate` `/refactor-clean` `/plan` `/verify` | 流程类快捷入口 |
 
-> 这个仓库是 **Airein 的源码**，不是安装目标。clone 下来是用于阅读/开发 airein 本身；真正使用是在你的项目目录里 `claude` 启动后，由已部署到 `~/.claude` 的 airein 接管。
+> 这个仓库是 **Airein 的源码**，不是安装目标。clone 下来用于阅读/开发 airein 本身；日常使用是在你的项目目录里由已部署的内核 `~/.airein` + 宿主注册层接管。
 
 ---
 
@@ -194,56 +223,67 @@ CLAUDE.md 全量常驻、token 金贵；硬约束靠 prompt 不靠谱、靠 hook
 
 ---
 
-## 升级 / 离线迁移 / 团队共享
+## 升级 / 离线迁移 / 回滚
 
-**升级**：Airein 发新版后，任一已安装机器一条命令更新：
-
-```bash
-bash ~/.claude/update-airein.sh
-```
-
-更新策略（保护你的配置）：
-- **内置组件随更新刷新**：hooks、scripts、rules、skills、templates
-- **合并而非覆盖**：`templates/pipelines.json` —— 保留你自定义的 pipeline，只刷新内置流水线
-- **绝不覆盖**：`settings.json`、`quality.json`、`session-state.md`、`~/.claude/CLAUDE.md`（用户领土完全不动）
-
-已入职的项目无需重新 `/init-project`，更新后直接继续工作。
-
-**离线安装/升级（网络不畅或无 git 的机器）**：
-
-从 GitHub 网页下载 source archive（tar.gz / zip），拷到目标机器后：
+**升级**（任一已装机器一条命令）：
 
 ```bash
-bash setup-airein.sh --source <dir|tar.gz|zip> [--sha256 <hex>]   # 首次安装
-bash update-airein.sh --source <dir|tar.gz|zip>                    # 升级
+airein update
+# 或从仓库根：bash airein update
 ```
 
-**团队共享**：把 `~/.claude` 仓库设为团队共享 git 仓库，每人 clone 后各自配 `settings.json`（密钥不同）。项目级的 `docs/` 和 `quality.json` 随项目仓库走。
+更新策略：
+- **内核组件随更新刷新**：`~/.airein` 下 hooks、scripts、rules、skills、templates
+- **按 profile 刷新宿主**：`install-profile.json` 记录的 CC / Cursor 注册层
+- **合并而非覆盖**：`templates/pipelines.json` 保留自定义 pipeline
+- **绝不覆盖**：用户 `settings.json`、项目 `quality.json` / `session-state.md`、各宿主 CLAUDE.md 领土
+
+已入职项目无需重新 `/init-project`。
+
+**离线安装/升级**（P002 `--source`）：
+
+```bash
+airein setup --source <dir|tar.gz|zip> [--sha256 <hex>] [--hosts cc,cursor] --yes
+airein update --source <dir|tar.gz|zip>
+```
+
+**回滚**（P004 合并前远程 main 已打稳定 tag，见 deployment）：
+
+```bash
+git checkout pre-p004-2026-07-11   # 或文档记载的 pre-P004 tag
+airein update --source <该 tag 的 archive>
+```
+
+**卸载**：`airein uninstall`（`--keep-kernel` 保留 `~/.airein` 目录）。
 
 ---
 
-## 多宿主支持（v0.2 预览）
+## 多宿主支持（首版 CC + Cursor）
 
-v0.1 的 airein 只跑在 Claude Code 上。v0.2 正在把它扩展到 **4 个 AI 编码宿主**——同一个 airein 内核（skills / rules / hooks），通过一次命令分发到各宿主的原生配置目录：
+同一 airein **内核**（`~/.airein`）通过 `airein setup` 或 `install-host.js` 分发到各宿主原生目录：
 
-| 宿主 | 产物落点 | 阻断机制 |
-|------|---------|---------|
-| **Cursor** | `.cursor/`（skills + rules/*.mdc + hooks.json）| stdout `{permission:"deny"}` |
-| **Codex** | `.agents/skills/` + `AGENTS.md` + `.codex/config.toml` | stdout `{permissionDecision:"deny"}` |
-| **CodeBuddy** | `.codebuddy/` + `CODEBUDDY.md` + `.codebuddy/settings.json` | `exit 2` 原生透传 |
-| **OpenCode** | `AGENTS.md` + `opencode.json` + `.opencode/plugin/airein-bridge.ts` | `throw Error(stderr)` |
+| 宿主 | setup 支持 | 产物落点 | 阻断机制 |
+|------|-----------|---------|---------|
+| **Claude Code** | ✅ 完整 | `~/.claude/` 注册层 → 内核 | `exit 2` 原生 |
+| **Cursor** | ✅ 完整 | `<项目>/.cursor/` | stdout `{permission:"deny"}` |
+| **Codex** | 探测提示 | `.agents/skills/` + `AGENTS.md` | stdout `{permissionDecision:"deny"}` |
+| **CodeBuddy** | 探测提示 | `.codebuddy/` + `CODEBUDDY.md` | `exit 2` 原生 |
+| **OpenCode** | 探测提示 | `AGENTS.md` + `opencode.json` | `throw Error(stderr)` |
 
 ```bash
-# 在你的项目目录里，任选宿主安装
-node scripts/install-host.js install --host cursor    # 或 codex / codebuddy / opencode
+# 统一入口（推荐）
+airein setup --hosts claude-code,cursor --yes
+
+# 或在项目目录单独装某宿主（install-host 直调）
+node ~/.airein/scripts/install-host.js install --host cursor
 ```
 
 **两个关键保证**：
 
-- **CC 物理隔离**：4 宿主的 install / uninstall / verify 全程不读写 `~/.claude/`（CC 领地）。已装 airein 的 CC 环境叠加多宿主，CC 配置原样不动。
-- **单一真相源**：各宿主的 skills 与 CC 副本逐字节等价，rules 由 `rules/` + `docs/` 生成，hook 注册由 `hooks/hooks.json` 翻译——不是各宿主各写一份。
+- **CC 物理隔离**：非 CC 宿主的 install / uninstall / verify **不读写** `~/.claude/`（CC 领地）。双宿主同机时 CC 配置原样保留（`test-cc-no-impact` 锁定）。
+- **单一真相源**：各宿主 skills 与内核副本逐字节等价；rules 由 `rules/` + `docs/` + `.airein/rules/` 薄壳生成。
 
-> 这是 v0.2 预览特性（P001-cross-platform），随实现同步。各宿主前置条件、产物矩阵、阻断映射、故障排查详见 **[多宿主安装指南](docs/install-hosts.md)**；架构契约见 [deployment.md](docs/plans/P001-cross-platform/deployment.md)。
+详见 **[多宿主安装指南](docs/install-hosts.md)** 与 [deployment.md](docs/deployment.md)。
 
 ---
 
@@ -316,7 +356,7 @@ node scripts/install-host.js install --host cursor    # 或 codex / codebuddy / 
 ### 自学习系统（三层流转，不碰 memory）
 
 ```
-用户持久允许/禁止指令 → buffer(.claude/self-learning/pending.md)
+用户持久允许/禁止指令 → buffer(.airein/self-learning/pending.md)
   → Stop hook 归档 → archive(~/.claude/projects/{key}/self-learning-archive.md)
   → 同一指令累计 ≥ promotionThreshold（默认 3）→ 晋升 rules/30-self-learned.md（L0 自动加载）
 ```
@@ -327,34 +367,32 @@ node scripts/install-host.js install --host cursor    # 或 codex / codebuddy / 
 
 ## 附录 B：文件地图
 
-### `~/.claude/` 下的关键文件
+### `~/.airein/` 内核关键文件
 
 | 文件 | 走 git | 说明 |
 |------|--------|------|
-| `CLAUDE.md` | ❌ 用户领土 | 你的全局规则，Airein 不拥有/不覆盖 |
 | `hooks/hooks.json` | ✅ | Hook 注册表（真相源）|
-| `rules/00-iron-rules.md` | ✅ | 铁律（不可豁免 + 提交不变量 + 输入校验）|
-| `rules/10-architecture.md` | ✅ | 架构事实/不变量 |
-| `rules/20-workflow.md` | ✅ | 操作手册（工作流 + 生命周期 + 流程豁免）|
-| `rules/30-self-learned.md` | ❌ | 自学习晋升产物（个人化，.gitignore 排除）|
+| `rules/00-iron-rules.md` | ✅ | 铁律 |
 | `scripts/hooks/*.js` | ✅ | Hook 脚本 |
-| `scripts/lib/*.js` | ✅ | 共享库（quality-config / plan-parser / utils 等）|
 | `skills/*/SKILL.md` | ✅ | Airein skill |
-| `templates/` | ✅ | 文档模板 + language-profiles + pipelines.json + quality.json |
-| `settings.json` | ❌ | 代理地址和密钥，每台机器不同 |
+| `install-profile.json` | ❌ | 已装宿主记录（本机）|
 
-### 项目级文件
+CC 注册层 `~/.claude/` 通过 symlink 指回上述文件；用户 `CLAUDE.md` / `settings.json` 仍为用户领土。
+
+### 项目级文件（canonical：`.airein/`）
 
 | 文件 | 走项目 git | 说明 |
 |------|-----------|------|
-| `.claude/session-state.md` | 建议 ✅ | 会话状态，session-start 自动加载 |
-| `.claude/config/quality.json` | 建议 ✅ | 项目级质量门禁配置（推荐路径）|
-| `.claude/contract-cache/` | ❌ | 导出接口缓存（自动生成）|
-| `.claude/self-learning/pending.md` | ❌ | 当轮捕获的自学习指令（项目级 buffer）|
-| `docs/roadmap.md` | ✅ | 项目总览（含 Issues 与 Recent Changes）|
-| `docs/plans/P{NNN}-*/` | ✅ | 计划文件目录（requirements/design/tasks 等）|
-| `docs/adr/` | ✅ | 架构决策记录（按需创建）|
-| `docs/conventions-{scope}.md` | ✅ | 按技术栈分的工程规范（编辑匹配文件时注入）|
+| `.airein/memory/session-state.md` | 建议 ✅ | 会话状态，session-start 注入 |
+| `.airein/config/quality.json` | 建议 ✅ | 项目级质量门禁（读写优先此路径）|
+| `.airein/self-learning/pending.md` | ❌ | 当轮自学习 buffer |
+| `.airein/logs/` | ❌ | hook 诊断日志 |
+| `.claude/rules/`（CC 项目）| 建议 ✅ | **shim** → `.airein/rules/`（L1 薄壳 canonical）|
+| `docs/roadmap.md` | ✅ | 项目总览 |
+| `docs/plans/P{NNN}-*/` | ✅ | 计划目录 |
+| `docs/conventions-{scope}.md` | ✅ | 工程规范叶文档 |
+
+> legacy 项目仍可使用 `<项目>/.claude/config|memory|…`；hooks 读时自动 fallback，新写入走 `.airein/`。
 
 ---
 
@@ -364,7 +402,7 @@ node scripts/install-host.js install --host cursor    # 或 codex / codebuddy / 
 A: 那些大多是"prompt 级"约束——写在规则文件里，靠模型自觉，上下文一长或指令冲突就会被绕过。Airein 的差异点是**把不可妥协的约束做成 hook（`exit 2` 代码强制）**，加上跨 session 的项目记忆和 spec-driven 的计划流程。你可以把它和现有规则并存：硬约束交给 Airein 的 hook，软偏好留在你的 CLAUDE.md。
 
 **Q: 质量门禁太严格，能降级吗？**
-A: 能，在 `.claude/config/quality.json` 灵活配：禁用 TDD（`testGuard.enabled: false`）、TDD 仅提醒（`mode: "advisory"`）、降级拦截（`blocking.testFailure: false`）、关计划门禁（`planGate.mode: "disabled"`）。也能在 Dashboard 面板里直接拖开关。
+A: 能，在 `.airein/config/quality.json`（或 legacy `.claude/config/quality.json`）灵活配：禁用 TDD（`testGuard.enabled: false`）、TDD 仅提醒（`mode: "advisory"`）、降级拦截（`blocking.testFailure: false`）、关计划门禁（`planGate.mode: "disabled"`）。也能在 Dashboard 面板里直接拖开关。
 
 **Q: 换电脑后自学习记忆会丢吗？**
 A: 自学习 archive 在 `~/.claude/projects/{key}/self-learning-archive.md`，按项目隔离、不走 git。迁移时手动复制该目录。
@@ -376,10 +414,10 @@ A: 不会。hook 检测项目类型（package.json / pom.xml / Cargo.toml 等）
 A: 可以。不需要的 skill 删掉目录、不需要的 hook 从 `hooks.json` 摘掉即可。但 `init-project` 建议保留——它是项目状态管理的基础。
 
 **Q: `hooks.json` 里的 `${CLAUDE_PLUGIN_ROOT}` 是什么？**
-A: 指向 airein 安装根（通常是 `~/.claude`）的环境变量。Claude Code 在插件上下文自动设置；若你的环境未设置该变量，可把命令里的路径替换为 `~/.claude` 的绝对路径。
+A: 指向 airein **内核根**（`~/.airein`）。CC 注册层 merge-hooks 会把 hook 命令里的占位符替换为内核绝对路径。
 
 **Q: 自学习怎么验证生效了？**
-A: 看 `.claude/self-learning/pending.md` 有没有当轮捕获；Stop 后看 archive 有没有追加日志；同一指令累计达阈值后，检查 `rules/30-self-learned.md` 是否生成——晋升为 L0 后下次 session 自动加载。
+A: 看 `.airein/self-learning/pending.md`（或 legacy 路径）有没有当轮捕获；Stop 后看 archive 有没有追加日志；同一指令累计达阈值后，检查 `rules/30-self-learned.md` 是否生成——晋升为 L0 后下次 session 自动加载。
 
 ---
 

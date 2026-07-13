@@ -1,7 +1,7 @@
 /**
  * rule-generate — K2 rules 适配层生成器（P001-cross-platform · design §5 · test-plan §3.2）
  *
- * 纯函数：读真相源（rules/L0 + docs/L1 + .claude/rules/ 薄壳）→ 按宿主条件规则能力生成
+ * 纯函数：读真相源（rules/L0 + docs/L1 + .airein/rules/ 薄壳，legacy .claude/rules fallback）→ 按宿主条件规则能力生成
  * 规则入口文件（描述，不落盘）。三档策略（design §5.1–5.3）：
  *
  *   CB  完整条件规则：薄壳 paths+@include 原生支持 → CODEBUDDY.md + L0 原样 + 薄壳原样
@@ -16,6 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { thinShellRulesDir } = require('./project-paths');
 
 const MAX_INCLUDE_DEPTH = 5;
 const AGENTS_MAX_BYTES = 32 * 1024;
@@ -63,7 +64,7 @@ function readL0Files(root) {
 }
 
 /**
- * Parse a thin-shell conventions rule (.claude/rules/conventions-*.md).
+ * Parse a thin-shell conventions rule (.airein/rules/conventions-*.md).
  * Format: `paths: [...]\n---\n<body>` (body typically a single @include line).
  * @returns {{ globs: string[], body: string }}
  */
@@ -75,9 +76,9 @@ function parseThinShell(content) {
   return { globs, body: m[2] };
 }
 
-/** Read L1 thin-shell rules (.claude/rules/conventions-*.md), sorted. */
+/** Read L1 thin-shell rules (.airein/rules/conventions-*.md), sorted. Legacy .claude/rules fallback. */
 function readThinShells(root) {
-  const dir = path.join(root, '.claude', 'rules');
+  const dir = thinShellRulesDir(root);
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir)
     .filter((f) => f.startsWith('conventions-') && f.endsWith('.md'))
@@ -136,7 +137,7 @@ function generateCB(root) {
 /** CUR 档：.mdc + @include 内联展开。 */
 function generateCUR(root) {
   const files = [];
-  const shellDir = path.join(root, '.claude', 'rules');
+  const shellDir = thinShellRulesDir(root);
   for (const l0 of readL0Files(root)) {
     const base = l0.name.replace(/\.md$/, '');
     const frontmatter = { description: l0Description(l0.content), globs: [], alwaysApply: true };
@@ -204,7 +205,7 @@ function generateOC(root) {
 
 /**
  * Generate host rule-entry files from the truth source.
- * @param {string} root - Project root (truth source: rules/ + docs/ + .claude/rules/).
+ * @param {string} root - Project root (truth source: rules/ + docs/ + .airein/rules/).
  * @param {string} host - One of KNOWN_HOSTS.
  * @returns {{ files: Array<{path:string,content:string,frontmatter:(object|null)}>, errors: string[] }}
  * @throws {Error} if host is unknown, @include cycles/exceeds depth, or CDX AGENTS.md > 32KiB.

@@ -75,9 +75,18 @@ CORE_FILES=(
   "scripts/lib/conventions-shell.js"
   "scripts/lib/self-learning.js"
   "scripts/lib/runtime-metrics.js"      # dashboard/server.js requires it (omission crashed dashboard on deploy)
+  "scripts/lib/dashboard-projects.js"   # init-project → dashboard project registry
   "scripts/lib/resolve-formatter.js"    # hooks/post-edit-format.js + quality-gate.js require it
   "scripts/lib/commit-gate.js"          # hooks/pre-commit-gate.js requires it (classify staged files)
   "scripts/lib/install-helpers.sh"      # setup/chores/merge-hooks source it (node resolution + remote check)
+  # ── P004 unified install orchestrator ──
+  "airein"
+  "scripts/lib/install-orchestrator.js"
+  "scripts/lib/install-profile.js"
+  "scripts/lib/host-detect.js"
+  "scripts/lib/cc-register.js"
+  "scripts/lib/project-paths.js"
+  "scripts/lib/project-shim.js"
   # ── templates: reference config (always overwrite) ──
   "templates/quality.json"
   "templates/language-profiles/_default.json"
@@ -97,14 +106,14 @@ CORE_FILES=(
   "scripts/merge-hooks.js"
   "scripts/airein-chores.sh"
   "scripts/migrate-paths.sh"
+  "scripts/migrate-project-to-airein.js"
+  "scripts/lib/project-migrate.js"
   "scripts/diagnose-hooks.sh"
   "scripts/cleanup-airein.sh"
   "scripts/migrate-plans.js"
   "scripts/manage-profile.js"
   "scripts/manage-plugins.js"
   # ── top-level ──
-  "setup-airein.sh"
-  "update-airein.sh"
   "VERSION"                          # P002: 版本守卫读（安装目标 VERSION 供下次升级比较）
   "README.md"
   # ── P001 multi-host adaptation layer (v0.2) ──
@@ -117,6 +126,7 @@ CORE_FILES=(
   "scripts/lib/rule-generate.js"       # K2 rule thin-shell generator (.mdc/AGENTS.md/...)
   "scripts/lib/stdin-normalize.js"     # K3 stdin → CC schema normalization
   "scripts/lib/host-adapter.js"        # K3 mapHookResult pure fn (block semantic mapping)
+  "scripts/lib/hook-timing.js"         # hook duration observability (run-with-flags)
   "scripts/hooks/host/host-runner.js"  # host entry IO runner (readStdin→norm→spawn→map)
   "scripts/hooks/host/cursor.js"       # CUR entry (camelCase events + permission:deny)
   "scripts/hooks/host/codex.js"        # CDX entry (stdin cwd resolve + permissionDecision)
@@ -125,7 +135,7 @@ CORE_FILES=(
 )
 
 # 文档模板：airein 结构模板源（new-plan/archive-plan 读取生成 plan 文档），随 airein 升级强制覆盖
-# （~/.claude/templates/ 是 airein 安装的模板，非用户自定义；用户改的是项目 docs/*.md）
+# （P004 后 templates 只在内核 ~/.airein/templates/，不在 ~/.claude/templates/）
 TEMPLATE_FILES=(
   # -- docs (structural templates) --
   "templates/docs/requirements.md"
@@ -278,11 +288,6 @@ for file in "${CORE_FILES[@]}"; do
   src="$SOURCE_DIR/$file"
   dst="$TARGET_DIR/$file"
 
-  if [ "$file" = "update-airein.sh" ]; then
-    # 不覆盖正在运行的脚本，最后处理
-    continue
-  fi
-
   if [ -f "$src" ]; then
     mkdir -p "$(dirname "$dst")"
     cp "$src" "$dst"
@@ -390,6 +395,6 @@ if [ -f "$TARGET_DIR/scripts/update/verify-airein.sh" ]; then
   fi
 fi
 
-# ── 输出统计（供 update-airein.sh 解析）──────────────────────
+# ── 输出统计（供 airein update / 人工解析）────────────────────
 echo ""
 echo "STATS:updated=$UPDATED missing=$MISSING created=$CREATED skills=$SKILL_UPDATED hooks=$HOOK_COUNT verify_ok=$VERIFY_OK verify_fail=$VERIFY_FAIL"

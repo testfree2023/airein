@@ -26,7 +26,7 @@ function isAllowedDocPath(filePath) {
 
   if (!/\.(md|txt)$/i.test(filePath)) return true;
 
-  if (/^(README|CLAUDE|AGENTS|CONTRIBUTING|CHANGELOG|RELEASES|LICENSE|SKILL|MEMORY|WORKLOG|CONTEXT)\.md$/i.test(basename)) {
+  if (/^(README|CLAUDE|AGENTS|CONTRIBUTING|CHANGELOG|RELEASES|LICENSE|SKILL|MEMORY|WORKLOG|CONTEXT|SECURITY|CODE_OF_CONDUCT|SUPPORT)\.md$/i.test(basename)) {
     return true;
   }
 

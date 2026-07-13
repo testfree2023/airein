@@ -60,9 +60,12 @@ function findActivePlan(projectDir) {
       if (content !== rawContent) {
         try { fs.writeFileSync(progressPath, content, 'utf8'); } catch {}
       }
-      if (!isPlanCompleted(content)) {
-        return { dir: entry.name, progress: content };
-      }
+      const status = getStatus(content);
+      if (status === 'archived') continue;
+      // Task stats alone do not retire a plan: status=in_progress stays active
+      // until explicit archive (dogfood plan-gate blind spot, 2026-07-11).
+      if (isPlanCompleted(content) && status !== 'in_progress') continue;
+      return { dir: entry.name, progress: content };
     }
   } catch {}
   return null;

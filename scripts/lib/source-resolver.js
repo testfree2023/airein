@@ -19,8 +19,8 @@ const os = require('os');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
 
-// 关键文件：标识一个目录是 airein 源（scripts/lib/ 目录 + hooks/hooks.json）
-const KEY_FILES = ['scripts/lib', 'hooks/hooks.json'];
+// 关键文件：标识一个目录是 airein 源（scripts/lib + hooks + L0 rules）
+const KEY_FILES = ['scripts/lib', 'hooks/hooks.json', 'rules/00-iron-rules.md'];
 
 /**
  * 无本地源错误。入口脚本接住后走 git clone HTTPS 回退。

@@ -31,6 +31,7 @@ const {
 } = require('../lib/utils');
 const { listAliases } = require('../lib/session-aliases');
 const { aireinLog } = require('../lib/airein-logger');
+const { qualityConfigPath, projectDataSubpath, projectDataSubpathForRead } = require('../lib/project-paths');
 
 function resolveHookCommands(hooks) {
   return JSON.stringify(hooks)
@@ -102,7 +103,7 @@ async function main() {
 
   // Diagnostic: verify critical config files are parseable JSON
   const criticalFiles = [
-    { label: 'quality.json', path: path.join(getProjectDir(), '.claude', 'config', 'quality.json') },
+    { label: 'quality.json', path: qualityConfigPath(getProjectDir(), { forRead: true }) },
     { label: 'hooks.json', path: path.join(getClaudeDir(), 'hooks', 'hooks.json') },
   ];
   for (const cf of criticalFiles) {
@@ -115,9 +116,9 @@ async function main() {
   }
 
   // Ensure project directories exist (permanent initialization)
-  const memoryDir = path.join(getProjectDir(), '.claude', 'memory');
-  const configDir = path.join(getProjectDir(), '.claude', 'config');
-  const logsDir = path.join(getProjectDir(), '.claude', 'logs');
+  const memoryDir = projectDataSubpath(getProjectDir(), 'memory');
+  const configDir = projectDataSubpath(getProjectDir(), 'config');
+  const logsDir = projectDataSubpath(getProjectDir(), 'logs');
   ensureDir(memoryDir);
   ensureDir(configDir);
   ensureDir(logsDir);
@@ -170,8 +171,8 @@ async function main() {
   }
 
   // 2. Last task from session-state (1 line)
-  const newStateFile = path.join(getProjectDir(), '.claude', 'memory', 'session-state.md');
-  const oldStateFile = path.join(getProjectDir(), '.claude', 'session-state.md');
+  const newStateFile = projectDataSubpathForRead(getProjectDir(), 'memory', 'session-state.md');
+  const oldStateFile = projectDataSubpathForRead(getProjectDir(), 'session-state.md');
   const stateFile = fs.existsSync(newStateFile) ? newStateFile : (fs.existsSync(oldStateFile) ? oldStateFile : null);
   if (stateFile) {
     const stateContent = readFile(stateFile);
@@ -239,7 +240,7 @@ async function main() {
  * Before deleting, extract learnings into memory.md and session-state.md.
  */
 function consolidateOldChatLogs() {
-  const memoryDir = path.join(getProjectDir(), '.claude', 'memory');
+  const memoryDir = projectDataSubpathForRead(getProjectDir(), 'memory');
   if (!fs.existsSync(memoryDir)) return;
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;

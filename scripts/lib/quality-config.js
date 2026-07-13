@@ -2,8 +2,8 @@
 /**
  * Shared config loader for quality hooks.
  *
- * Reads project-level config from: <project>/.claude/config/quality.json
- * (falls back to legacy path <project>/.claude/quality.json)
+ * Reads project-level config from: <project>/.airein/config/quality.json
+ * (falls back to legacy <project>/.claude/config/quality.json)
  *
  * Config file format (all fields optional, defaults shown):
  * {
@@ -16,7 +16,7 @@
  *   },
  *   "planGate": {
  *     "mode": "advisory",           // "strict" | "advisory" | "disabled"
- *     "exemptPaths": ["docs/", ".claude/", "scripts/hooks/", "test/"],
+ *     "exemptPaths": ["docs/", ".airein/", ".claude/", "scripts/hooks/", "test/"],
  *     "requireActiveTask": true
  *   },
  *   "testCoverage": {
@@ -41,7 +41,8 @@
  *   "aireinLog": {
  *     "enabled": true,              // enable airein logging
  *     "level": "info",              // debug | info | warn | error
- *     "retentionDays": 7            // log retention period
+ *     "retentionDays": 7,           // log retention period
+ *     "slowHookMs": 2000            // warn when hook execution exceeds this (ms)
  *   }
  * }
  *
@@ -70,7 +71,8 @@ const DEFAULTS = {
   aireinLog: {
     enabled: true,
     level: 'info',
-    retentionDays: 7
+    retentionDays: 7,
+    slowHookMs: 2000
   },
   flowControl: {
     perTaskReview: false,       // dispatch code-reviewer subagent after each task
@@ -90,7 +92,7 @@ const DEFAULTS = {
     mode: 'advisory',           // 'strict' (hard block) | 'advisory' (soft block — same exit 2, softer message) | 'disabled'
                                   // NOTE: Both strict and advisory use exit 2 because exit 0 warnings
                                   // are invisible to the model (additionalContext broken for plugin hooks).
-    exemptPaths: ['docs/', '.claude/', 'scripts/hooks/', 'test/'],
+    exemptPaths: ['docs/', '.airein/', '.claude/', 'scripts/hooks/', 'test/'],
     requireActiveTask: true
   },
   planWorkflow: {
@@ -123,14 +125,13 @@ function deepMerge(target, source) {
 }
 
 /**
- * Load quality config from project's .claude/config/quality.json
- * Falls back to legacy path .claude/quality.json, then defaults.
+ * Load quality config from project's .airein/config/quality.json
+ * Falls back to legacy .claude/config/quality.json, then defaults.
  */
 function loadQualityConfig() {
   const cwd = getProjectDir();
-  const newPath = path.join(cwd, '.claude', 'config', 'quality.json');
-  const oldPath = path.join(cwd, '.claude', 'quality.json');
-  const configPath = fs.existsSync(newPath) ? newPath : (fs.existsSync(oldPath) ? oldPath : null);
+  const { qualityConfigPath } = require('./project-paths');
+  const configPath = qualityConfigPath(cwd, { forRead: true });
 
   if (!configPath) {
     return DEFAULTS;

@@ -104,6 +104,19 @@ describe('skillPlace: name 校验', (suite) => {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
   });
+
+  suite.test('learned/imported 运行时目录无 SKILL.md → 静默跳过', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-place-'));
+    fs.mkdirSync(path.join(tmp, 'learned'));
+    fs.mkdirSync(path.join(tmp, 'imported'));
+    try {
+      const { actions, errors } = skillPlace(tmp, 'cursor', TARGET);
+      assertEqual(errors.length, 0, 'runtime dirs 不产生 errors');
+      assertOk(actions.every((a) => a.name !== 'learned' && a.name !== 'imported'), '不进 actions');
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('skillPlace: 幂等（纯函数）', (suite) => {

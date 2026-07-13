@@ -8,7 +8,11 @@ const path = require('path');
 const os = require('os');
 const { execSync, spawnSync } = require('child_process');
 
-// Platform detection
+const { hasAireinMarkers, hasLegacyMarkers } = require('./project-paths');
+
+function projectDirHasMarkers(dir) {
+  return hasAireinMarkers(dir) || hasLegacyMarkers(dir);
+}
 const isWindows = process.platform === 'win32';
 const isMacOS = process.platform === 'darwin';
 const isLinux = process.platform === 'linux';
@@ -69,7 +73,7 @@ function getProjectDir() {
           const cacheFile = path.join(keyDir, '.project-path');
           if (fs.existsSync(cacheFile)) {
             const cached = fs.readFileSync(cacheFile, 'utf8').trim();
-            if (cached && fs.existsSync(cached) && fs.existsSync(path.join(cached, '.claude'))) {
+            if (cached && fs.existsSync(cached) && projectDirHasMarkers(cached)) {
               _projectDir = cached;
               return _projectDir;
             }
@@ -93,7 +97,7 @@ function getProjectDir() {
         const m = content.match(/\*\*Worktree:\*\*\s*(.+)/);
         if (m && m[1]) {
           const wt = m[1].trim();
-          if (fs.existsSync(path.join(wt, '.claude'))) {
+          if (fs.existsSync(wt) && projectDirHasMarkers(wt)) {
             _projectDir = wt;
             return _projectDir;
           }
@@ -138,7 +142,7 @@ function resolveProjectDir(transcriptPath) {
   try {
     if (fs.existsSync(cacheFile)) {
       const cached = fs.readFileSync(cacheFile, 'utf8').trim();
-      if (cached && fs.existsSync(cached) && fs.existsSync(path.join(cached, '.claude'))) {
+      if (cached && fs.existsSync(cached) && projectDirHasMarkers(cached)) {
         return cached;
       }
     }
@@ -207,13 +211,13 @@ function extractProjectFromTranscript(transcriptPath) {
     const lastSep = prefix.lastIndexOf('/');
     if (lastSep > 0) prefix = prefix.substring(0, lastSep);
 
-    // Walk up looking for .claude/ directory
+    // Walk up looking for .airein/ or legacy .claude/ project markers
     let dir = prefix;
+    const { findProjectRoot } = require('./project-paths');
     while (dir.length > 3) {
       const nativePath = dir.replace(/\//g, path.sep);
-      if (fs.existsSync(path.join(nativePath, '.claude'))) {
-        return nativePath;
-      }
+      const found = findProjectRoot(nativePath);
+      if (found) return found;
       const sep = dir.lastIndexOf('/');
       if (sep < 0) break;
       dir = dir.substring(0, sep);

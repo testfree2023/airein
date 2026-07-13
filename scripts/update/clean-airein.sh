@@ -25,6 +25,9 @@ STALE_FILES=(
   # 例如: "scripts/hooks/old-hook.js"
   # P018: conventions-trigger hook 退役 — L1 conventions 改走 CC 原生条件规则（薄壳）
   "scripts/hooks/conventions-trigger.js"
+  # P004: 统一入口 airein CLI，旧顶层安装脚本退役
+  "setup-airein.sh"
+  "update-airein.sh"
 )
 
 STALE_DIRS=(
@@ -40,6 +43,9 @@ STALE_DIRS=(
   "rules/common"
   # P019: self-improving → self-learning（旧 skill 目录残留）
   "skills/self-improving"
+  # P004: 用户运行时 skill 根（应在 ~/.claude/skills/learned|imported，不在内核 skills/）
+  "skills/learned"
+  "skills/imported"
 )
 
 REMOVED=0

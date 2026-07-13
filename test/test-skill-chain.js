@@ -153,7 +153,7 @@ describe('File consolidation: skill references', suite => {
       'scripts/update/sync-airein.sh',
       'scripts/cleanup-airein.sh',
       'scripts/manage-profile.js',
-      'setup-airein.sh',
+      'airein',
       'CLAUDE.md',
       'README.md',
     ];
@@ -208,7 +208,7 @@ describe('rules retirement: python/typescript/common gone, 00/10/20 in place', s
       'CLAUDE.md',
       'README.md',
       'CONTEXT.md',
-      'setup-airein.sh',
+      'airein',
       'scripts/update/sync-airein.sh',
       'scripts/manage-profile.js',
     ];
@@ -276,6 +276,31 @@ describe('P019: self-learning replaces self-improving', suite => {
     assertOk(content, 'init-project/SKILL.md should exist');
     if (!content) return;
     assertOk(!content.includes('self-improving'), 'init-project should not reference self-improving');
+  });
+
+  suite.test('new-plan uses kernel template path not ~/.claude/templates', () => {
+    const content = readSkill('new-plan');
+    assertOk(content, 'new-plan/SKILL.md should exist');
+    if (!content) return;
+    assertOk(
+      !content.includes('~/.claude/templates/docs'),
+      'new-plan must not instruct reading ~/.claude/templates/docs',
+    );
+    assertOk(content.includes('~/.airein/templates/pipelines.json'), 'new-plan must reference kernel pipelines.json');
+    assertOk(content.includes('~/.airein/scripts/lib/design-doc-resolver.js'), 'design-doc-resolver kernel path');
+  });
+
+  suite.test('init-project and archive-plan use kernel template paths', () => {
+    const init = readSkill('init-project');
+    const archive = readSkill('archive-plan');
+    assertOk(init && archive, 'skills exist');
+    if (!init || !archive) return;
+    assertOk(init.includes('~/.airein/templates/docs/'), 'init-project kernel templates');
+    assertOk(!init.includes('from `templates/docs'), 'init-project no bare templates/docs');
+    assertOk(!init.includes('Read skeleton `templates/'), 'init-project no bare templates/rules');
+    assertOk(archive.includes('~/.airein/templates/rules/conventions-scope.md'), 'archive-plan skeleton path');
+    assertOk(archive.includes('.airein/rules/conventions-'), 'archive-plan writes canonical rules');
+    assertOk(!archive.includes('Write to `.claude/rules/conventions-'), 'archive-plan no direct .claude/rules write');
   });
 
   suite.test('self-learning SKILL.md does not reference old ~/self-improving mechanism', () => {

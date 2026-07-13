@@ -1,6 +1,6 @@
 # Conventions: Bash/Shell (airein)
 
-> airein 项目的 Bash/Shell 工程规范。编辑任意 `.sh`（`setup-airein.sh`、`scripts/update/*.sh`、
+> airein 项目的 Bash/Shell 工程规范。编辑任意 `.sh`（根目录 `airein`、`scripts/update/*.sh`、
 > `scripts/hooks/run-hook.sh` 等）时由 CC 原生条件规则（`.claude/rules/conventions-bash.md`
 > 薄壳）自动注入。`docs/` 是单一真相源；薄壳只是指针。
 
@@ -44,15 +44,14 @@ install_hook() {
 
 ```text
 airein/
+├─ airein              # 统一安装入口（setup / update / uninstall）
 ├─ scripts/
 │  ├─ hooks/        # run-hook.sh（CC hook 调度入口）+ 被 hooks.json 引用
 │  ├─ lib/          # bash 库（被 source；多数逻辑在 lib/*.js）
 │  └─ update/       # sync-airein.sh / clean-airein.sh / verify-airein.sh
-├─ setup-airein.sh     # 安装入口
-└─ update-airein.sh    # 增量更新
 ```
 
-**约定**：库函数放 `lib/` 供多脚本 source；顶层入口脚本（`setup-`/`update-`）只做编排，复杂逻辑下沉到 lib 或 `scripts/lib/*.js`。
+**约定**：库函数放 `lib/` 供多脚本 source；顶层 `airein` 只做编排，复杂逻辑下沉到 `scripts/lib/*.js`。
 
 ## 4. source / 导入规范 (Sourcing)
 

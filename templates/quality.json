@@ -36,6 +36,7 @@
   "aireinLog": {
     "enabled": true,
     "level": "info",
-    "retentionDays": 7
+    "retentionDays": 7,
+    "slowHookMs": 2000
   }
 }

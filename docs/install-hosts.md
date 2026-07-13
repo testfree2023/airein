@@ -1,7 +1,8 @@
 # 多宿主安装指南（v0.2 预览 · P001-cross-platform）
 
 > airein 从 Claude Code 单宿主扩展到 **4 宿主**：Cursor（CUR）/ Codex（CDX）/ CodeBuddy（CB）/ OpenCode（OC）。
-> CC 仍是**基准宿主**（走既有 `setup-airein.sh` → `~/.claude/`）；本文档是 v0.2 多宿主分发入口
+> 用户统一入口：**`airein setup`**（P004）。CC 仍是基准宿主；多宿主 `install-host.js` 见下文。
+> CC 注册层 `~/.claude/` 经 `cc-register` 指回内核 `~/.airein/`；非 CC 宿主 install 永不写 `~/.claude/`（`test-cc-no-impact`）。
 > `scripts/install-host.js` 的使用指南。架构与产物契约详见 [deployment.md](plans/P001-cross-platform/deployment.md)；
 > 事件映射与阻断机制详见 [design.md §6](plans/P001-cross-platform/design.md)。
 
@@ -126,7 +127,7 @@ OC 两项 N/A 是物理限制（OC 事件集无对应项），诚实标注，不
 ## 故障排查
 
 - **install 报「refuse to write under .claude/」**：路径白名单硬约束触发——install 永不写 `~/.claude/`。检查 `--root` 是否误指向 CC 领地。
-- **uninstall 报「hash mismatch」**：install 后文件被改动（用户手改 / 其他工具改）。manifest 记录的是 install 时 hash；若有意保留改动，手动删该文件后再 uninstall，或手动删 manifest。
+- **uninstall 报「hash mismatch」**：install 后文件被改动（用户手改 / Cursor IDE 改 / 其他工具改）。manifest 记录的是 install 时 hash。默认只删未改动文件并保留 drift 项；`airein uninstall --force` 强制按 manifest 路径删除（仍不碰 manifest 外用户文件）。
 - **verify 报「缺 install-manifest」**：先 `install`。manifest = `<root>/.airein-install-state.json`。
 - **CDX Windows hook 不触发**：确认 `.codex/config.toml` 含 `command_windows` 字段（install `--platform windows` 时生成）。
 - **OC bridge 不生效**：确认 `opencode.json` 注册了 `.opencode/plugin/airein-bridge.ts` + bridge.ts 内 `AIREIN_ROOT` 已注入（非 `__AIREIN_ROOT__` 占位符）。

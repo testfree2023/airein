@@ -1,15 +1,9 @@
 /**
  * Test: Deployment Completeness
  *
- * Verifies that every native skill in skills/ is included in both
- * deployment paths (setup-airein.sh initial install, sync-airein.sh
- * updates). Prevents the drift where a skill is committed to the repo
- * but never reaches ~/.claude on update.
- *
- * Note: setup-airein.sh line ~119 does a bulk `rsync --ignore-existing`
- * (first-install only, never overwrites). Only the explicitly-listed rsync
- * lines force-update a skill, so every native skill must appear in that
- * explicit list too.
+ * Verifies that every native skill in skills/ is included in deployment
+ * paths (airein setup full-kernel copy, sync-airein.sh incremental updates).
+ * Prevents drift where a skill is committed but never reaches installs.
  */
 
 const { describe, assertOk, assertEqual, projectRoot, printSummary } = require('./helpers');
@@ -42,14 +36,13 @@ describe('Deployment completeness: every native skill in both paths', suite => {
     assertEqual(listed.length, nativeSkills.length, 'sync SKILL_DIRS has no extra entries');
   });
 
-  suite.test('setup-airein.sh explicitly rsyncs every native skill', () => {
-    const content = fs.readFileSync(path.join(root, 'setup-airein.sh'), 'utf8');
-    for (const skill of nativeSkills) {
-      assertOk(
-        content.includes(`skills/${skill}/`),
-        `setup-airein.sh must have explicit rsync for "skills/${skill}/"`
-      );
-    }
+  suite.test('airein CLI is the unified install entry (legacy scripts removed)', () => {
+    const aireinPath = path.join(root, 'airein');
+    assertOk(fs.existsSync(aireinPath), 'airein CLI must exist at repo root');
+    const content = fs.readFileSync(aireinPath, 'utf8');
+    assertOk(content.includes('install-orchestrator'), 'airein must delegate to install-orchestrator');
+    assertOk(!fs.existsSync(path.join(root, 'setup-airein.sh')), 'setup-airein.sh must be removed');
+    assertOk(!fs.existsSync(path.join(root, 'update-airein.sh')), 'update-airein.sh must be removed');
   });
 });
 

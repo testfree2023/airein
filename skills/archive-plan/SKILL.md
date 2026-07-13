@@ -141,14 +141,15 @@ hook). For each language scope the plan covers:
    scope-specific file (merge if it exists, create if not). `docs/` is the
    single source of truth for convention content.
 
-3. **Generate/update the thin-shell `.claude/rules/conventions-{scope}.md`** —
+3. **Generate/update the thin-shell `.airein/rules/conventions-{scope}.md`** —
+   (CC projects: readable via `.claude/rules` shim if `--cc-shim` was run)
    this is the pointer CC auto-injects when editing matching source files:
-   - Read skeleton `templates/rules/conventions-scope.md`
+   - Read skeleton `~/.airein/templates/rules/conventions-scope.md`
    - Replace `{scope}` → language token
    - Replace `{paths-globs}` → source file globs for that scope (see table)
-   - Write to `.claude/rules/conventions-{scope}.md`. The frontmatter `---` MUST
+   - Write to `.airein/rules/conventions-{scope}.md`. The frontmatter `---` MUST
      be the first line (CC's conditional-rule loader anchors on `^---`).
-   - Validate: `node scripts/lib/conventions-shell.js .claude/rules/conventions-{scope}.md`
+   - Validate: `node ~/.airein/scripts/lib/conventions-shell.js .airein/rules/conventions-{scope}.md`
      must report `"valid": true` before considering the archive done.
 
    **scope → paths-globs reference** (adjust to the project's actual source tree):

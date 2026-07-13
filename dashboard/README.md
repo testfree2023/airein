@@ -5,10 +5,12 @@ Lightweight browser-based management console for Airein plans, templates, and co
 ## Quick Start
 
 ```bash
+bash ~/.airein/dashboard/start.sh
+# or from airein source checkout:
 node dashboard/server.js
 ```
 
-Opens automatically at `http://localhost:3456`.
+Opens automatically at `http://localhost:3456`. Background + LAN: `bash ~/.airein/dashboard/start.sh --bg --lan`.
 
 ### Options
 
@@ -21,7 +23,43 @@ Opens automatically at `http://localhost:3456`.
 
 ### Project Discovery
 
-Projects are discovered automatically by scanning `~/.claude/projects/`. Any project with `docs/plans/` or `.claude/config/quality.json` appears in the dashboard — no manual registration needed.
+Projects are discovered automatically from:
+
+1. **`~/.airein/dashboard/projects.json`** — written by `init-project` (`dashboard-projects.js register`); primary source
+2. **`~/.claude/projects/`** — CC-registered projects (fallback)
+3. **Optional `scanDirs`** — legacy/advanced only; most users do not need this
+
+Example `~/.airein/dashboard/config.json` (optional — only for LAN hosts or legacy scan):
+
+```json
+{
+  "kernelRoot": "/Users/you/.airein",
+  "dashboard": {
+    "allowedHosts": ["my-host.local"]
+  }
+}
+```
+
+Manual register / list:
+
+```bash
+node ~/.airein/scripts/lib/dashboard-projects.js register /path/to/project
+node ~/.airein/scripts/lib/dashboard-projects.js list
+node ~/.airein/scripts/lib/dashboard-projects.js prune   # remove stale paths from projects.json
+```
+
+Or use the **Tools** page in the dashboard (`#/tools`): view registry, register/unregister paths, prune stale entries.
+
+### Tools (Project Registry)
+
+Manage `projects.json` from the UI without CLI:
+
+- View all registered paths and **OK / Missing** status (deleted dirs are hidden from the project list but remain in the file until pruned)
+- Register a new absolute path
+- Remove a single entry
+- **Prune stale** — delete rows whose directories no longer exist
+
+`bash start.sh --lan` binds `0.0.0.0` and **automatically allows** hostname + local IPv4 addresses in Host/Origin checks (no manual `allowedHosts` required for LAN access).
 
 ### Plan Management
 
@@ -38,7 +76,7 @@ Projects are discovered automatically by scanning `~/.claude/projects/`. Any pro
 
 ### Configuration
 
-Per-project `quality.json` editing with structured form controls:
+Per-project `quality.json` editing with structured form controls (read/write canonical **`.airein/config/quality.json`**, legacy `.claude/config/` read-only fallback):
 - Test Guard (enabled, mode)
 - Approval Guard (mode)
 - Plan Gate (mode, requireActiveTask)
@@ -64,6 +102,10 @@ Each field shows its default value. Only customized fields are persisted.
 | GET | `/api/templates` | List all templates |
 | GET/PUT | `/api/templates/*path` | Get/save a template |
 | GET/PUT | `/api/projects/:id/config` | Get/save project configuration |
+| GET | `/api/tools/registry` | List registry entries (includes missing paths) |
+| POST | `/api/tools/registry/register` | Register `{ "path": "..." }` |
+| POST | `/api/tools/registry/unregister` | Unregister `{ "path": "..." }` |
+| POST | `/api/tools/registry/prune` | Remove stale paths from `projects.json` |
 
 ## Architecture
 

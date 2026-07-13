@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install-helpers.sh — shared installer helpers (node resolution + remote check)
 #
-# Sourced by setup-airein.sh / airein-chores.sh / merge-hooks.sh so installer
+# Sourced by airein CLI / airein-chores.sh / merge-hooks.sh so installer
 # logic lives in ONE place (DRY) and is unit-testable (test/test-install-helpers.js).
 # This file only DEFINES functions — no top-level code runs on source, so it is
 # safe under `set -e` and re-sourcing.
@@ -13,7 +13,7 @@
 #   `command -v node` returned nothing AND the old hardcoded fallback (homebrew
 #   + /usr/local/bin) missed ~/.nvm/... → the installer falsely reported
 #   "Node.js 未安装" and aborted. resolve_node_bin fixes that. is_airein_remote_url
-#   fixes the sibling bug where setup-airein.sh blindly `git pull`ed any
+#   fixes the sibling bug where a legacy installer blindly `git pull`ed any
 #   existing ~/.claude/.git (silently fetching a foreign harness repo).
 #
 # Usage:
@@ -22,7 +22,7 @@
 #   if is_airein_remote_url "$url"; then ...; fi
 
 # Echo the node binary path, or empty if none found. Never exits non-zero —
-# callers decide what an empty result means (setup-airein.sh treats empty as
+# callers decide what an empty result means (airein CLI treats empty as
 # "Node.js 未安装"). Resolution order:
 #   1. node already on PATH (interactive shells, or already sourced)
 #   2. source version-manager init (nvm / fnm) so its shims populate PATH
@@ -82,8 +82,7 @@ resolve_node_bin() {
 # 1 (false) otherwise. Anchored to the exact repo (with or without a trailing
 # .git) so SSH and HTTPS clones both match, while sibling repos under the same
 # owner (e.g. testfree2023/airein-extras) and bare substring lookalikes are
-# rejected. Used by setup-airein.sh to avoid `git pull`ing a foreign
-# ~/.claude/.git.
+# rejected. Kept for legacy tooling that may still source install-helpers.
 is_airein_remote_url() {
   local url="${1:-}"
   case "$url" in

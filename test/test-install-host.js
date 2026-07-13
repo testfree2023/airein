@@ -27,6 +27,8 @@ const { HOST_COMMANDS_DIR } = require('../scripts/lib/command-place');
 
 const ROOT = projectRoot();
 const COMMAND_COUNT = 16;
+const COPY_OPTS = { platform: 'linux', delivery: 'copy' };
+const UNIFIED_OPTS = { platform: 'linux', delivery: 'unified' };
 
 // 每宿主产物矩阵（deployment §3 + P003 K4）—— skills dir / rules 入口 / hook 配置 / commands dir
 const MATRIX = {
@@ -57,7 +59,7 @@ describe('installHost: ① 4 宿主产物完整（design §3 矩阵）', (suite)
       const tmp = mkTmp();
       try {
         const m = MATRIX[host];
-        const { errors } = installHost(host, { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+        const { errors } = installHost(host, { targetRoot: tmp, repoRoot: ROOT, ...COPY_OPTS });
 
         // K1 skills（OC 零放置）
         if (m.skillsDir) {
@@ -108,9 +110,9 @@ describe('installHost: ② 幂等可重入', (suite) => {
   suite.test('cursor 连续 install 2 次 → hooks.json hash 不变 + written 条目不增', () => {
     const tmp = mkTmp();
     try {
-      const r1 = installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      const r1 = installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       const h1 = shaFile(path.join(tmp, '.cursor', 'hooks.json'));
-      const r2 = installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      const r2 = installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       const h2 = shaFile(path.join(tmp, '.cursor', 'hooks.json'));
       assertEqual(h1, h2, '二次 install hooks.json hash 不变');
       assertEqual(r2.written.length, r1.written.length, 'written 条目数不变（无重复注册）');
@@ -124,7 +126,7 @@ describe('installHost: ③ skill 单一真相源（SKILL.md hash == CC 副本）
     suite.test(`${host}: 每个 SKILL.md 逐字节等价真相源`, () => {
       const tmp = mkTmp();
       try {
-        installHost(host, { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+        installHost(host, { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
         const m = MATRIX[host];
         const names = listSkillNames(tmp, m.skillsDir);
         for (const n of names) {
@@ -142,7 +144,7 @@ describe('installHost: ③b command 单一真相源（*.md hash == 仓库 comman
     suite.test(`${host}: 每个 command.md 逐字节等价真相源`, () => {
       const tmp = mkTmp();
       try {
-        installHost(host, { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+        installHost(host, { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
         const m = MATRIX[host];
         const files = listCommandFiles(tmp, m.commandsDir);
         for (const f of files) {
@@ -168,7 +170,7 @@ describe('installHost: ④ CDX command_windows（Windows）', (suite) => {
   suite.test('CDX Linux → config.toml 不含 command_windows', () => {
     const tmp = mkTmp();
     try {
-      installHost('codex', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      installHost('codex', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       const toml = read(tmp, '.codex/config.toml');
       assertNotContains(toml, 'command_windows', 'Linux 不含 command_windows');
     } finally { rmTmp(tmp); }
@@ -178,7 +180,7 @@ describe('installHost: ④ CDX command_windows（Windows）', (suite) => {
 describe('installHost: ⑤ 未知 host fail-fast', (suite) => {
   suite.test('未知 host 抛错（不静默跳过）', () => {
     let threw = false;
-    try { installHost('gemini', { targetRoot: '/tmp/airein-x', repoRoot: ROOT, platform: 'linux' }); } catch { threw = true; }
+    try { installHost('gemini', { targetRoot: '/tmp/airein-x', repoRoot: ROOT, platform: 'linux', delivery: 'copy' }); } catch { threw = true; }
     assertOk(threw, '未知 host 抛错');
   });
 });
@@ -187,7 +189,7 @@ describe('installHost: ⑥ OC Stop/UserPromptSubmit 物理不可达 → 报错',
   suite.test('OC errors 含 Stop/UserPromptSubmit N/A 提示（不注册悬空 hook）', () => {
     const tmp = mkTmp();
     try {
-      const { errors } = installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      const { errors } = installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       const all = errors.join('\n');
       assertOk(all.includes('Stop') || all.includes('UserPromptSubmit'), 'errors 含 N/A 事件提示');
       assertOk(all.toLowerCase().includes('n/a') || all.includes('不可达'), 'errors 标注 N/A / 不可达');
@@ -202,7 +204,7 @@ describe('installHost: ⑦ OC bridge.ts 实体落盘 + AIREIN_ROOT 注入（desi
   suite.test('OC install → .opencode/plugin/airein-bridge.ts 落盘 + 占位符替换为 repoRoot 正斜杠', () => {
     const tmp = mkTmp();
     try {
-      installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       const bridgePath = '.opencode/plugin/airein-bridge.ts';
       assertOk(exists(tmp, bridgePath), 'bridge.ts 落盘 .opencode/plugin/');
       const bridge = read(tmp, bridgePath);
@@ -218,9 +220,9 @@ describe('installHost: ⑦ OC bridge.ts 实体落盘 + AIREIN_ROOT 注入（desi
   suite.test('OC bridge.ts 幂等（二次 install hash 不变）', () => {
     const tmp = mkTmp();
     try {
-      installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       const h1 = shaFile(path.join(tmp, ...'.opencode/plugin/airein-bridge.ts'.split('/')));
-      installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       const h2 = shaFile(path.join(tmp, ...'.opencode/plugin/airein-bridge.ts'.split('/')));
       assertEqual(h1, h2, '二次 install bridge.ts hash 不变（同 repoRoot → 同注入）');
     } finally { rmTmp(tmp); }
@@ -229,7 +231,7 @@ describe('installHost: ⑦ OC bridge.ts 实体落盘 + AIREIN_ROOT 注入（desi
   suite.test('OC bridge.ts 走 written + manifest（uninstall 据 hash 删）', () => {
     const tmp = mkTmp();
     try {
-      const { written } = installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      const { written } = installHost('opencode', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       const bridgeEntry = written.find((w) => w.path === '.opencode/plugin/airein-bridge.ts');
       assertOk(bridgeEntry && bridgeEntry.kind === 'opencode-bridge', 'written 含 bridge.ts 条目 (kind=opencode-bridge)');
       uninstallHost('opencode', { targetRoot: tmp });
@@ -252,7 +254,7 @@ describe('installHost: install 回滚（deployment §8 · 中途失败回滚已�
       );
       let threw = null;
       try {
-        installHost('cursor', { targetRoot: tmpTarget, repoRoot: tmpRepo, platform: 'linux' });
+        installHost('cursor', { targetRoot: tmpTarget, repoRoot: tmpRepo, platform: 'linux', delivery: 'copy' });
       } catch (e) { threw = e; }
       assertOk(threw, 'installHost 应抛错（hooks.json 缺失）');
       // deployment §8 line 119：install 中途失败 → 已写文件回滚
@@ -262,11 +264,47 @@ describe('installHost: install 回滚（deployment §8 · 中途失败回滚已�
   });
 });
 
+describe('uninstallHost: hash drift 保护 + --force', (suite) => {
+  suite.test('install 后改动 manifest 文件 → 默认 uninstall 抛 hash mismatch', () => {
+    const tmp = mkTmp();
+    try {
+      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
+      const st = JSON.parse(read(tmp, '.airein-install-state.json'));
+      const rule = st.files.find((f) => f.path.endsWith('.mdc'));
+      assertOk(rule, 'manifest 含 .mdc 规则');
+      fs.appendFileSync(path.join(tmp, ...rule.path.split('/')), '\n# user edit\n');
+      let threw = false;
+      try {
+        uninstallHost('cursor', { targetRoot: tmp });
+      } catch (err) {
+        threw = true;
+        assertContains(err.message, 'hash mismatch', '默认拒绝删已改动文件');
+      }
+      assertOk(threw, 'hash mismatch 应 throw');
+      assertOk(exists(tmp, '.airein-install-state.json'), '失败时 manifest 保留');
+    } finally { rmTmp(tmp); }
+  });
+
+  suite.test('install 后改动 manifest 文件 → uninstall --force 仍删除', () => {
+    const tmp = mkTmp();
+    try {
+      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
+      const st = JSON.parse(read(tmp, '.airein-install-state.json'));
+      const rule = st.files.find((f) => f.path.endsWith('.mdc'));
+      fs.appendFileSync(path.join(tmp, ...rule.path.split('/')), '\n# user edit\n');
+      const res = uninstallHost('cursor', { targetRoot: tmp, force: true });
+      assertOk(res.removed.includes(rule.path), 'force 删除 drift 文件');
+      assertOk(res.warnings.length > 0, 'force 记录 warnings');
+      assertOk(!exists(tmp, '.airein-install-state.json'), 'force 后 manifest 已删');
+    } finally { rmTmp(tmp); }
+  });
+});
+
 describe('uninstallHost: 清空目录外壳（deployment §8 · 不残留空壳）', (suite) => {
   suite.test('install cursor → uninstall → airein 创建的空目录外壳清理', () => {
     const tmp = mkTmp();
     try {
-      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       assertOk(exists(tmp, '.cursor'), 'install 后 .cursor/ 存在');
       uninstallHost('cursor', { targetRoot: tmp });
       assertOk(!exists(tmp, '.airein-install-state.json'), 'uninstall 后 state 已删');
@@ -278,7 +316,7 @@ describe('uninstallHost: 清空目录外壳（deployment §8 · 不残留空壳�
   suite.test('uninstall 不碰用户其他文件（含非空父目录保留）', () => {
     const tmp = mkTmp();
     try {
-      installHost('codebuddy', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      installHost('codebuddy', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       // 模拟用户在 .codebuddy/ 下放了自有文件
       fs.writeFileSync(path.join(tmp, '.codebuddy', 'user-keep.txt'), 'mine');
       uninstallHost('codebuddy', { targetRoot: tmp });
@@ -292,7 +330,7 @@ describe('installHost: install-state 写盘 + ~/.claude/ 隔离', (suite) => {
   suite.test('写 .airein-install-state.json（host + files[]）', () => {
     const tmp = mkTmp();
     try {
-      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       assertOk(exists(tmp, '.airein-install-state.json'), 'install-state 存在');
       const st = JSON.parse(read(tmp, '.airein-install-state.json'));
       assertEqual(st.host, 'cursor', 'state.host');
@@ -307,7 +345,7 @@ describe('installHost: install-state 写盘 + ~/.claude/ 隔离', (suite) => {
   suite.test('written 路径白名单：永不落 .claude/', () => {
     const tmp = mkTmp();
     try {
-      const { written } = installHost('codebuddy', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+      const { written } = installHost('codebuddy', { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
       assertOk(written.length > 0, '有产物');
       for (const w of written) {
         assertNotContains(w.path, '.claude/', `产物路径不含 .claude/: ${w.path}`);
@@ -328,7 +366,7 @@ describe('installHost: ⑧ Bug A/B 集成回归（command 入口可达 + node �
     suite.test(`${host}: hook command 入口 fs.existsSync（Bug A）+ node --check exit 0（Bug B）`, () => {
       const tmp = mkTmp();
       try {
-        installHost(host, { targetRoot: tmp, repoRoot: ROOT, platform: 'linux' });
+        installHost(host, { targetRoot: tmp, repoRoot: ROOT, platform: 'linux', delivery: 'copy' });
         const hc = read(tmp, MATRIX[host].hook);
         const match = hc.match(ENTRY_RE);
         assertOk(match, `${host} hook 配置含入口绝对路径`);
@@ -342,6 +380,40 @@ describe('installHost: ⑧ Bug A/B 集成回归（command 入口可达 + node �
       } finally { rmTmp(tmp); }
     });
   }
+});
+
+describe('installHost: delivery unified', (suite) => {
+  suite.test('cursor unified: skills/commands 为软链，rules 仍为 .mdc 文件', () => {
+    const tmp = mkTmp();
+    try {
+      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, ...UNIFIED_OPTS });
+      const skillsPath = path.join(tmp, '.cursor', 'skills');
+      const commandsPath = path.join(tmp, '.cursor', 'commands');
+      assertOk(fs.lstatSync(skillsPath).isSymbolicLink(), 'skills symlink');
+      assertOk(fs.lstatSync(commandsPath).isSymbolicLink(), 'commands symlink');
+      assertOk(fs.existsSync(path.join(skillsPath, 'tdd-workflow', 'SKILL.md')), 'skill via link');
+      assertOk(
+        fs.readdirSync(path.join(tmp, '.cursor', 'rules')).some((f) => f.endsWith('.mdc')),
+        'rules mdc files',
+      );
+    } finally { rmTmp(tmp); }
+  });
+
+  suite.test('cursor hooks merge 保留用户 hook', () => {
+    const tmp = mkTmp();
+    try {
+      fs.mkdirSync(path.join(tmp, '.cursor'), { recursive: true });
+      fs.writeFileSync(path.join(tmp, '.cursor', 'hooks.json'), JSON.stringify({
+        version: 1,
+        hooks: { preToolUse: [{ type: 'command', command: 'echo user-hook' }] },
+      }, null, 2));
+      installHost('cursor', { targetRoot: tmp, repoRoot: ROOT, ...COPY_OPTS });
+      const cfg = JSON.parse(read(tmp, '.cursor/hooks.json'));
+      const cmds = (cfg.hooks.preToolUse || []).map((h) => h.command);
+      assertOk(cmds.some((c) => c.includes('user-hook')), 'user hook kept');
+      assertOk(cmds.some((c) => c.includes('host/cursor.js')), 'airein hook added');
+    } finally { rmTmp(tmp); }
+  });
 });
 
 process.exit(printSummary());
