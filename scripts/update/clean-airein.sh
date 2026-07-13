@@ -46,8 +46,6 @@ STALE_DIRS=(
   # P004: 用户运行时 skill 根（应在 ~/.claude/skills/learned|imported，不在内核 skills/）
   "skills/learned"
   "skills/imported"
-  # P004: Dashboard 独立安装到 ~/dashboard，内核内残留副本删除
-  "dashboard"
 )
 
 REMOVED=0

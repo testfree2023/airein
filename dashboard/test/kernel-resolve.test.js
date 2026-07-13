@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Test: dashboard kernel path resolution (standalone ~/dashboard → ~/.airein)
+ * Test: dashboard kernel path resolution (~/.airein/dashboard → ~/.airein)
  */
 
 const fs = require('fs');
@@ -64,6 +64,20 @@ describe('kernel-resolve: resolveKernelRoot', (suite) => {
     } finally {
       process.env.HOME = oldHome;
       if (process.platform === 'win32') process.env.USERPROFILE = oldHome;
+      fs.rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  suite.test('resolves parent kernel when dashboard lives under kernel tree', () => {
+    const home = mkTmp('kr-home3-');
+    const kernel = path.join(home, '.airein');
+    const dash = path.join(kernel, 'dashboard');
+    fs.mkdirSync(dash, { recursive: true });
+    fs.mkdirSync(path.join(kernel, 'scripts', 'lib'), { recursive: true });
+    fs.writeFileSync(path.join(kernel, 'scripts', 'lib', 'utils.js'), 'module.exports = {};\n');
+    try {
+      assertEqual(resolveKernelRoot(dash), kernel, 'parent .. is kernel');
+    } finally {
       fs.rmSync(home, { recursive: true, force: true });
     }
   });

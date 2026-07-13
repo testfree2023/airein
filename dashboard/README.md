@@ -24,9 +24,9 @@ Opens automatically at `http://localhost:3456`.
 Projects are discovered automatically from:
 
 1. **`~/.claude/projects/`** — CC-registered projects (any with `docs/plans/` or `.airein/` / legacy `.claude/` markers)
-2. **Optional scan dirs** — set `DASHBOARD_SCAN_DIRS` (comma/semicolon-separated) or `dashboard.scanDirs` in `config.json` / `~/.airein/dashboard.json` to find Cursor-only or unregistered projects
+2. **Optional scan dirs** — set `DASHBOARD_SCAN_DIRS` or `dashboard.scanDirs` in `~/.airein/dashboard/config.json`
 
-Example `~/dashboard/config.json`:
+Example `~/.airein/dashboard/config.json`:
 
 ```json
 {

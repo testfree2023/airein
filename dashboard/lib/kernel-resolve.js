@@ -17,9 +17,9 @@ function isKernelRoot(dir) {
 }
 
 /**
- * Resolve airein kernel root for standalone ~/dashboard installs.
- * Priority: AIREIN_KERNEL env → dashboard/config.json → repo parent → ~/.airein → ~/.claude
- * @param {string} dashboardDir - Absolute path to dashboard/ (where server.js lives)
+ * Resolve airein kernel root for ~/.airein/dashboard installs.
+ * Priority: AIREIN_KERNEL env → dashboard/config.json → parent dir (..) → ~/.airein → ~/.claude
+ * @param {string} dashboardDir - Absolute path to ~/.airein/dashboard (where server.js lives)
  * @returns {string}
  */
 function resolveKernelRoot(dashboardDir) {

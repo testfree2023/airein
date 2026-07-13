@@ -55,8 +55,6 @@ function copyTreeSkipping(srcRoot, destRoot, relPrefix, skipRels) {
       fs.mkdirSync(dest, { recursive: true });
       for (const name of fs.readdirSync(src)) {
         if (name === '.git') continue;
-        // P004：Dashboard 独立安装到 ~/dashboard，不复制进内核 ~/.airein/dashboard
-        if (name === 'dashboard' && !rel) continue;
         const childRel = rel ? `${rel}/${name}` : name;
         walk(path.join(src, name), path.join(dest, name), childRel);
       }
@@ -241,7 +239,7 @@ function runPostUpdateMaintenance(kernelRoot, homeDir, profile, opts = {}) {
   }
   const installDash = path.join(kernelRoot, 'scripts', 'dashboard', 'install-dashboard.sh');
   if (opts.skipDashboard !== true && fs.existsSync(installDash)) {
-    log('🖥️  同步 Dashboard (~/dashboard)...');
+    log('🖥️  同步 Dashboard (~/.airein/dashboard)...');
     results.push({
       step: 'dashboard',
       ...runShellScript(installDash, [kernelRoot, '--with-dashboard'], shellOpts),

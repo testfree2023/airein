@@ -202,7 +202,7 @@ bash ~/.airein/scripts/update/clean-airein.sh ~/.airein
 轻量级项目文档与质量管理面板（纯 Node `http` + 单文件 SPA，零依赖）：
 
 ```bash
-bash ~/.claude/dashboard/start.sh   # 默认 http://localhost:3456
+bash ~/.airein/dashboard/start.sh --bg --lan   # 默认 http://localhost:3456
 ```
 
 端口可配。安全设计：Host/Origin 头校验（DNS rebinding + CSRF 防护）、严格 Content-Type、`exec` 去 shell 化、TTL 缓存。详见 [design.md](design.md#dashboard-架构)。

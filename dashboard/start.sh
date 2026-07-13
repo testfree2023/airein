@@ -172,7 +172,7 @@ if [ "${1:-}" = "status" ]; then
     echo "⚠️  Dashboard 在端口 $PORT 运行中（PID 文件无效或来自其他目录）"
     echo "   监听 PID: $(check_port_pids "$PORT" | tr '\n' ' ')"
     echo "   本脚本目录: $SCRIPT_DIR"
-    echo "    canonical 安装: $HOME/dashboard （非 ~/.airein/dashboard）"
+    echo "   canonical: $HOME/.airein/dashboard"
   elif [ -n "$PID" ]; then
     rm -f "$PID_FILE"
     echo "⚠️  PID 文件存在但进程已不在运行，清理 PID 文件"
@@ -210,7 +210,7 @@ if [ "${1:-}" = "stop" ]; then
     fi
     rm -f "$PID_FILE"
   fi
-  # 始终按端口清理（PID 漂移 / ~/dashboard 与 ~/.airein/dashboard 双安装）
+  # 始终按端口清理（PID 漂移 / 遗留 ~/dashboard 双安装）
   PORT_STOPPED=$(stop_port_listeners "$PORT" | tail -n1)
   STOPPED=$((STOPPED + ${PORT_STOPPED:-0}))
   if [ "$STOPPED" -eq 0 ]; then
@@ -267,7 +267,7 @@ if [ -z "$NODE" ]; then
   exit 1
 fi
 
-# P004：standalone ~/dashboard 从 ~/.airein 加载 lib（config.json / 环境变量）
+# P004：~/.airein/dashboard 从同级内核加载 lib（config.json / AIREIN_KERNEL）
 if [ -f "$SCRIPT_DIR/config.json" ] && command -v "$NODE" &>/dev/null; then
   KERNEL_FROM_CFG=$("$NODE" -e "
     try {
