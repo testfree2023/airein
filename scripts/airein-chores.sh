@@ -51,7 +51,7 @@ ensure_dirs() {
     " "$CHORES_DIR/lib/project-shim.js" "$PROJECT_DIR" 2>/dev/null; then
       : # non-CC project or existing .claude/rules — skip silently
     else
-      echo "  ✅ .claude/rules shim → .airein/rules (CC)"
+      echo "  ✅ .claude/rules shim → <项目>/.airein/rules (CC 项目 L1；铁律 L0 在 ~/.claude/rules)"
     fi
   fi
 }

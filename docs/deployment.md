@@ -118,7 +118,7 @@ bash ~/.airein/scripts/update/verify-airein.sh --full
 | 层 | 检查对象 | 内容 |
 |----|---------|------|
 | ① 内核 | `~/.airein/` | hooks.json 引用脚本 / 依赖 / lib / L0 rules |
-| ② CC 注册 | `~/.claude/` | skills/commands/rules symlink → 内核 + settings.json hooks |
+| ② CC 注册 | `~/.claude/` | skills/commands 按 delivery；rules **deploy**；settings.json hooks merge |
 | ③ 宿主注册 | `~/.cursor/` 等 | install-host 产物矩阵（按 `install-profile.json`） |
 
 `airein update` 结束后会自动跑 `--full`；手动复验用上面命令。

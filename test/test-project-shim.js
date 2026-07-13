@@ -88,6 +88,21 @@ describe('project-shim: ensureCcRulesShim', (suite) => {
     assertOk(ensureCcRulesShim(root).ok, 'first');
     assertOk(ensureCcRulesShim(root).ok, 'second');
   });
+
+  suite.test('误指向内核的 legacy symlink 会重链到项目 .airein/rules', () => {
+    if (process.platform === 'win32') return;
+    const root = mk('legacy-kernel');
+    const kernelRules = path.join(TMP, 'fake-kernel', 'rules');
+    fs.mkdirSync(kernelRules, { recursive: true });
+    fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
+    fs.symlinkSync(kernelRules, path.join(root, '.claude', 'rules'));
+    const result = ensureCcRulesShim(root);
+    assertEqual(result.ok, true, 'relink ok');
+    const shim = path.join(root, '.claude', 'rules');
+    const canonical = path.join(root, '.airein', 'rules');
+    assertOk(fs.existsSync(canonical), 'canonical dir');
+    assertEqual(fs.realpathSync(shim), fs.realpathSync(canonical), 'shim → project canonical');
+  });
 });
 
 function assertContainsAction(plan, type, absPath) {

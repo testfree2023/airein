@@ -40,6 +40,28 @@ function isLinkOrJunction(p) {
 }
 
 /**
+ * Whether shim symlink/junction resolves to the project canonical rules dir.
+ * @param {string} shim
+ * @param {string} canonicalAbs
+ * @returns {boolean}
+ */
+function shimResolvesToCanonical(shim, canonicalAbs) {
+  const expected = path.resolve(canonicalAbs);
+  if (!pathExists(shim) || !isLinkOrJunction(shim)) return false;
+  try {
+    return path.resolve(fs.realpathSync(shim)) === expected;
+  } catch {
+    try {
+      const raw = fs.readlinkSync(shim);
+      const resolved = path.isAbsolute(raw) ? raw : path.resolve(path.dirname(shim), raw);
+      return path.resolve(resolved) === expected;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
  * Pure plan for CC rules shim (no IO).
  * @param {string} projectRoot
  * @returns {{ actions: Array<{type:string, path:string, target?:string}>, errors: string[] }}
@@ -47,15 +69,19 @@ function isLinkOrJunction(p) {
 function planCcRulesShim(projectRoot) {
   const root = path.resolve(projectRoot);
   const canonical = canonicalRulesDir(root);
+  const canonicalAbs = path.resolve(canonical);
   const shim = shimRulesDir(root);
   const actions = [];
   const errors = [];
 
   if (pathExists(shim)) {
     if (isLinkOrJunction(shim)) {
-      return { actions: [{ type: 'noop', path: shim }], errors: [] };
-    }
-    if (fs.statSync(shim).isDirectory()) {
+      if (shimResolvesToCanonical(shim, canonicalAbs)) {
+        return { actions: [{ type: 'noop', path: shim }], errors: [] };
+      }
+      // 旧装/误装：.claude/rules 指向 ~/.airein/rules 等非 canonical → 拆掉重链
+      actions.push({ type: 'unlink', path: shim });
+    } else if (fs.statSync(shim).isDirectory()) {
       // Allow if empty dir? Design says error if non-symlink blocks
       const entries = fs.readdirSync(shim);
       if (entries.length > 0) {
@@ -78,7 +104,7 @@ function planCcRulesShim(projectRoot) {
     actions.push({ type: 'mkdir', path: parent });
   }
 
-  actions.push({ type: 'link', path: shim, target: canonical });
+  actions.push({ type: 'link', path: shim, target: canonicalAbs });
   return { actions, errors };
 }
 
@@ -119,6 +145,8 @@ function applyPlan(plan, projectRoot, dryRun) {
     if (action.type === 'noop' || dryRun) continue;
     if (action.type === 'mkdir') {
       fs.mkdirSync(action.path, { recursive: true });
+    } else if (action.type === 'unlink') {
+      fs.unlinkSync(action.path);
     } else if (action.type === 'rmdir') {
       fs.rmdirSync(action.path);
     } else if (action.type === 'link') {
@@ -164,6 +192,7 @@ module.exports = {
   CC_RULES_SHIM_REL,
   planCcRulesShim,
   ensureCcRulesShim,
+  shimResolvesToCanonical,
   canonicalRulesDir,
   shimRulesDir,
 };

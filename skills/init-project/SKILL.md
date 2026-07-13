@@ -46,7 +46,9 @@ mkdir -p docs/plans docs/adr .airein/config .airein/memory .airein/rules
 
 Verify: `ls -d docs/plans docs/adr .airein/config .airein/memory .airein/rules`
 
-**CC 项目**：运行 `bash ~/.airein/scripts/airein-chores.sh` 创建 `.claude/rules` shim → `.airein/rules`（P004）。
+**CC 项目**：运行 `bash ~/.airein/scripts/airein-chores.sh` 创建 `.claude/rules` shim → **本项目** `.airein/rules`（P004 项目 L1 薄壳 canonical）。
+
+> **两层 rules 别混**：铁律 L0（`00/10/20-*.md`）在用户级 `~/.claude/rules/`（由内核 deploy）；项目级 `.claude/rules` 只承载本项目的 `conventions-*.md` 薄壳，**不应** symlink 到 `~/.airein/rules`。
 
 If any directory already has content, don't delete or empty — only fill gaps.
 
