@@ -10,6 +10,22 @@ disable-model-invocation: false
 
 Create a new plan directory and register it in the roadmap. The process is interactive: first complete a unified communication/brainstorming phase, then create each configured document one at a time with approval between documents.
 
+## Global template root (P004 — kernel only)
+
+Airein **global** templates live in the install **kernel**, not under `~/.claude/`:
+
+| Asset | Path |
+|-------|------|
+| Pipeline definitions | `~/.airein/templates/pipelines.json` |
+| Doc structure templates | `~/.airein/templates/docs/{doc-type}.md` |
+| Design sub-doc templates | `~/.airein/templates/docs/design-*/` |
+| Language profiles | `~/.airein/templates/language-profiles/{lang}.json` |
+| Default quality.json | `~/.airein/templates/quality.json` |
+
+**Do not** read `~/.claude/templates/` — that path is legacy / absent after P004 unified install. Hooks and lib code resolve templates from the kernel (`~/.airein/`).
+
+Project config: `.airein/config/quality.json` (legacy fallback: `.claude/config/quality.json`).
+
 ## Phase 0: Context Gathering (l-feature / l-bugfix only)
 
 For complex features, gather project intelligence before the communication phase:
@@ -48,7 +64,7 @@ Before creating any requirements/design/tasks document, align with the user thro
 
 **Complexity determination:**
 - Read `quality.json` → `planWorkflow.pipeline` to get the pipeline name
-- Read `templates/pipelines.json` → `definitions.{pipeline}` to get the doc list
+- Read `~/.airein/templates/pipelines.json` → `definitions.{pipeline}` to get the doc list
 - If `pipeline` is `"auto"` or missing, determine from project size and scenario
 - The `complexity` field in `progress.md` should be the pipeline name (e.g. `m-feature`), not `simple/medium/complex`
 - The `## Approval State` section must have one entry per pipeline doc
@@ -62,7 +78,7 @@ Before creating any requirements/design/tasks document, align with the user thro
   - **l-bugfix**: `requirements`, `design`, `test-plan`, `tasks` — 大型项目缺陷修复
   - **hotfix**: `tasks` — 紧急修复（不限规模）
 
-**⚠️ IMPORTANT**: Before writing `progress.md`, you MUST read both `quality.json` and `templates/pipelines.json` to determine the correct pipeline and approval keys. Never hardcode approval states.
+**⚠️ IMPORTANT**: Before writing `progress.md`, you MUST read both `quality.json` and `~/.airein/templates/pipelines.json` to determine the correct pipeline and approval keys. Never hardcode approval states.
 
 ## Phase 2: Create Plan Directory + progress.md
 
@@ -108,8 +124,8 @@ Output: `{ establishing: bool, conventions: {exists, path, source}, architecture
 ### establishing: true (no project-level design docs anywhere)
 
 This is the **first design-bearing plan** for the project. Generate BOTH:
-- `design-architecture.md` — from `templates/docs/design-architecture/{lang}.md`
-- `design-conventions.md` — from `templates/docs/design-conventions/{lang}.md`
+- `design-architecture.md` — from `~/.airein/templates/docs/design-architecture/{lang}.md`
+- `design-conventions.md` — from `~/.airein/templates/docs/design-conventions/{lang}.md`
 - `design.md` — HLD that indexes them via a `## Sub-documents` section
 
 **Regardless of complexity tier** (s/m/l) and **regardless of frontend-or-backend**.
@@ -149,7 +165,7 @@ When the pipeline includes `deployment` (l-feature only), run the resolver to ge
 ### establishing: deployment.exists === false
 
 This is the **first deployment-bearing plan** for the project. Generate `deployment.md`
-from `~/.claude/templates/docs/deployment.md`. At archive time, `archive-plan` migrates it to
+from `~/.airein/templates/docs/deployment.md`. At archive time, `archive-plan` migrates it to
 `docs/deployment.md` (single source of truth).
 
 ### referencing: deployment.exists === true (no deployment change signal)
@@ -168,7 +184,7 @@ Prompt the user to confirm the overwrite before regenerating. Zero silent false 
 
 ### Structure: Global Constraints + per-task Interfaces
 
-Every generated `tasks.md` follows `templates/docs/tasks.md`. MUST include two structures that cut rework (structured plans finish in 1 round vs 2-4 rounds with bugs):
+Every generated `tasks.md` follows `~/.airein/templates/docs/tasks.md`. MUST include two structures that cut rework (structured plans finish in 1 round vs 2-4 rounds with bugs):
 
 - **Global Constraints block** (before the task list) — version floors, dependency limits, naming, exact values (e.g. "Node ≥ 18", "zero npm deps", "kebab-case filenames", "stderr logging"). Bind ALL tasks; copied verbatim so each implementer shares them without re-deriving.
 - **per-task Interfaces** (under each task) — `consume` (contracts / preceding-task outputs this task depends on) / `produce` (contract / output it hands downstream). Lets an implementer reading only their own task know neighbor contracts.
@@ -204,7 +220,7 @@ verification tasks — backward compatible, plan creation continues normally.
 
 ## File Templates
 
-Read structural templates from `~/.claude/templates/docs/{doc-type}.md` for guidance on document structure. Fill each document with plan-specific content based on the communication phase output.
+Read structural templates from `~/.airein/templates/docs/{doc-type}.md` for guidance on document structure. Fill each document with plan-specific content based on the communication phase output.
 
 **Top-level templates** (for `design.md`, `requirements.md`, `tasks.md`, etc.): `requirements.md`, `design.md`, `test-plan.md`, `deployment.md`, `tasks.md`, `progress.md`.
 
@@ -212,17 +228,17 @@ Read structural templates from `~/.claude/templates/docs/{doc-type}.md` for guid
 
 | Sub-document | Template path | Selection |
 |--------------|---------------|-----------|
-| `design-domain-model.md` | `templates/docs/design-domain-model.md` | language-independent (DDD) |
-| `design-database.md` | `templates/docs/design-database.md` | language-independent |
-| `design-security.md` | `templates/docs/design-security.md` | language-independent |
-| `design-deployment.md` | `templates/docs/design-deployment.md` | language-independent |
-| `design-architecture.md` | `templates/docs/design-architecture/{lang}.md` | per backend primary language |
-| `design-conventions.md` | `templates/docs/design-conventions/{lang}.md` | per backend primary language |
+| `design-domain-model.md` | `~/.airein/templates/docs/design-domain-model.md` | language-independent (DDD) |
+| `design-database.md` | `~/.airein/templates/docs/design-database.md` | language-independent |
+| `design-security.md` | `~/.airein/templates/docs/design-security.md` | language-independent |
+| `design-deployment.md` | `~/.airein/templates/docs/design-deployment.md` | language-independent |
+| `design-architecture.md` | `~/.airein/templates/docs/design-architecture/{lang}.md` | per backend primary language |
+| `design-conventions.md` | `~/.airein/templates/docs/design-conventions/{lang}.md` | per backend primary language |
 
 **Per-language template selection** (architecture & conventions):
 1. Read `quality.json` → `language.primary` (or detect from project files)
-2. Read `templates/language-profiles/{primary}.json` → check `role` field
-3. If `role` is `backend` or `fullstack` → use `templates/docs/design-architecture/{primary}.md` and `templates/docs/design-conventions/{primary}.md`
+2. Read `~/.airein/templates/language-profiles/{primary}.json` → check `role` field
+3. If `role` is `backend` or `fullstack` → use `~/.airein/templates/docs/design-architecture/{primary}.md` and `~/.airein/templates/docs/design-conventions/{primary}.md`
 4. If `role` is frontend-only or no matching language template exists → fall back to nearest match (e.g. JS frontend project → `typescript.md`); if none exists, write free-form
 5. Available languages: `javascript`, `typescript`, `python`, `java`, `go`, `rust`, `kotlin`
 
@@ -259,9 +275,9 @@ For l-feature and l-bugfix pipelines, the `design` step can be split into multip
 - For s/m **referencing** plans: single unified `design.md` linking to existing conventions/architecture, no splitting
 - Same pattern applies to `requirements` if needed: `requirements.md` + `requirements-{topic}.md`
 - **Templates**:
-  - `design-domain-model.md` — required template at `templates/docs/design-domain-model.md`
-  - `design-database.md` / `design-security.md` / `design-deployment.md` — required templates at `templates/docs/{name}.md` (language-independent)
-  - `design-architecture.md` / `design-conventions.md` — language-specific templates at `templates/docs/design-architecture/{lang}.md` and `templates/docs/design-conventions/{lang}.md`. Select by primary backend language (see "Per-language template selection" above).
+  - `design-domain-model.md` — required template at `~/.airein/templates/docs/design-domain-model.md`
+  - `design-database.md` / `design-security.md` / `design-deployment.md` — required templates at `~/.airein/templates/docs/{name}.md` (language-independent)
+  - `design-architecture.md` / `design-conventions.md` — language-specific templates at `~/.airein/templates/docs/design-architecture/{lang}.md` and `~/.airein/templates/docs/design-conventions/{lang}.md`. Select by primary backend language (see "Per-language template selection" above).
   - You MUST read the corresponding template before writing each sub-document and follow its structure.
 
 ## Rules

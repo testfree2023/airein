@@ -134,7 +134,7 @@ CORE_FILES=(
 )
 
 # 文档模板：airein 结构模板源（new-plan/archive-plan 读取生成 plan 文档），随 airein 升级强制覆盖
-# （~/.claude/templates/ 是 airein 安装的模板，非用户自定义；用户改的是项目 docs/*.md）
+# （P004 后 templates 只在内核 ~/.airein/templates/，不在 ~/.claude/templates/）
 TEMPLATE_FILES=(
   # -- docs (structural templates) --
   "templates/docs/requirements.md"

@@ -278,6 +278,17 @@ describe('P019: self-learning replaces self-improving', suite => {
     assertOk(!content.includes('self-improving'), 'init-project should not reference self-improving');
   });
 
+  suite.test('new-plan uses kernel template path not ~/.claude/templates', () => {
+    const content = readSkill('new-plan');
+    assertOk(content, 'new-plan/SKILL.md should exist');
+    if (!content) return;
+    assertOk(
+      !content.includes('~/.claude/templates/docs'),
+      'new-plan must not instruct reading ~/.claude/templates/docs',
+    );
+    assertOk(content.includes('~/.airein/templates/pipelines.json'), 'new-plan must reference kernel pipelines.json');
+  });
+
   suite.test('self-learning SKILL.md does not reference old ~/self-improving mechanism', () => {
     const content = readSkill('self-learning');
     if (!content) return;
