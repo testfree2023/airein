@@ -9,6 +9,7 @@
  *   node dashboard-projects.js register <project-path>
  *   node dashboard-projects.js unregister <project-path>
  *   node dashboard-projects.js list
+ *   node dashboard-projects.js prune
  */
 
 'use strict';
@@ -22,6 +23,13 @@ const REGISTRY_VERSION = 1;
 function defaultRegistryPath(homeDir) {
   const home = homeDir || os.homedir();
   return path.join(home, '.airein', 'dashboard', 'projects.json');
+}
+
+function resolveRegistryPath(opts = {}) {
+  if (opts.registryPath) return opts.registryPath;
+  const envPath = process.env.AIREIN_DASHBOARD_REGISTRY;
+  if (envPath && typeof envPath === 'string') return path.resolve(envPath);
+  return defaultRegistryPath();
 }
 
 function normalizeProjectPath(projectPath) {
@@ -58,7 +66,7 @@ function dedupeKey(projectPath) {
  * @param {{ registryPath?: string, name?: string }} [opts]
  */
 function registerProject(projectPath, opts = {}) {
-  const registryPath = opts.registryPath || defaultRegistryPath();
+  const registryPath = resolveRegistryPath(opts);
   const abs = normalizeProjectPath(projectPath);
   if (!fs.existsSync(abs)) {
     return { ok: false, error: 'project path not found: ' + abs };
@@ -93,15 +101,55 @@ function registerProject(projectPath, opts = {}) {
  * @returns {Array<{ path: string, name?: string, addedAt?: string, updatedAt?: string }>}
  */
 function listRegisteredProjects(opts = {}) {
-  const registryPath = opts.registryPath || defaultRegistryPath();
+  const registryPath = resolveRegistryPath(opts);
   const registry = readRegistry(registryPath);
   return registry.projects
     .map((p) => ({ ...p, path: normalizeProjectPath(p.path) }))
     .filter((p) => fs.existsSync(p.path));
 }
 
+/**
+ * All registry rows including missing paths (for tools UI).
+ * @param {{ registryPath?: string }} [opts]
+ */
+function listRegistryEntries(opts = {}) {
+  const registryPath = resolveRegistryPath(opts);
+  const registry = readRegistry(registryPath);
+  return registry.projects.map((p) => {
+    const abs = normalizeProjectPath(p.path);
+    return {
+      ...p,
+      path: abs,
+      exists: fs.existsSync(abs),
+    };
+  });
+}
+
+/**
+ * Remove registry rows whose project directory no longer exists.
+ * @param {{ registryPath?: string }} [opts]
+ */
+function pruneStaleProjects(opts = {}) {
+  const registryPath = resolveRegistryPath(opts);
+  const registry = readRegistry(registryPath);
+  const before = registry.projects.length;
+  const stale = [];
+  registry.projects = registry.projects.filter((p) => {
+    const abs = normalizeProjectPath(p.path);
+    if (!fs.existsSync(abs)) {
+      stale.push(abs);
+      return false;
+    }
+    p.path = abs;
+    return true;
+  });
+  const removed = before - registry.projects.length;
+  if (removed > 0) writeRegistry(registryPath, registry);
+  return { ok: true, removed, stale, remaining: registry.projects.length, registryPath };
+}
+
 function unregisterProject(projectPath, opts = {}) {
-  const registryPath = opts.registryPath || defaultRegistryPath();
+  const registryPath = resolveRegistryPath(opts);
   const key = dedupeKey(projectPath);
   const registry = readRegistry(registryPath);
   const before = registry.projects.length;
@@ -112,10 +160,13 @@ function unregisterProject(projectPath, opts = {}) {
 
 module.exports = {
   defaultRegistryPath,
+  resolveRegistryPath,
   readRegistry,
   writeRegistry,
   registerProject,
   listRegisteredProjects,
+  listRegistryEntries,
+  pruneStaleProjects,
   unregisterProject,
   dedupeKey,
 };
@@ -144,7 +195,12 @@ if (require.main === module) {
       process.stdout.write(JSON.stringify(listRegisteredProjects(), null, 2) + '\n');
       process.exit(0);
     }
-    process.stderr.write('usage: dashboard-projects.js register|unregister|list\n');
+    if (cmd === 'prune') {
+      const r = pruneStaleProjects();
+      process.stdout.write(JSON.stringify(r, null, 2) + '\n');
+      process.exit(0);
+    }
+    process.stderr.write('usage: dashboard-projects.js register|unregister|list|prune\n');
     process.exit(2);
   } catch (err) {
     process.stderr.write(String(err.message || err) + '\n');

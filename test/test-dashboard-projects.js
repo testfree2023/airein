@@ -13,6 +13,8 @@ const {
 const {
   registerProject,
   listRegisteredProjects,
+  listRegistryEntries,
+  pruneStaleProjects,
   unregisterProject,
   readRegistry,
   defaultRegistryPath,
@@ -92,6 +94,57 @@ describe('dashboard-projects: register + list', (suite) => {
 
   suite.test('defaultRegistryPath ends with dashboard/projects.json', () => {
     assertOk(defaultRegistryPath().replace(/\\/g, '/').endsWith('.airein/dashboard/projects.json'), 'default path');
+  });
+});
+
+describe('dashboard-projects: listRegistryEntries + prune', (suite) => {
+  suite.test('listRegistryEntries includes missing paths with exists=false', () => {
+    const { registryPath } = mkRegistryHome();
+    const proj = mkProject('e');
+    try {
+      registerProject(proj, { registryPath });
+      fs.rmSync(proj, { recursive: true, force: true });
+      const entries = listRegistryEntries({ registryPath });
+      assertEqual(entries.length, 1, 'one row');
+      assertEqual(entries[0].exists, false, 'marked missing');
+    } finally {
+      fs.rmSync(path.dirname(path.dirname(path.dirname(registryPath))), { recursive: true, force: true });
+    }
+  });
+
+  suite.test('pruneStaleProjects removes missing paths from registry file', () => {
+    const { registryPath } = mkRegistryHome();
+    const alive = mkProject('f');
+    const dead = mkProject('g');
+    try {
+      registerProject(alive, { registryPath });
+      registerProject(dead, { registryPath });
+      fs.rmSync(dead, { recursive: true, force: true });
+      const r = pruneStaleProjects({ registryPath });
+      assertOk(r.ok, 'prune ok');
+      assertEqual(r.removed, 1, 'one removed');
+      assertEqual(r.remaining, 1, 'one left');
+      const raw = readRegistry(registryPath);
+      assertEqual(raw.projects.length, 1, 'file updated');
+      assertEqual(path.resolve(raw.projects[0].path), path.resolve(alive), 'alive kept');
+    } finally {
+      fs.rmSync(path.dirname(path.dirname(path.dirname(registryPath))), { recursive: true, force: true });
+      fs.rmSync(alive, { recursive: true, force: true });
+    }
+  });
+
+  suite.test('pruneStaleProjects is noop when all paths exist', () => {
+    const { registryPath } = mkRegistryHome();
+    const proj = mkProject('h');
+    try {
+      registerProject(proj, { registryPath });
+      const r = pruneStaleProjects({ registryPath });
+      assertEqual(r.removed, 0, 'none removed');
+      assertEqual(readRegistry(registryPath).projects.length, 1, 'unchanged');
+    } finally {
+      fs.rmSync(path.dirname(path.dirname(path.dirname(registryPath))), { recursive: true, force: true });
+      fs.rmSync(proj, { recursive: true, force: true });
+    }
   });
 });
 

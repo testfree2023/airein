@@ -1717,6 +1717,52 @@ async function handleSaveProjectDoc(projectPath, docPath, req, res) {
   json(res, 200, { ok: true });
 }
 
+// ── Tools: project registry (P004) ───────────────────────
+
+function handleGetRegistryTools(res) {
+  const entries = dashboardProjects.listRegistryEntries();
+  const staleCount = entries.filter((e) => !e.exists).length;
+  json(res, 200, {
+    registryPath: dashboardProjects.resolveRegistryPath(),
+    entries,
+    total: entries.length,
+    staleCount,
+  });
+}
+
+async function handleRegisterRegistry(req, res) {
+  const body = await readBody(req);
+  if (!body) return json(res, 413, { error: 'Request body too large' });
+  let parsed;
+  try { parsed = JSON.parse(body); } catch { return json(res, 400, { error: 'Invalid JSON' }); }
+  if (!parsed.path || typeof parsed.path !== 'string') {
+    return json(res, 400, { error: 'Missing path' });
+  }
+  const result = dashboardProjects.registerProject(parsed.path, { name: parsed.name });
+  if (!result.ok) return json(res, 400, { error: result.error || 'Register failed' });
+  invalidateProjectsCache();
+  json(res, 200, result);
+}
+
+async function handleUnregisterRegistry(req, res) {
+  const body = await readBody(req);
+  if (!body) return json(res, 413, { error: 'Request body too large' });
+  let parsed;
+  try { parsed = JSON.parse(body); } catch { return json(res, 400, { error: 'Invalid JSON' }); }
+  if (!parsed.path || typeof parsed.path !== 'string') {
+    return json(res, 400, { error: 'Missing path' });
+  }
+  const result = dashboardProjects.unregisterProject(parsed.path);
+  invalidateProjectsCache();
+  json(res, 200, result);
+}
+
+function handlePruneRegistry(res) {
+  const result = dashboardProjects.pruneStaleProjects();
+  invalidateProjectsCache();
+  json(res, 200, result);
+}
+
 // ── Config handlers ───────────────────────────────────
 
 function handleGetConfig(projectPath, res) {
@@ -2060,6 +2106,20 @@ async function handler(req, res) {
       return handleGetHealth(res);
     }
 
+    // Tools: dashboard project registry
+    if (p === '/api/tools/registry' && method === 'GET') {
+      return handleGetRegistryTools(res);
+    }
+    if (p === '/api/tools/registry/register' && method === 'POST') {
+      return handleRegisterRegistry(req, res);
+    }
+    if (p === '/api/tools/registry/unregister' && method === 'POST') {
+      return handleUnregisterRegistry(req, res);
+    }
+    if (p === '/api/tools/registry/prune' && method === 'POST') {
+      return handlePruneRegistry(res);
+    }
+
     // Project docs: list
     const docsListMatch = p.match(/^\/api\/projects\/([^/]+)\/docs$/);
     if (docsListMatch && method === 'GET') {
@@ -2167,5 +2227,9 @@ module.exports = {
   handleGetPlans,
   handleGetPlan,
   migrateSingleFilePlan,
-  handleMigratePlan
+  handleMigratePlan,
+  handleGetRegistryTools,
+  handleRegisterRegistry,
+  handleUnregisterRegistry,
+  handlePruneRegistry,
 };

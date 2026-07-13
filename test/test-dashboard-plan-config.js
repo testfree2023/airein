@@ -308,6 +308,23 @@ describe('dashboard: P004 project registry (init-project → projects.json)', su
   });
 });
 
+describe('dashboard: tools page registry API', suite => {
+  const server = fs.readFileSync(SERVER_PATH, 'utf8');
+  const index = fs.readFileSync(INDEX_PATH, 'utf8');
+
+  suite.test('server exposes registry tools handlers', () => {
+    assertContains(server, 'handleGetRegistryTools', 'GET registry handler');
+    assertContains(server, 'handlePruneRegistry', 'prune handler');
+    assertContains(server, '/api/tools/registry', 'registry route');
+  });
+
+  suite.test('UI has tools nav and renderer', () => {
+    assertContains(index, 'href="#/tools"', 'tools nav link');
+    assertContains(index, 'renderToolsPage', 'tools page renderer');
+    assertContains(index, '/tools/registry', 'registry API call');
+  });
+});
+
 describe('dashboard: configForm aligned with quality-config DEFAULTS (P020)', suite => {
   const index = fs.readFileSync(INDEX_PATH, 'utf8');
 

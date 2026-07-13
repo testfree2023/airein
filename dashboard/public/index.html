@@ -357,6 +357,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; }
         <a href="#/templates" data-nav><span>📄</span> <span data-i18n="nav.templates">Templates</span></a>
         <a href="#/logs" data-nav><span>📋</span> <span data-i18n="nav.logs">Logs</span></a>
         <a href="#/health" data-nav><span>💚</span> <span data-i18n="nav.health">Health</span></a>
+        <a href="#/tools" data-nav><span>🔧</span> <span data-i18n="nav.tools">Tools</span></a>
         <div style="flex:1"></div>
         <a href="https://github.com/testfree2023/airein/blob/main/README.md" target="_blank"><span>📖</span> <span data-i18n="nav.docs">Docs</span></a>
         <a href="https://github.com/testfree2023/airein/issues" target="_blank"><span>🐛</span> <span data-i18n="nav.issues">Issues</span></a>
@@ -407,6 +408,7 @@ var I18N = {
     'nav.templates': 'Templates',
     'nav.logs': 'Logs',
     'nav.health': 'Health',
+    'nav.tools': 'Tools',
     'nav.selectProject': 'Select project...',
     'nav.langToggle': '中文',
     'error.pageNotFound': 'Page not found',
@@ -568,6 +570,27 @@ var I18N = {
     'health.platform': 'Platform',
     'health.recentErrors': 'Recent Errors',
     'health.error': 'Error loading health data',
+    'tools.heading': 'Tools',
+    'tools.registryHeading': 'Project Registry',
+    'tools.registryHint': 'Projects listed here appear on the dashboard. Stale paths (deleted directories) are hidden until pruned.',
+    'tools.registryPath': 'Registry file',
+    'tools.pathPlaceholder': 'Absolute project path',
+    'tools.register': 'Register',
+    'tools.unregister': 'Remove',
+    'tools.prune': 'Prune stale',
+    'tools.pruneConfirm': 'Remove {count} stale registry entry(ies) whose directories no longer exist?',
+    'tools.refresh': 'Refresh',
+    'tools.empty': 'No registered projects',
+    'tools.exists': 'OK',
+    'tools.missing': 'Missing',
+    'tools.staleSummary': '{count} stale',
+    'tools.pruneDone': 'Removed {count} stale entry(ies)',
+    'tools.registerDone': 'Project registered',
+    'tools.unregisterDone': 'Removed from registry',
+    'tools.colName': 'Name',
+    'tools.colPath': 'Path',
+    'tools.colStatus': 'Status',
+    'tools.colActions': 'Actions',
     'approval.phaseApproved': '{phase} approved',
     'approval.approvalFailed': 'Approval failed',
     'progress.heading': 'Progress: {plan}',
@@ -595,6 +618,7 @@ var I18N = {
     'nav.templates': '模板',
     'nav.logs': '日志',
     'nav.health': '健康',
+    'nav.tools': '工具',
     'nav.selectProject': '选择项目...',
     'nav.langToggle': 'EN',
     'error.pageNotFound': '页面未找到',
@@ -756,6 +780,27 @@ var I18N = {
     'health.platform': '平台',
     'health.recentErrors': '最近错误',
     'health.error': '加载健康数据出错',
+    'tools.heading': '工具',
+    'tools.registryHeading': '项目注册表',
+    'tools.registryHint': '注册的项目会出现在面板列表中。目录已删除的条目在清理前仍保留在注册表文件中（面板已自动隐藏）。',
+    'tools.registryPath': '注册表文件',
+    'tools.pathPlaceholder': '项目绝对路径',
+    'tools.register': '注册',
+    'tools.unregister': '移除',
+    'tools.prune': '清理失效',
+    'tools.pruneConfirm': '从注册表删除 {count} 个目录已不存在的项目？',
+    'tools.refresh': '刷新',
+    'tools.empty': '暂无注册项目',
+    'tools.exists': '正常',
+    'tools.missing': '缺失',
+    'tools.staleSummary': '{count} 个失效',
+    'tools.pruneDone': '已清理 {count} 个失效条目',
+    'tools.registerDone': '项目已注册',
+    'tools.unregisterDone': '已从注册表移除',
+    'tools.colName': '名称',
+    'tools.colPath': '路径',
+    'tools.colStatus': '状态',
+    'tools.colActions': '操作',
     'approval.phaseApproved': '{phase} 已审批',
     'approval.approvalFailed': '审批失败',
     'progress.heading': '任务进展: {plan}',
@@ -837,6 +882,7 @@ function route() {
   if (hash.indexOf('/templates/') === 0) return renderTemplateEdit($app, decodeURIComponent(hash.slice('/templates/'.length)));
   if (hash === '/logs') return renderLogs($app);
   if (hash === '/health') return renderHealthPage($app);
+  if (hash === '/tools') return renderToolsPage($app);
   if (hash.indexOf('/progress/') === 0) return renderProgress($app, decodeURIComponent(hash.slice('/progress/'.length)));
   if (hash === '/config/current' || hash === '/config/current/') {
     // Handle "current" reference for config
@@ -2698,6 +2744,130 @@ function renderLogs($app) {
     document.removeEventListener('visibilitychange', logVisibilityHandler);
   };
   window.addEventListener('beforeunload', logBeforeUnloadHandler);
+}
+
+// P004: Tools page — project registry management
+function renderToolsPage($app) {
+  updateNavActive('tools');
+
+  var headerMeta = document.getElementById('page-meta');
+  if (headerMeta) headerMeta.innerHTML = '';
+
+  $app.innerHTML =
+    '<div style="margin-bottom:1rem"><a href="#/" class="btn btn-sm">' + t('common.back') + '</a></div>' +
+    '<h2 style="margin-bottom:.5rem">' + t('tools.registryHeading') + '</h2>' +
+    '<p style="color:var(--text-muted);font-size:.9rem;margin-bottom:1rem">' + t('tools.registryHint') + '</p>' +
+    '<div class="card" style="margin-bottom:1rem">' +
+      '<div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.5rem">' + t('tools.registryPath') + '</div>' +
+      '<div id="tools-registry-file" style="font-family:monospace;font-size:.85rem;word-break:break-all">—</div>' +
+      '<div id="tools-stale-summary" style="margin-top:.75rem;font-size:.85rem"></div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:1rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">' +
+      '<input type="text" id="tools-register-path" placeholder="' + esc(t('tools.pathPlaceholder')) + '" style="flex:1;min-width:240px;padding:.5rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text)">' +
+      '<button class="btn btn-primary" id="tools-btn-register">' + t('tools.register') + '</button>' +
+      '<button class="btn" id="tools-btn-prune">' + t('tools.prune') + '</button>' +
+      '<button class="btn btn-sm" id="tools-btn-refresh">' + t('tools.refresh') + '</button>' +
+    '</div>' +
+    '<div id="tools-registry-list" class="card"><div style="text-align:center;padding:2rem;color:var(--text-muted)">' + t('common.loading') + '...</div></div>';
+
+  function loadRegistry() {
+    api('GET', '/tools/registry').then(function(data) {
+      var fileEl = document.getElementById('tools-registry-file');
+      var staleEl = document.getElementById('tools-stale-summary');
+      var listEl = document.getElementById('tools-registry-list');
+      if (!listEl) return;
+
+      if (fileEl) fileEl.textContent = data.registryPath || '—';
+      if (staleEl) {
+        staleEl.innerHTML = data.staleCount
+          ? '<span style="color:var(--warning)">' + esc(t('tools.staleSummary', { count: data.staleCount })) + '</span>'
+          : '';
+      }
+
+      var entries = data.entries || [];
+      if (!entries.length) {
+        listEl.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted)">' + t('tools.empty') + '</div>';
+        return;
+      }
+
+      listEl.innerHTML =
+        '<table style="width:100%;border-collapse:collapse;font-size:.9rem">' +
+        '<thead><tr style="text-align:left;border-bottom:1px solid var(--border)">' +
+          '<th style="padding:.5rem">' + t('tools.colName') + '</th>' +
+          '<th style="padding:.5rem">' + t('tools.colPath') + '</th>' +
+          '<th style="padding:.5rem">' + t('tools.colStatus') + '</th>' +
+          '<th style="padding:.5rem">' + t('tools.colActions') + '</th>' +
+        '</tr></thead><tbody>' +
+        entries.map(function(entry) {
+          var statusBadge = entry.exists
+            ? '<span class="badge badge-simple">' + t('tools.exists') + '</span>'
+            : '<span class="badge" style="background:var(--warning);color:#000">' + t('tools.missing') + '</span>';
+          return '<tr style="border-bottom:1px solid var(--border-hover)">' +
+            '<td style="padding:.5rem;vertical-align:top">' + esc(entry.name || '—') + '</td>' +
+            '<td style="padding:.5rem;font-family:monospace;font-size:.8rem;word-break:break-all;vertical-align:top">' + esc(entry.path) + '</td>' +
+            '<td style="padding:.5rem;vertical-align:top">' + statusBadge + '</td>' +
+            '<td style="padding:.5rem;vertical-align:top">' +
+              '<button class="btn btn-sm tools-unregister" data-path="' + esc(entry.path) + '">' + t('tools.unregister') + '</button>' +
+            '</td></tr>';
+        }).join('') +
+        '</tbody></table>';
+
+      listEl.querySelectorAll('.tools-unregister').forEach(function(btn) {
+        btn.onclick = function() {
+          var p = btn.getAttribute('data-path');
+          api('POST', '/tools/registry/unregister', { path: p }).then(function(r) {
+            if (r.error) { toast(r.error, 'error'); return; }
+            toast(t('tools.unregisterDone'), 'success');
+            state.projects = [];
+            loadRegistry();
+          });
+        };
+      });
+    }).catch(function(err) {
+      var listEl = document.getElementById('tools-registry-list');
+      if (listEl) {
+        listEl.innerHTML = '<div style="color:var(--error);padding:1rem">' + esc(err.message || 'Error') + '</div>';
+      }
+    });
+  }
+
+  var registerBtn = document.getElementById('tools-btn-register');
+  if (registerBtn) {
+    registerBtn.onclick = function() {
+      var input = document.getElementById('tools-register-path');
+      var p = input && input.value ? input.value.trim() : '';
+      if (!p) { toast(t('tools.pathPlaceholder'), 'error'); return; }
+      api('POST', '/tools/registry/register', { path: p }).then(function(r) {
+        if (r.error) { toast(r.error, 'error'); return; }
+        toast(t('tools.registerDone'), 'success');
+        if (input) input.value = '';
+        state.projects = [];
+        loadRegistry();
+      });
+    };
+  }
+
+  var pruneBtn = document.getElementById('tools-btn-prune');
+  if (pruneBtn) {
+    pruneBtn.onclick = function() {
+      api('GET', '/tools/registry').then(function(data) {
+        var count = data.staleCount || 0;
+        if (!count) { loadRegistry(); return; }
+        if (!confirm(t('tools.pruneConfirm', { count: count }))) return;
+        api('POST', '/tools/registry/prune').then(function(r) {
+          if (r.error) { toast(r.error, 'error'); return; }
+          toast(t('tools.pruneDone', { count: r.removed || 0 }), 'success');
+          state.projects = [];
+          loadRegistry();
+        });
+      });
+    };
+  }
+
+  var refreshBtn = document.getElementById('tools-btn-refresh');
+  if (refreshBtn) refreshBtn.onclick = loadRegistry;
+
+  loadRegistry();
 }
 
 // P026: 服务健康页面

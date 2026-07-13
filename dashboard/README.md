@@ -43,7 +43,10 @@ Manual register / list:
 ```bash
 node ~/.airein/scripts/lib/dashboard-projects.js register /path/to/project
 node ~/.airein/scripts/lib/dashboard-projects.js list
+node ~/.airein/scripts/lib/dashboard-projects.js prune   # remove stale paths from projects.json
 ```
+
+Or use the **Tools** page in the dashboard (`#/tools`): view registry, register/unregister paths, prune stale entries.
 
 `bash start.sh --lan` binds `0.0.0.0` and **automatically allows** hostname + local IPv4 addresses in Host/Origin checks (no manual `allowedHosts` required for LAN access).
 
