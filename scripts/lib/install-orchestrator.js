@@ -55,6 +55,8 @@ function copyTreeSkipping(srcRoot, destRoot, relPrefix, skipRels) {
       fs.mkdirSync(dest, { recursive: true });
       for (const name of fs.readdirSync(src)) {
         if (name === '.git') continue;
+        // P004：Dashboard 独立安装到 ~/dashboard，不复制进内核 ~/.airein/dashboard
+        if (name === 'dashboard' && !rel) continue;
         const childRel = rel ? `${rel}/${name}` : name;
         walk(path.join(src, name), path.join(dest, name), childRel);
       }

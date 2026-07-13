@@ -68,6 +68,9 @@ while IFS= read -r -d '' file; do
 done < <(find "$DASHBOARD_SRC" -type f -print0)
 
 echo "  ✅ 复制了 $COPIED 个文件到 $DASHBOARD_DIR"
+echo ""
+echo "  📌 请始终使用: bash $DASHBOARD_DIR/start.sh"
+echo "     （不要用 ~/.airein/dashboard/start.sh — 内核不同步 dashboard 副本）"
 
 # ── 写入内核路径（P004：lib 在 ~/.airein，非 ~/.claude）────────────────
 KERNEL_ROOT="$HOME/.airein"
