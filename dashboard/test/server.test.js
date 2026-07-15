@@ -682,6 +682,15 @@ describe('Static asset serving', suite => {
     assertContains(res.body, 'resolveDocLink', 'serves doc-links.js body');
   });
 
+  suite.test('GET /template-categories.js → 200 + classify export', () => {
+    const mod = require(SERVER_PATH);
+    const res = mockRes();
+    mod.handler(mockReq('GET', '/template-categories.js'), res);
+    assertEqual(res.status, 200, '200 for template-categories.js');
+    assertMatch(res.headers['Content-Type'] || '', /javascript/i, 'JS content-type');
+    assertContains(res.body, 'classifyTemplateCategory', 'serves classifier');
+  });
+
   suite.test('GET /missing.js → 404', () => {
     const mod = require(SERVER_PATH);
     const res = mockRes();

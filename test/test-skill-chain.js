@@ -47,6 +47,12 @@ describe('F1: Skill chain — new-plan', suite => {
     assertOk(!content.includes('不要在同一轮回复中同时设 grilling: completed 和创建文档'), 'grilling pause rule removed');
     assertContains(content, 'no mandatory pause', 'allows continuation after grilling');
   });
+
+  suite.test('new-plan treats requirements as PRD with resolveRequirementsTemplate', () => {
+    assertContains(content, '产品需求说明书', 'PRD positioning');
+    assertContains(content, 'resolveRequirementsTemplate', 'tier resolve API');
+    assertContains(content, 'templates/docs/requirements/m.md', 'm-tier path');
+  });
 });
 
 describe('F1: Skill chain — writing-plans', suite => {

@@ -386,6 +386,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; }
 
 <!-- Shared pure-logic modules (also node-testable). Loaded before main script. -->
 <script src="doc-links.js"></script>
+<script src="template-categories.js"></script>
 
 <script>
 // ── State ──────────────────────────────────────
@@ -2161,20 +2162,10 @@ function renderTemplateList($app) {
       // Add all templates to 'all' category
       categories['all'].push(tpl);
 
-      if (tpl.path.indexOf('docs/') === 0) {
-        var name = tpl.path.slice(5); // remove 'docs/'
-        if (name.indexOf('design-') === 0 || name === 'tasks.md' || name === 'requirements.md' || name === 'test-plan.md' || name === 'deployment.md' || name === 'design.md') {
-          categories['plan-docs'].push(tpl);
-        } else {
-          categories['project-docs'].push(tpl);
-        }
-      } else if (tpl.path.indexOf('language-profiles/') === 0) {
-        categories['language-profiles'].push(tpl);
-      } else if (tpl.path === 'quality.json' || tpl.path === 'pipelines.json') {
-        categories['config'].push(tpl);
-      } else if (tpl.path.indexOf('rules/') === 0) {
-        categories['rules'].push(tpl);
-      }
+      var cat = typeof classifyTemplateCategory === 'function'
+        ? classifyTemplateCategory(tpl.path)
+        : null;
+      if (cat && categories[cat]) categories[cat].push(tpl);
     });
 
     // Default to 'all' category (show all templates)
@@ -2225,8 +2216,11 @@ function renderTemplateList($app) {
           : '';
         return '<div style="margin-bottom:1.5rem"><h3 style="margin-bottom:.5rem;font-size:.95rem;color:var(--text-muted)">' + esc(dir) + '</h3>' +
         '<div class="grid grid-2">' + groups[dir].map(function(f) {
+          var title = typeof templateDisplayName === 'function'
+            ? templateDisplayName(f.path)
+            : f.path.split('/').pop();
           return '<a href="#/templates/' + esc(f.path) + '" class="card" style="text-decoration:none;color:inherit">' +
-            '<h3>' + esc(f.path.split('/').pop()) + '</h3>' +
+            '<h3>' + esc(title) + '</h3>' +
             '<div class="meta">' + t('templates.fileMeta', {size: f.size, modified: f.modified}) + '</div>' +
           '</a>';
         }).join('') + addBtn + '</div></div>';
