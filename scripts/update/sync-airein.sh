@@ -72,6 +72,7 @@ CORE_FILES=(
   "scripts/lib/package-manager.js"
   "scripts/lib/session-aliases.js"
   "scripts/lib/design-doc-resolver.js"
+  "scripts/lib/requirements-template.js"  # P005: resolve s/m/l PRD template by pipeline
   "scripts/lib/conventions-shell.js"
   "scripts/lib/self-learning.js"
   "scripts/lib/runtime-metrics.js"      # dashboard/server.js requires it (omission crashed dashboard on deploy)
@@ -138,7 +139,10 @@ CORE_FILES=(
 # （P004 后 templates 只在内核 ~/.airein/templates/，不在 ~/.claude/templates/）
 TEMPLATE_FILES=(
   # -- docs (structural templates) --
-  "templates/docs/requirements.md"
+  "templates/docs/requirements.md"           # P005: compat stub (not authoritative PRD)
+  "templates/docs/requirements/s.md"       # P005: S-tier PRD template
+  "templates/docs/requirements/m.md"       # P005: M-tier PRD template
+  "templates/docs/requirements/l.md"       # P005: L-tier PRD template
   "templates/docs/design.md"
   "templates/docs/design-domain-model.md"  # LLD 领域模型子文档
   "templates/docs/design-database.md"      # 数据库设计子文档（语言无关）

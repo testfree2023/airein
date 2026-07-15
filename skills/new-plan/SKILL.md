@@ -222,7 +222,33 @@ verification tasks — backward compatible, plan creation continues normally.
 
 Read structural templates from `~/.airein/templates/docs/{doc-type}.md` for guidance on document structure. Fill each document with plan-specific content based on the communication phase output.
 
-**Top-level templates** (for `design.md`, `requirements.md`, `tasks.md`, etc.): `requirements.md`, `design.md`, `test-plan.md`, `deployment.md`, `tasks.md`, `progress.md`.
+### Requirements = 产品需求说明书（PRD）
+
+When the pipeline includes `requirements`, the plan file is still named `requirements.md`, but content MUST be a **产品需求说明书（PRD）**, not a thin summary of Problem + WHEN/THEN.
+
+**Before writing `requirements.md`**, resolve the tier template via the kernel lib (after sync: `~/.airein/scripts/lib/requirements-template.js`; in-repo: `scripts/lib/requirements-template.js`):
+
+```js
+const { resolveRequirementsTemplate } = require('…/scripts/lib/requirements-template.js');
+resolveRequirementsTemplate('m-feature');
+// → { applicable: true, tier: 'm', relativePath: 'templates/docs/requirements/m.md', fallback: false }
+```
+
+Then read `~/.airein/{relativePath}` (or the in-repo `templates/docs/requirements/{s|m|l}.md`) and fill the plan file.
+
+| Pipeline prefix | Template |
+|-----------------|----------|
+| `s-*` (and docs include requirements) | `templates/docs/requirements/s.md` |
+| `m-*` | `templates/docs/requirements/m.md` |
+| `l-*` | `templates/docs/requirements/l.md` |
+| Custom name with requirements step | **m.md** (`fallback: true`) |
+| Docs omit requirements (e.g. `s-bugfix`, `hotfix`) | skip — do not create requirements |
+
+**Negative constraints (m / l):** Do **not** ship only a Problem Statement plus a few WHEN/THEN lines. Required depth: roles, scenarios, functional breakdown (User Story or equivalent), and NFR where the tier template asks for them. For **l**, also include success metrics and multi-scenario coverage.
+
+**Compat:** `~/.airein/templates/docs/requirements.md` is a **stub only** — not the authoritative structure.
+
+**Top-level templates** (other docs): `design.md`, `test-plan.md`, `deployment.md`, `tasks.md`, `progress.md`. Requirements use `templates/docs/requirements/{s|m|l}.md` via `resolveRequirementsTemplate` (above).
 
 **Design sub-document templates** (used when splitting `design.md` for l-feature / l-bugfix):
 

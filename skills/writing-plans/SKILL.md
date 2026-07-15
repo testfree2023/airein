@@ -15,6 +15,8 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Read context from:** `docs/plans/P{NNN}-{slug}/requirements.md` and `design.md` (if exists)
 
+**Requirements = PRD:** Plan `requirements.md` is a 产品需求说明书, filled from `templates/docs/requirements/{s|m|l}.md` (see `resolveRequirementsTemplate`). Do not use the old thin summary shape. Pointer: `skills/writing-plans/requirements-template.md`.
+
 **Write output to:** `docs/plans/P{NNN}-{slug}/tasks.md`
 
 ## Scope Check
