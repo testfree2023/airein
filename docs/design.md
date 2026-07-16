@@ -124,7 +124,7 @@ Session 启动
 5 条铁律，定义于 `rules/00-iron-rules.md`：
 
 1. **禁止无测试的生产代码** — 源文件变更必须有对应测试。
-2. **测试必须先于实现** — 找不到失败测试不写实现。
+2. **验收测试必须绑定且可证明** — 无绑定验收不得写生产代码；无绿灯不得宣称完成；bugfix 先复现 RED。
 3. **每完成 task 检查 perTaskReview** — 开启则 dispatch code-reviewer。
 4. **worktreeIsolation 启用时重构必须 EnterWorktree**。
 5. **铁律不可通过用户确认豁免** — 用户要求跳过也必须拒绝。
@@ -133,12 +133,12 @@ Session 启动
 
 ## Skill 体系
 
-12 个内置 skill：
+10 个内置 skill：
 
 | 类别 | Skill | 用途 |
 |------|-------|------|
 | 项目管理 | init-project / new-plan / next / status / log-change / archive-plan | 项目生命周期 |
-| 开发流程 | writing-plans / tdd-workflow / verification-loop | spec → TDD → 验证 |
+| 开发流程 | tdd | 规格绑定 TDD + 计划 `tests.md` 台账（计划由 new-plan 承担） |
 | 审查诊断 | stuck-recovery / self-learning / model-guide | 失败恢复 / 自学 / 模型选型 |
 
 ### Plan Pipeline 体系

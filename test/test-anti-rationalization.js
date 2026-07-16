@@ -2,17 +2,18 @@
  * Test: Anti-Rationalization Table + Verification Gate (F2)
  *
  * Verifies:
- *   - tdd-workflow SKILL.md contains the anti-rationalization table with ≥8 entries
+ *   - skills/tdd/SKILL.md contains the anti-rationalization table with ≥8 entries
  *   - Red Flags section exists
  *   - Iron Law statement exists
- *   - verification-loop has 5-step gate with forbidden phrases
- *   - verification-loop has claim/evidence table
+ *   - rules/20-workflow.md has Verification Before Completion gate
  */
 
-const { describe, assertOk, assertContains, readSkill } = require('./helpers');
+const fs = require('fs');
+const path = require('path');
+const { describe, assertOk, assertContains, readSkill, projectRoot } = require('./helpers');
 
-describe('F2: Anti-rationalization table (tdd-workflow)', suite => {
-  const content = readSkill('tdd-workflow');
+describe('F2: Anti-rationalization table (tdd)', suite => {
+  const content = readSkill('tdd');
   if (!content) return;
 
   suite.test('has "Common Rationalizations" heading', () => {
@@ -53,9 +54,15 @@ describe('F2: Anti-rationalization table (tdd-workflow)', suite => {
   });
 });
 
-describe('F2: Verification Before Completion gate (verification-loop)', suite => {
-  const content = readSkill('verification-loop');
-  if (!content) return;
+describe('F2: Verification Before Completion gate (rules/20-workflow.md)', suite => {
+  const content = fs.readFileSync(
+    path.join(projectRoot(), 'rules', '20-workflow.md'),
+    'utf8',
+  );
+
+  suite.test('has Verification Before Completion heading', () => {
+    assertContains(content, 'Verification Before Completion', 'gate heading');
+  });
 
   suite.test('has 5-step gate procedure', () => {
     assertContains(content, '**IDENTIFY**', 'step 1');
@@ -73,7 +80,6 @@ describe('F2: Verification Before Completion gate (verification-loop)', suite =>
   });
 
   suite.test('has claim/evidence table', () => {
-    // Table should have rows mapping claims to required evidence
     assertContains(content, '声明', 'claim column');
     assertContains(content, '必须有', 'required evidence column');
     assertContains(content, '不够的', 'insufficient evidence column');

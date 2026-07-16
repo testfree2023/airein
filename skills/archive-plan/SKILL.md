@@ -45,10 +45,17 @@ Read all documents in the plan directory `docs/plans/{planId}/`:
 - `progress.md` — task stats, approval state
 - `requirements.md` — if exists
 - `design.md` + `design-*.md` sub-documents — if exists
-- `test-plan.md` — if exists
+- `test-plan.md` — strategy doc if exists (l-*)
+- `tests.md` — **plan test ledger** (tdd skill); see archive rules below
 - `deployment.md` — if exists
 - `tasks.md` — if exists
 - Any other `.md` files in the plan directory
+
+**`tests.md` archive rules（防负债）：**
+- **Do NOT** dump the whole ledger into `docs/test-plan.md`
+- Leave `tests.md` in the plan directory as historical working record
+- From the ledger, only merge rows that are still **product-invariant Critical** into the sparse Critical Acceptance Index in project `docs/test-plan.md` (path + one-line behavior + command)
+- Merge strategy deltas from plan `test-plan.md` (if any) into project `docs/test-plan.md` Strategy sections only
 
 ### Step 2: Read existing project docs
 
@@ -211,7 +218,7 @@ ls docs/*/*.md  # 子目录如 adr/、steering/ 等
 |---------|---------|------|
 | `requirements.md` | prd.md、product.md、PRD.md 等 | 所有需求类文档 |
 | `design.md` | architecture.md、conventions.md、cc-context-loading-principles.md、dashboard-security.md 等 | 所有设计类文档 |
-| `test-plan.md` | *-e2e-report.md、test.md、testing.md 等 | 所有测试类文档 |
+| `test-plan.md` | *-e2e-report.md、testing.md、旧测试策略文档等 | 策略/报告类；**不含**计划台账 `docs/plans/*/tests.md`（台账不搬家） |
 | `deployment.md` | deploy.md、operations.md、运维.md 等 | 所有部署类文档 |
 
 **不处理的文档**（保持原样）：

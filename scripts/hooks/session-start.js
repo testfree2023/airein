@@ -94,7 +94,13 @@ async function main() {
     const globalSettingsPath = path.join(getClaudeDir(), 'settings.json');
     if (!hasExpectedAireinHooks(globalSettingsPath)) {
       const { execSync } = require('child_process');
-      execSync(`bash "${path.join(getClaudeDir(), 'scripts', 'merge-hooks.sh')}" "${getClaudeDir()}" "${getProjectDir()}"`, { stdio: 'pipe', timeout: 10000 });
+      const kernelRoot = (() => {
+        const airein = path.join(require('os').homedir(), '.airein');
+        if (fs.existsSync(path.join(airein, 'scripts', 'merge-hooks.js'))) return airein;
+        return getClaudeDir();
+      })();
+      const mergeJs = path.join(kernelRoot, 'scripts', 'merge-hooks.js');
+      execSync(`${JSON.stringify(process.execPath)} ${JSON.stringify(mergeJs)} ${JSON.stringify(path.join(kernelRoot, 'hooks', 'hooks.json'))} ${JSON.stringify(kernelRoot)} ${JSON.stringify(path.join(getClaudeDir(), 'settings.json'))}`, { stdio: 'pipe', timeout: 10000 });
       aireinLog('info', 'session-start', 'Self-healed hooks into global settings.json');
     }
   } catch (err) {

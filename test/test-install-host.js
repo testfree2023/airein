@@ -391,7 +391,7 @@ describe('installHost: delivery unified', (suite) => {
       const commandsPath = path.join(tmp, '.cursor', 'commands');
       assertOk(fs.lstatSync(skillsPath).isSymbolicLink(), 'skills symlink');
       assertOk(fs.lstatSync(commandsPath).isSymbolicLink(), 'commands symlink');
-      assertOk(fs.existsSync(path.join(skillsPath, 'tdd-workflow', 'SKILL.md')), 'skill via link');
+      assertOk(fs.existsSync(path.join(skillsPath, 'tdd', 'SKILL.md')), 'skill via link');
       assertOk(
         fs.readdirSync(path.join(tmp, '.cursor', 'rules')).some((f) => f.endsWith('.mdc')),
         'rules mdc files',

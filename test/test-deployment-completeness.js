@@ -19,8 +19,8 @@ const nativeSkills = fs.readdirSync(skillsDir)
   .sort();
 
 describe('Deployment completeness: every native skill in both paths', suite => {
-  suite.test('skills/ has the 12 expected native skills', () => {
-    assertOk(nativeSkills.length === 12, `expected 12 native skills, got ${nativeSkills.length}: ${nativeSkills.join(', ')}`);
+  suite.test('skills/ has the 10 expected native skills', () => {
+    assertOk(nativeSkills.length === 10, `expected 10 native skills, got ${nativeSkills.length}: ${nativeSkills.join(', ')}`);
   });
 
   suite.test('sync-airein.sh SKILL_DIRS lists every native skill', () => {

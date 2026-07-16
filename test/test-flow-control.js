@@ -5,7 +5,7 @@
  *   - rules/00-iron-rules.md has 铁律 section with 5 iron rules
  *   - rules/20-workflow.md 流程豁免 table has 不可豁免 column
  *   - quality-config DEFAULTS.flowControl has both switches, both false
- *   - tdd-workflow has Step 7.5 conditional review logic
+ *   - tdd skill has Step 7.5 conditional review logic
  *   - rules/20-workflow.md has worktree isolation section referencing flowControl
  *
  * P017: 铁律/流程豁免/分支策略 content relocated CLAUDE.md → rules/00-iron-rules.md + rules/20-workflow.md.
@@ -30,8 +30,8 @@ describe('Iron Rules in rules/00-iron-rules.md', suite => {
     assertContains(RULES_00, '禁止无测试的生产代码', 'iron rule 1');
   });
 
-  suite.test('铁律 2: tests before implementation', () => {
-    assertContains(RULES_00, '测试必须先于实现', 'iron rule 2');
+  suite.test('铁律 2: bound acceptance tests + prove green', () => {
+    assertContains(RULES_00, '验收测试必须绑定且可证明', 'iron rule 2');
   });
 
   suite.test('铁律 3: perTaskReview check', () => {
@@ -60,29 +60,29 @@ describe('F3: Per-task review switch', suite => {
     assertEqual(DEFAULTS.flowControl.perTaskReview, false, 'defaults to false');
   });
 
-  suite.test('tdd-workflow has Step 7.5 section', () => {
-    const content = readSkill('tdd-workflow');
+  suite.test('tdd has Step 7.5 section', () => {
+    const content = readSkill('tdd');
     if (!content) return;
     assertContains(content, '7.5', 'step 7.5 reference');
   });
 
   suite.test('Step 7.5 is conditional on quality.json', () => {
-    const content = readSkill('tdd-workflow');
+    const content = readSkill('tdd');
     if (!content) return;
     assertContains(content, 'perTaskReview', 'references perTaskReview config');
     assertContains(content, 'code-reviewer', 'mentions code-reviewer subagent');
   });
 
   suite.test('Step 7.5 mentions default behavior (disabled)', () => {
-    const content = readSkill('tdd-workflow');
+    const content = readSkill('tdd');
     if (!content) return;
     assertContains(content, 'Default', 'documents default behavior');
   });
 
-  suite.test('writing-plans also references perTaskReview', () => {
-    const content = readSkill('writing-plans');
+  suite.test('tdd skill documents perTaskReview', () => {
+    const content = readSkill('tdd');
     if (!content) return;
-    assertContains(content, 'perTaskReview', 'plan handoff mentions perTaskReview');
+    assertContains(content, 'perTaskReview', 'tdd mentions perTaskReview');
   });
 });
 

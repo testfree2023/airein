@@ -98,7 +98,7 @@ function validateCommands() {
       }
     }
 
-    // Check skill directory references (e.g., "skills/tdd-workflow/")
+    // Check skill directory references (e.g., "skills/tdd/")
     const skillRefs = contentNoCodeBlocks.matchAll(/skills\/([a-z][-a-z0-9]*)\//g);
     for (const match of skillRefs) {
       const refName = match[1];

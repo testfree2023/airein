@@ -128,6 +128,7 @@ CORE_FILES=(
   "scripts/lib/stdin-normalize.js"     # K3 stdin → CC schema normalization
   "scripts/lib/host-adapter.js"        # K3 mapHookResult pure fn (block semantic mapping)
   "scripts/lib/hook-timing.js"         # hook duration observability (run-with-flags)
+  "scripts/lib/cc-hook-command.js"    # win32: bash run-hook.sh -> node direct (avoid WSL leak)
   "scripts/hooks/host/host-runner.js"  # host entry IO runner (readStdin→norm→spawn→map)
   "scripts/hooks/host/cursor.js"       # CUR entry (camelCase events + permission:deny)
   "scripts/hooks/host/codex.js"        # CDX entry (stdin cwd resolve + permissionDecision)
@@ -149,6 +150,7 @@ TEMPLATE_FILES=(
   "templates/docs/design-security.md"      # 安全设计子文档（语言无关）
   "templates/docs/design-deployment.md"    # 部署设计子文档（语言无关）
   "templates/docs/test-plan.md"
+  "templates/docs/tests.md"            # plan-level test ledger (tdd skill)
   "templates/docs/deployment.md"
   "templates/docs/tasks.md"
   "templates/docs/progress.md"
@@ -183,9 +185,7 @@ SKILL_DIRS=(
   "stuck-recovery"
   "model-guide"
   "archive-plan"
-  "writing-plans"
-  "tdd-workflow"
-  "verification-loop"
+  "tdd"
   "self-learning"
 )
 

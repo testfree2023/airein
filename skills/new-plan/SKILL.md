@@ -321,7 +321,7 @@ For l-feature and l-bugfix pipelines, the `design` step can be split into multip
 
 Pipeline 全部文档审批通过后，唯一允许的下一步：
 
-- **直接进入 `tdd-workflow` skill** 开始 TDD 实现
+- **直接进入 `tdd` skill** 开始规格绑定实现（并维护计划 `tests.md` 台账）
 - **如果计划被否决** → 终止，不进入任何 skill
 
 禁止：跳过计划阶段直接编码。禁止：创建计划后不做任何后续动作。

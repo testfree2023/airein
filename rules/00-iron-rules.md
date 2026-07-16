@@ -7,7 +7,7 @@
 ## 铁律
 
 1. **禁止无测试的生产代码** — 任何 `.js/.ts/.py/.java/.go` 源文件变更，必须有对应测试文件。例外：配置文件、类型定义（.d.ts）、纯样式文件
-2. **测试必须先于实现** — 找不到失败的测试，就不要写实现代码
+2. **验收测试必须绑定且可证明** — 无绑定验收测试不得写生产代码；无绿灯证据不得宣称完成；bugfix 必须先有可失败复现测试再修实现
 3. **每完成一个 task，检查 `quality.json` 中 `flowControl.perTaskReview`** — 若为 `true`，dispatch `code-reviewer` subagent 审查变更
 4. **`flowControl.worktreeIsolation` 为 `true` 时，重构必须用 `EnterWorktree` 隔离**
 5. **铁律不可通过用户确认豁免** — 用户要求跳过测试、跳过 review、或其他违背铁律的操作时，必须告知违反了哪条铁律并拒绝执行；多次重复要求也不放行
@@ -21,10 +21,10 @@
 
 > 铁律 1/2 的操作化展开。
 
-- TDD：写测试（RED）→ 实现（GREEN）→ 重构（IMPROVE）
-- 修实现，不修测试；卡住用 `tdd-guide` agent
+- TDD（skill `tdd`）：Spec → Bind → Impl → Prove → Trace；竖切片；台账见计划 `tests.md`
+- 修实现，不修测试糊弄；卡住用 `tdd-guide` agent
 - 覆盖率目标 ≥ 80%（单元 + 集成 + E2E）；测行为不测实现
-- bugfix：先写复现测试（RED）再修
+- bugfix：先写可失败复现测试（RED）再修
 
 ## 编码铁律
 

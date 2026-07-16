@@ -1,49 +1,46 @@
-<!-- TEMPLATE: test-plan.md — 结构模板，供 AI 生成时参考 -->
-<!-- 用途：new-plan 生成计划测试计划，init-project 生成项目测试策略 -->
-<!-- 注意：模板中的 HTML 注释是填写指引，AI 生成时替换为实际内容 -->
+<!-- TEMPLATE: test-plan.md — 测试策略（项目低 churn / l-* 计划策略文档） -->
+<!-- 用途：init-project 项目策略；new-plan l-* 计划内策略；archive 合并策略增量 -->
+<!-- 禁止：把全库用例步骤抄进 Markdown——用例真相在测试代码；工作台账见计划 tests.md -->
 
 # Test Plan: {Title}
 
 ## Test Scope
 ### In Scope
-<!-- 本次测试覆盖的功能模块 -->
+<!-- 覆盖的功能模块 / 质量属性 -->
 
 ### Out of Scope
-<!-- 明确排除的测试范围 -->
+<!-- 明确不测的范围 -->
 
 ## Test Strategy
-<!-- 测试层次和覆盖策略 -->
-| Layer | Tool/Framework | Coverage Target |
-|-------|---------------|-----------------|
-<!-- Unit → Integration → E2E → Performance -->
+<!-- 怎么测：分层、框架、命令、门禁、责任人 -->
+| Layer | Tool/Framework | How to run | Coverage Target |
+|-------|----------------|------------|-----------------|
+<!-- Unit → Integration → E2E -->
 
 ### Unit Testing
-<!-- 单元测试策略：覆盖率目标、mock 方案 -->
+<!-- mock 边界、目录约定（如 test/test-*.js） -->
 
 ### Integration Testing
-<!-- 集成测试策略：模块间接口、外部依赖 -->
+<!-- 外部依赖、夹具 -->
 
 ### E2E Testing
-<!-- 端到端测试策略：关键用户流程 -->
+<!-- 关键用户路径；工具链 -->
 
-## Test Cases
-### Critical Path
-<!-- 必须通过的核心用例 -->
-<!-- TC-001: [用例名] — 前置条件 → 操作步骤 → 预期结果 -->
+## Critical Acceptance Index（稀疏）
 
-### Edge Cases
-<!-- 边界条件和异常场景 -->
+> 仅产品不变量级验收。一行一路径；禁止完整 TC 步骤百科。
+> 计划工作台账：`docs/plans/P{NNN}-{slug}/tests.md`。
+
+| Id | Behavior (one line) | Test path | Command |
+|----|---------------------|-----------|---------|
+<!-- | C1 | login rejects bad token | test/test-auth.js | node test/test-auth.js | -->
 
 ## Entry & Exit Criteria
 ### Entry Criteria
-<!-- 开始测试的前提条件 -->
-<!-- - 功能开发完成，代码审查通过 -->
+<!-- 例如：策略已审；关键环境就绪 -->
 
 ### Exit Criteria
-<!-- 测试完成的判定标准 -->
-<!-- - 所有 Critical 用例通过 -->
-<!-- - 无 P0/P1 缺陷遗留 -->
-<!-- - 覆盖率达标 -->
+<!-- 例如：Critical 索引命令全绿；无 P0/P1 遗留；覆盖率达标 -->
 
 ## Risks & Mitigations
 | Risk | Probability | Impact | Mitigation |

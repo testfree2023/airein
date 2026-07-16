@@ -12,6 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const { AIREIN_PROJECT_DIR } = require('./lib/project-paths');
+const { rewriteResolvedHooks } = require('./lib/cc-hook-command');
 
 /**
  * @param {{ hooksFile: string, pluginRoot: string, settingsFiles: string[], ensureProjectDirs?: boolean }} opts
@@ -38,7 +39,10 @@ function mergeHooks(opts) {
     .split('${CLAUDE_PLUGIN_ROOT:-}').join(pluginRoot)
     .split('${CLAUDE_PLUGIN_ROOT}').join(pluginRoot);
 
-  const resolvedHooks = JSON.parse(resolvedHooksStr);
+  const resolvedHooks = rewriteResolvedHooks(
+    JSON.parse(resolvedHooksStr),
+    opts.platform || process.platform,
+  );
 
   const aireinHookNames = new Set();
   for (const list of Object.values(resolvedHooks)) {
