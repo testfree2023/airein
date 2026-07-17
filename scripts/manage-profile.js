@@ -26,7 +26,7 @@ const os = require('os');
 
 const KEEP_SKILLS = [
   // Core workflow
-  'tdd-workflow', 'search-first', 'verification-loop', 'strategic-compact',
+  'tdd', 'search-first', 'strategic-compact',
   // Quality
   'security-review', 'security-scan', 'coding-standards',
   // Documentation
@@ -52,7 +52,7 @@ const KEEP_SKILLS = [
   'springboot-patterns', 'springboot-security', 'springboot-tdd', 'springboot-verification',
 
   // ── Custom skills (NOT from ECC) — always keep ──
-  'init-project', 'new-plan', 'writing-plans', 'next', 'status',
+  'init-project', 'new-plan', 'next', 'status',
   'log-change',
   'model-guide', 'find-skills', 'prompt-optimizer',
 ];

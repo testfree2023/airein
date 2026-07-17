@@ -119,6 +119,7 @@ function run() {
     sourceDir: srcB,
     skipVerify: true,
     skipClean: true,
+    skipDashboard: true,
     log: (m) => { updateLogs.push(m); },
   }).then((upd) => {
     const logText = updateLogs.join('\n');
@@ -136,6 +137,7 @@ function run() {
 
     runPostUpdateMaintenance(kernel, home, profile, {
       skipVerify: true,
+      skipDashboard: true,
       execFn: (cmd) => {
         if (cmd.includes('clean-airein.sh')) {
           for (const f of ['setup-airein.sh', 'update-airein.sh']) {
@@ -149,6 +151,7 @@ function run() {
 
     let maintenanceRan = { clean: false, verify: false };
     runPostUpdateMaintenance(kernel, home, profile, {
+      skipDashboard: true,
       execFn: (cmd) => {
         if (cmd.includes('clean-airein.sh')) maintenanceRan.clean = true;
         if (cmd.includes('verify-airein.sh') && cmd.includes('--full')) maintenanceRan.verify = true;
@@ -156,6 +159,60 @@ function run() {
     });
     assertOk(maintenanceRan.clean, 'maintenance runs clean');
     assertOk(maintenanceRan.verify, 'maintenance runs verify');
+
+    // Dashboard refresh must target *source* dir (not kernelRoot) + set AIREIN_KERNEL
+    const dashCmds = [];
+    const dashMetas = [];
+    runPostUpdateMaintenance(kernel, home, profile, {
+      skipClean: true,
+      skipVerify: true,
+      dashboardSource: srcB,
+      execFn: (cmd, meta) => {
+        dashCmds.push(cmd);
+        dashMetas.push(meta || {});
+      },
+    });
+    const dashCmd = dashCmds.find((c) => c.includes('install-dashboard'));
+    assertOk(!!dashCmd, 'maintenance runs install-dashboard');
+    assertOk(
+      dashCmd.includes(path.resolve(srcB)),
+      'install-dashboard receives dashboardSource (not kernelRoot alone)',
+    );
+    assertOk(dashCmd.includes('--with-dashboard'), 'install-dashboard --with-dashboard');
+    assertOk(
+      !dashCmd.includes(`"${path.resolve(kernel)}" "--with-dashboard"`),
+      'must not pass kernelRoot as sole airein_src when dashboardSource set',
+    );
+    const dashMeta = dashMetas[dashCmds.indexOf(dashCmd)] || {};
+    assertEqual(
+      dashMeta.env && dashMeta.env.AIREIN_KERNEL,
+      path.resolve(kernel),
+      'AIREIN_KERNEL points at installed kernel so DST !== SRC',
+    );
+
+    // update() wires dashboardSource from resolved source before cleanup
+    const updDashLogs = [];
+    const updDashCmds = [];
+    const srcResolved = path.resolve(srcB);
+    return update({
+      homeDir: home,
+      kernelRoot: kernel,
+      sourceDir: srcB,
+      skipVerify: true,
+      skipClean: true,
+      log: (m) => { updDashLogs.push(m); },
+      execFn: (cmd) => { updDashCmds.push(cmd); },
+    }).then(() => {
+      const joined = updDashLogs.join('\n');
+      assertOk(
+        joined.includes('同步 Dashboard') && joined.includes(srcResolved),
+        'update passes resolved sourceDir into dashboard sync log',
+      );
+      assertOk(
+        updDashCmds.some((c) => c.includes('install-dashboard') && c.includes(srcResolved)),
+        'update runs install-dashboard with sourceDir before cleanup',
+      );
+    });
   });
 }
 

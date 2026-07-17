@@ -11,12 +11,13 @@
 - 不清楚就停下来问。点明哪里令人困惑
 - 同一个问题 3 次尝试 → STOP，记录失败、研究替代方案、质疑根本前提
 - **永不中途停下问"要不要继续？"——自主完成所有阶段**
-  - 任务执行时（tdd-workflow、new-plan 等）：完成一个任务直接开始下一个，不询问
+  - 任务执行时（tdd、new-plan 等）：完成一个任务直接开始下一个，不询问
   - 阶段完成时：直接进入下一阶段，不询问
   - 例外场景：遇到 blockers、错误处理、需要外部访问、架构选择重大时，必须询问用户
   - 所有任务完成后：提示用户归档或下一步操作
 - **需求/方案规划用 `/new-plan`，不用 CC 原生 plan mode** — 与用户沟通需求、准备写代码时，调用 `/new-plan` skill 走文档流水线（requirements→design→tasks + progress.md 审批）；不要进入 CC 自带 plan mode（`EnterPlanMode`/`ExitPlanMode`）。原因：airein 的审批/归档/roadmap 联动都挂在 `docs/plans/P{NNN}/`，原生 plan mode 不落地文件、不进 roadmap、plan-gate 与 archive-trigger 都感知不到。例外：纯探索性问答、不落代码的讨论可随意用任意方式。
 - **计划内 `requirements.md` = 产品需求说明书（PRD）** — 按 pipeline 规模选用 `templates/docs/requirements/{s|m|l}.md`（经 `resolveRequirementsTemplate`）；禁止写成简易需求摘要。
+- **计划内 `design.md` = 工程设计说明书（概要 + 按规模详细）** — 按 pipeline 选用 `templates/docs/design/{s|m|l}.md`（经 `resolveDesignTemplate`）；Impact 必填；菜单/页面须 Permissions（否则显式 N/A）；新跨模块依赖须加厚实现细节。
 
 ## Workflow（五步）
 
@@ -24,7 +25,31 @@
 2. **Plan** — 复杂任务写 `IMPLEMENTATION_PLAN.md`（含阶段、成功标准、测试用例）
 3. **TDD** — 先写测试（RED）→ 实现（GREEN）→ 重构（纪律见 `00-iron-rules.md` 测试纪律）
 4. **Review** — 提交前用 `code-reviewer` agent（触发见 `00-iron-rules.md` 铁律 3；dispatch 规范见下方「dispatch 规范」）
-5. **Verify** — 编译、跑测试、查无回归；UI 改动做 E2E（不变量见 `00-iron-rules.md` 提交不变量）
+5. **Verify** — 编译、跑测试、查无回归；UI 改动做 E2E（不变量见 `00-iron-rules.md` 提交不变量）。声明完成前必须过下方「Verification Before Completion」门禁；也可用 `/verify` 跑完整检查清单。
+
+## Verification Before Completion — Gate Function
+
+在声明任何完成状态之前，必须：
+
+1. **IDENTIFY** — 什么命令能证明这个声明？
+2. **RUN** — 执行完整命令（全新运行，不接受上次结果）
+3. **READ** — 读取完整输出，检查 exit code，统计失败数
+4. **VERIFY** — 输出是否确认了声明？
+   - 如果否：报告实际状态，附上证据
+   - 如果是：声明，附上证据
+5. **ONLY THEN** — 才能做出声明
+
+**禁止使用的措辞**（除非已运行验证命令）：
+- "should work now" → 改为运行验证命令
+- "看起来没问题" → 改为运行验证命令
+- "应该能跑通了" → 改为运行验证命令
+
+| 声明 | 必须有 | 不够的 |
+|------|--------|--------|
+| "测试通过" | 测试命令输出：0 failures | "之前跑过"、"应该能通过" |
+| "构建成功" | 构建命令：exit 0 | "linter 过了"、"日志看起来正常" |
+| "Bug 已修复" | 原始症状的测试：passes | "代码改了" |
+| "需求已满足" | 逐条对照 checklist | "测试通过了" |
 
 ## dispatch 规范（agent 调度 · 省 token）
 
@@ -48,7 +73,7 @@
 
 1. `/new-plan` → 需求分析 + 架构设计（不要用 CC 原生 plan mode）
 2. **User review** → 用户确认方案后再动手
-3. TDD cycle → `tdd-workflow` skill（RED → GREEN → REFACTOR）
+3. TDD → `tdd` skill（Spec → Bind → Impl → Prove → Trace；bugfix 仍须复现 RED）
 4. `/code-review` → `code-reviewer` agent 独立审查
 5. `/quality-gate` → 验证通过
 6. Commit with structured message
@@ -76,8 +101,8 @@
 
 | 场景 | 可跳过 | 仍必须 | 不可豁免 |
 |------|--------|--------|----------|
-| 单文件小修改（typo、配置调整） | /plan、writing-plans | 测试通过、code review | 铁律 1（必须有测试） |
-| 紧急 hotfix | /plan、writing-plans | 写复现测试 → 修复 → code review | 铁律 1（必须有测试） |
+| 单文件小修改（typo、配置调整） | /new-plan 完整文档流水线 | 测试通过、code review | 铁律 1（必须有测试） |
+| 紧急 hotfix | /new-plan 完整文档流水线 | 写复现测试 → 修复 → code review | 铁律 1（必须有测试） |
 | 文档/注释修改 | 全部流程 | 无（非代码文件） | 无 |
 | 探索性实验（POC） | 全部流程 | 实验成功后补写测试和 review | — |
 

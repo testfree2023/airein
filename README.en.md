@@ -33,7 +33,7 @@ Communicate & clarify (grilling) → produce docs by pipeline → approve one by
 ```
 
 - **Communicate & clarify**: before acting, nail down vague requirements. Ask one question at a time, challenge assumptions, force boundaries with concrete scenarios, and turn "build me an X" into a clear scope with acceptance criteria.
-- **Produce docs by pipeline**: based on task type (s-feature / m-feature / l-feature / hotfix ...), follow the corresponding doc pipeline — a small bugfix only needs `tasks`, a mid-size feature needs `requirements → design → tasks`, a large feature adds `test-plan`, `deployment`. The docs are specs — contracts for the implementation that follows.
+- **Produce docs by pipeline**: based on task type (s-feature / m-feature / l-feature / hotfix ...), follow the corresponding doc pipeline — a small bugfix only needs `tasks`, a mid-size feature needs `requirements → design → test-plan → tasks`, a large feature adds `deployment`. The docs are specs — contracts for the implementation that follows.
 - **Approval gates per doc**: each doc goes draft → your approval → approved, before the next one can be created. The `approval-sequence` hook enforces order; `approval-guard` protects approval state from tampering. Prevents AI from laying out all docs at once with no review.
 - **TDD implementation**: once in implementation, `test-guard` hard-blocks "source code without tests" in strict mode — a failing test must exist before implementation is allowed. `pre-commit-gate` runs build + tests + coverage before commit.
 - **Archive to close the loop**: when the plan is done, `/archive-plan` archives it so completed plans stop polluting the active context.
@@ -411,18 +411,25 @@ A: Check whether `.airein/self-learning/pending.md` captured anything this round
 
 ## Credits
 
-Airein's design and implementation drew from these open-source projects and community practices:
+Three relationship kinds — so we neither claim “all original” nor “inspiration only”:
 
-| Project | Contribution | Link |
-|---------|--------------|------|
-| **Everything Claude Code (ECC)** | Baseline architecture inspiration, origin of the tdd-workflow & verification-loop skills, hook event model reference | [github.com/affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) |
-| **Claude Code (Anthropic)** | Hook protocol stdin/stdout JSON, native conditional rules (paths + @include), Session/Compact/Stop event definitions | [claude.ai/code](https://claude.ai/code) |
-| **TDD (Test-Driven Development)** | RED → GREEN → REFACTOR core flow, test-first-then-implement discipline | [Agile Manifesto](https://agilemanifesto.org) |
-| **DDD (Domain-Driven Design)** | Domain model template (design-domain-model.md), aggregate root/entity/value object tactical patterns | [domainlanguage.com/ddd](https://domainlanguage.com/ddd/) |
-| **OpenSpec** | Structured Q&A method for the grilling phase, requirements-clarification best practices | [openspec.dev](https://openspec.dev) |
-| **SpotBugs** | Java static analysis tool reference (design-conventions/java.md) | [github.com/spotbugs/spotbugs](https://github.com/spotbugs/spotbugs) |
-| **detekt** | Kotlin static analysis tool reference (design-conventions/kotlin.md) | [detekt.dev](https://detekt.dev) |
+| Kind | Meaning |
+|------|---------|
+| **Uses** | Adapted text or protocol assets still ship in this repo |
+| **Formerly used** | Was adapted into the repo; now removed or internalized; still credited |
+| **References** | Design ideas / methodology / protocol contracts — not wholesale copies |
 
-**Special note**: An early version referenced a community skill's self-learning mechanism (heartbeat/reflections/corrections), later refactored into a three-tier flow (buffer/archive/promotion) with external dependencies removed. Thanks to that project for its inspirational contribution.
+| Project | Kind | Notes | Link |
+|---------|------|-------|------|
+| **Everything Claude Code (ECC)** | **Formerly used** + references | **Formerly used**: early bundled `tdd-workflow` / `verification-loop` adapted from ECC; now replaced by airein-owned skill `tdd` (spec-bound flow + plan `tests.md` ledger) and the completion gate in `rules/20-workflow.md`. **References**: overall architecture and hook event model. | [github.com/affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) |
+| **Superpowers** | **Formerly used** | Early adaptation of `writing-plans`; planning is now airein’s `new-plan`. That skill is retired (`clean-airein.sh` removes leftovers). | [github.com/obra/superpowers](https://github.com/obra/superpowers) |
+| **Claude Code (Anthropic)** | **References** | Hook protocol stdin/stdout JSON, native conditional rules (paths + @include), Session/Compact/Stop events | [claude.ai/code](https://claude.ai/code) |
+| **TDD (Test-Driven Development)** | **References** | RED → GREEN → REFACTOR, test-first discipline | [Agile Manifesto](https://agilemanifesto.org) |
+| **DDD (Domain-Driven Design)** | **References** | Domain model template, aggregate/entity/value-object patterns | [domainlanguage.com/ddd](https://domainlanguage.com/ddd/) |
+| **OpenSpec** | **References** | Structured grilling Q&A / requirements clarification | [openspec.dev](https://openspec.dev) |
+| **SpotBugs** | **References** | Java static analysis (design-conventions/java.md) | [github.com/spotbugs/spotbugs](https://github.com/spotbugs/spotbugs) |
+| **detekt** | **References** | Kotlin static analysis (design-conventions/kotlin.md) | [detekt.dev](https://detekt.dev) |
 
-Airein aims to keep runtime dependencies minimal; the references above are **design philosophy and methodology inspirations only**, and airein currently builds solely on Node.js built-in modules.
+**Special note**: An early version referenced a community skill's self-learning mechanism (heartbeat/reflections/corrections), later refactored into buffer/archive/promotion with external dependencies removed.
+
+**Boundary**: hooks / scripts / all current skills (including `tdd`, `new-plan`) are airein-authored or internalized text; runtime has **zero npm dependencies** (Node.js builtins only). “Formerly used” credits history — not a live dependency on those repos or npm packages.

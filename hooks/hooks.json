@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/test-guard.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/test-guard.js\"",
             "timeout": 5
           }
         ],
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/pre-edit-impact.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/pre-edit-impact.js\"",
             "async": true,
             "timeout": 5
           }
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/plan-gate.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/plan-gate.js\"",
             "timeout": 5
           }
         ],
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/approval-sequence.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/approval-sequence.js\"",
             "timeout": 5
           }
         ],
@@ -52,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/approval-guard.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/approval-guard.js\"",
             "timeout": 5
           }
         ],
@@ -63,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/doc-file-warning.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/doc-file-warning.js\"",
             "timeout": 5
           }
         ],
@@ -74,7 +74,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/pre-commit-gate.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/pre-commit-gate.js\"",
             "timeout": 125
           }
         ],
@@ -87,7 +87,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/pre-compact.js\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/pre-compact.js\""
           }
         ],
         "description": "Context preservation: extract key info before compaction (~800 tokens)"
@@ -99,7 +99,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -lc 'input=$(cat); for root in \"${CLAUDE_PLUGIN_ROOT:-}\" \"$HOME/.claude/plugins/everything-claude-code\" \"$HOME/.claude/plugins/everything-claude-code@everything-claude-code\" \"$HOME/.claude/plugins/marketplace/everything-claude-code\"; do if [ -n \"$root\" ] && [ -f \"$root/scripts/hooks/run-with-flags.js\" ]; then printf \"%s\" \"$input\" | node \"$root/scripts/hooks/run-with-flags.js\" \"session:start\" \"scripts/hooks/session-start.js\" \"minimal,standard,strict\"; exit $?; fi; done; for parent in \"$HOME/.claude/plugins\" \"$HOME/.claude/plugins/marketplace\"; do if [ -d \"$parent\" ]; then candidate=$(find \"$parent\" -maxdepth 2 -type f -path \"*/scripts/hooks/run-with-flags.js\" 2>/dev/null | head -n 1); if [ -n \"$candidate\" ]; then root=$(dirname \"$(dirname \"$(dirname \"$candidate\")\")\"); printf \"%s\" \"$input\" | node \"$root/scripts/hooks/run-with-flags.js\" \"session:start\" \"scripts/hooks/session-start.js\" \"minimal,standard,strict\"; exit $?; fi; fi; done; echo \"[SessionStart] WARNING: could not resolve ECC plugin root; skipping session-start hook\" >&2; printf \"%s\" \"$input\"; exit 0'"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-start.js\""
           }
         ],
         "description": "Load minimal context on new session (~200 tokens)"
@@ -111,7 +111,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/quality-sentinel.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/quality-sentinel.js\"",
             "async": true,
             "timeout": 5
           }
@@ -123,7 +123,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-with-flags.js\" \"post:quality-gate\" \"scripts/hooks/quality-gate.js\" \"standard,strict\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-with-flags.js\" \"post:quality-gate\" \"scripts/hooks/quality-gate.js\" \"standard,strict\"",
             "async": true,
             "timeout": 30
           }
@@ -135,7 +135,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-with-flags.js\" \"post:edit:format\" \"scripts/hooks/post-edit-format.js\" \"standard,strict\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-with-flags.js\" \"post:edit:format\" \"scripts/hooks/post-edit-format.js\" \"standard,strict\""
           }
         ],
         "description": "Auto-format JS/TS files after edits (auto-detects Biome or Prettier)"
@@ -145,7 +145,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-with-flags.js\" \"post:edit:typecheck\" \"scripts/hooks/post-edit-typecheck.js\" \"standard,strict\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-with-flags.js\" \"post:edit:typecheck\" \"scripts/hooks/post-edit-typecheck.js\" \"standard,strict\""
           }
         ],
         "description": "TypeScript check after editing .ts/.tsx files"
@@ -155,7 +155,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/contract-sentinel.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/contract-sentinel.js\"",
             "async": true,
             "timeout": 5
           }
@@ -167,7 +167,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/progress-sync.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/progress-sync.js\"",
             "async": true,
             "timeout": 5
           }
@@ -179,7 +179,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/archive-trigger.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/archive-trigger.js\"",
             "async": true,
             "timeout": 5
           }
@@ -191,7 +191,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/structure-sync.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/structure-sync.js\"",
             "async": true,
             "timeout": 5
           }
@@ -203,7 +203,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/read-dedup.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/read-dedup.js\"",
             "async": true,
             "timeout": 5
           }
@@ -217,7 +217,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/stop-test-gate.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/stop-test-gate.js\"",
             "async": true,
             "timeout": 125
           }
@@ -231,7 +231,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/self-learning-prompt.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/self-learning-prompt.js\"",
             "timeout": 5
           }
         ],

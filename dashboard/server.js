@@ -1844,7 +1844,7 @@ function handleGetGlobalPipelines(res) {
     definitions: {
       's-feature': { label: 'S-Feature', description: 'Small project feature', docs: ['requirements', 'tasks'] },
       's-bugfix': { label: 'S-Bugfix', description: 'Small project bugfix', docs: ['tasks'] },
-      'm-feature': { label: 'M-Feature', description: 'Medium project feature', docs: ['requirements', 'design', 'tasks'] },
+      'm-feature': { label: 'M-Feature', description: 'Medium project feature', docs: ['requirements', 'design', 'test-plan', 'tasks'] },
       'm-bugfix': { label: 'M-Bugfix', description: 'Medium project bugfix', docs: ['requirements', 'tasks'] },
       'm-urgent': { label: 'M-Urgent', description: 'Medium project urgent', docs: ['tasks'] },
       'l-feature': { label: 'L-Feature', description: 'Large project feature', docs: ['requirements', 'design', 'test-plan', 'deployment', 'tasks'] },

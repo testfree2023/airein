@@ -73,6 +73,8 @@ CORE_FILES=(
   "scripts/lib/session-aliases.js"
   "scripts/lib/design-doc-resolver.js"
   "scripts/lib/requirements-template.js"  # P005: resolve s/m/l PRD template by pipeline
+  "scripts/lib/design-template.js"        # resolve s/m/l design template by pipeline
+  "scripts/lib/test-plan-template.js"     # resolve m/l test-plan template by pipeline
   "scripts/lib/conventions-shell.js"
   "scripts/lib/self-learning.js"
   "scripts/lib/runtime-metrics.js"      # dashboard/server.js requires it (omission crashed dashboard on deploy)
@@ -128,6 +130,7 @@ CORE_FILES=(
   "scripts/lib/stdin-normalize.js"     # K3 stdin → CC schema normalization
   "scripts/lib/host-adapter.js"        # K3 mapHookResult pure fn (block semantic mapping)
   "scripts/lib/hook-timing.js"         # hook duration observability (run-with-flags)
+  "scripts/lib/cc-hook-command.js"    # win32: bash run-hook.sh -> node direct (avoid WSL leak)
   "scripts/hooks/host/host-runner.js"  # host entry IO runner (readStdin→norm→spawn→map)
   "scripts/hooks/host/cursor.js"       # CUR entry (camelCase events + permission:deny)
   "scripts/hooks/host/codex.js"        # CDX entry (stdin cwd resolve + permissionDecision)
@@ -143,12 +146,18 @@ TEMPLATE_FILES=(
   "templates/docs/requirements/s.md"       # P005: S-tier PRD template
   "templates/docs/requirements/m.md"       # P005: M-tier PRD template
   "templates/docs/requirements/l.md"       # P005: L-tier PRD template
-  "templates/docs/design.md"
+  "templates/docs/design.md"               # compat stub (not authoritative design)
+  "templates/docs/design/s.md"             # S-tier design (detail-first)
+  "templates/docs/design/m.md"             # M-tier design (HLD + key UC DD)
+  "templates/docs/design/l.md"             # L-tier design (HLD + full UC response)
   "templates/docs/design-domain-model.md"  # LLD 领域模型子文档
   "templates/docs/design-database.md"      # 数据库设计子文档（语言无关）
   "templates/docs/design-security.md"      # 安全设计子文档（语言无关）
   "templates/docs/design-deployment.md"    # 部署设计子文档（语言无关）
-  "templates/docs/test-plan.md"
+  "templates/docs/test-plan.md"            # compat stub
+  "templates/docs/test-plan/m.md"
+  "templates/docs/test-plan/l.md"
+  "templates/docs/tests.md"            # plan-level test ledger (tdd skill)
   "templates/docs/deployment.md"
   "templates/docs/tasks.md"
   "templates/docs/progress.md"
@@ -183,9 +192,7 @@ SKILL_DIRS=(
   "stuck-recovery"
   "model-guide"
   "archive-plan"
-  "writing-plans"
-  "tdd-workflow"
-  "verification-loop"
+  "tdd"
   "self-learning"
 )
 

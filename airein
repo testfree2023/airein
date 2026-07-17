@@ -7,15 +7,23 @@ set -euo pipefail
 
 AIREIN_HOME="${AIREIN_HOME:-$HOME/.airein}"
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+INVOKE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Resolve runnable tree: prefer ~/.airein kernel, else script's directory (dev checkout).
 if [[ -f "$AIREIN_HOME/scripts/lib/install-orchestrator.js" ]]; then
   ROOT="$AIREIN_HOME"
-elif [[ -f "$(dirname "$SCRIPT_PATH")/scripts/lib/install-orchestrator.js" ]]; then
-  ROOT="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+elif [[ -f "$INVOKE_DIR/scripts/lib/install-orchestrator.js" ]]; then
+  ROOT="$INVOKE_DIR"
 else
   echo "❌ airein kernel not found. Run from airein repo or install to ~/.airein first." >&2
   exit 1
+fi
+
+# When invoked from a checkout (not from ~/.airein), remember it so `update` can use
+# that tree as source even though the orchestrator binary runs from the installed kernel.
+if [[ -f "$INVOKE_DIR/VERSION" && -f "$INVOKE_DIR/scripts/lib/install-orchestrator.js" \
+      && "$(cd "$INVOKE_DIR" && pwd)" != "$(cd "$AIREIN_HOME" 2>/dev/null && pwd || true)" ]]; then
+  export AIREIN_INVOKE_SOURCE="$INVOKE_DIR"
 fi
 
 HELPERS="$ROOT/scripts/lib/install-helpers.sh"
@@ -33,4 +41,12 @@ if [[ -z "$NODE_BIN" ]]; then
 fi
 
 export AIREIN_SCRIPT_DIR="$ROOT"
-exec "$NODE_BIN" "$ROOT/scripts/lib/install-orchestrator.js" "$@"
+# Prefer checkout orchestrator when invoked as ./airein from a source tree —
+# otherwise `update` keeps running the *pre-sync* in-memory kernel code and
+# dashboard refresh / new maintenance logic never runs in that process.
+ORCH_ROOT="$ROOT"
+if [[ -n "${AIREIN_INVOKE_SOURCE:-}" \
+   && -f "$AIREIN_INVOKE_SOURCE/scripts/lib/install-orchestrator.js" ]]; then
+  ORCH_ROOT="$AIREIN_INVOKE_SOURCE"
+fi
+exec "$NODE_BIN" "$ORCH_ROOT/scripts/lib/install-orchestrator.js" "$@"

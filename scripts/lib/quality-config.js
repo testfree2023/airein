@@ -169,7 +169,7 @@ function loadGlobalPipelines() {
   const HARDCODED = {
     's-feature': ['requirements', 'tasks'],
     's-bugfix': ['tasks'],
-    'm-feature': ['requirements', 'design', 'tasks'],
+    'm-feature': ['requirements', 'design', 'test-plan', 'tasks'],
     'm-bugfix': ['requirements', 'tasks'],
     'm-urgent': ['tasks'],
     'l-feature': ['requirements', 'design', 'test-plan', 'deployment', 'tasks'],

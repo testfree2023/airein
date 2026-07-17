@@ -46,6 +46,11 @@ STALE_DIRS=(
   # P004: 用户运行时 skill 根（应在 ~/.claude/skills/learned|imported，不在内核 skills/）
   "skills/learned"
   "skills/imported"
+  # 退役旁路 skill：writing-plans（曾改编自 Superpowers）；verification-loop（ECC，门禁收进 rules/20-workflow）
+  "skills/writing-plans"
+  "skills/verification-loop"
+  # tdd-workflow → tdd（内核化改名）
+  "skills/tdd-workflow"
 )
 
 REMOVED=0

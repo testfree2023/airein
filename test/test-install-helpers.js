@@ -173,12 +173,16 @@ describe('resolve_node_bin: finds node off the default PATH', suite => {
     assertContains(r.stdout, '.local/bin/node', 'should locate node after sourcing nvm.sh');
   });
 
-  suite.test('returns empty when node is truly absent', () => {
+  suite.test('returns empty or known hardcoded fallback when PATH/HOME have no node', () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), 'airein-node-none-'));
     const r = runWithLib('resolve_node_bin', strippedEnv(toBashPath(home)));
     rmTempDir(home);
     assertEqual(r.status, 0, 'resolve_node_bin still exits 0 (empty result, no crash)');
-    assertEqual(r.stdout, '', 'should echo nothing when no node is found');
+    // install-helpers.sh hardcodes /opt/homebrew|/usr/local|/usr/bin — CI runners often have one.
+    const out = (r.stdout || '').trim();
+    const fallbacks = ['/opt/homebrew/bin/node', '/usr/local/bin/node', '/usr/bin/node'];
+    assertOk(out === '' || fallbacks.includes(out),
+      `expected empty or known fallback, got "${out}"`);
   });
 
   suite.test('prefers node already on PATH (no fallback needed)', () => {

@@ -254,6 +254,25 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; }
 .md-content code { background: var(--bg); padding: .1rem .3rem; border-radius: 3px; font-family: var(--mono); font-size: .9em; }
 .md-content pre { background: var(--bg); padding: .8rem; border-radius: var(--radius); overflow-x: auto; margin: .5rem 0; }
 .md-content pre code { background: none; padding: 0; }
+.md-content .mermaid {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin: .75rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+.md-content .mermaid svg { max-width: 100%; height: auto; }
+.md-content .md-tmpl-comment {
+  font-family: var(--mono);
+  font-size: .8rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+  margin: .15rem 0;
+}
 .md-content blockquote { border-left: 3px solid var(--primary); padding-left: .8rem; margin: .5rem 0; color: var(--text-muted); }
 .md-content table { border-collapse: collapse; width: 100%; margin: .5rem 0; }
 .md-content th, .md-content td { border: 1px solid var(--border); padding: .3rem .6rem; text-align: left; }
@@ -387,6 +406,11 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; }
 <!-- Shared pure-logic modules (also node-testable). Loaded before main script. -->
 <script src="doc-links.js"></script>
 <script src="template-categories.js"></script>
+<script src="md-render.js"></script>
+<!-- Mermaid: CDN only (zero npm). Offline → diagrams stay as source text in .mermaid. -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"
+  onload="if (window.aireinMd) aireinMd.onMermaidReady();"
+  onerror="console.warn('[airein-dashboard] mermaid CDN failed; diagrams show as text')"></script>
 
 <script>
 // ── State ──────────────────────────────────────
@@ -1303,13 +1327,18 @@ function renderProjectDocEdit($app, hash) {
       var editor = document.getElementById('doc-editor');
       var preview = document.getElementById('doc-preview');
 
-      // Set initial values
+      // Set initial values (preview empty until Edit — avoids dual mermaid paint)
       editor.value = doc.content || '';
-      preview.innerHTML = renderMd(doc.content || '');
+      if (typeof scheduleMermaid === 'function') scheduleMermaid(rendered);
 
       // Real-time preview on input
+      var _docPrevMm = null;
       editor.addEventListener('input', function() {
         preview.innerHTML = renderMd(editor.value);
+        clearTimeout(_docPrevMm);
+        _docPrevMm = setTimeout(function() {
+          if (typeof scheduleMermaid === 'function') scheduleMermaid(preview);
+        }, 400);
       });
 
       btnView.onclick = function() {
@@ -1318,6 +1347,7 @@ function renderProjectDocEdit($app, hash) {
         btnSave.style.display = 'none';
         btnView.disabled = true;
         btnEdit.disabled = false;
+        if (typeof scheduleMermaid === 'function') scheduleMermaid(rendered);
       };
       btnEdit.onclick = function() {
         rendered.style.display = 'none';
@@ -1325,6 +1355,8 @@ function renderProjectDocEdit($app, hash) {
         btnSave.style.display = '';
         btnView.disabled = false;
         btnEdit.disabled = true;
+        preview.innerHTML = renderMd(editor.value);
+        if (typeof scheduleMermaid === 'function') scheduleMermaid(preview);
         autoGrowTextarea(editor);
       };
       btnSave.onclick = function() {
@@ -1334,6 +1366,7 @@ function renderProjectDocEdit($app, hash) {
           if (result.ok) {
             toast(t('common.saved'), 'success');
             rendered.innerHTML = renderMd(editor.value);
+            if (typeof scheduleMermaid === 'function') scheduleMermaid(rendered);
             btnView.click();
           } else {
             toast(result.error || t('error.saveFailed'), 'error');
@@ -1616,7 +1649,10 @@ function renderPlanDetail($app, hash) {
       var currentDoc = docTabs[0];
       if (isSingleFile) {
         var sfCont = document.getElementById('doc-content');
-        if (sfCont) sfCont.innerHTML = '<div class="md-content">' + renderMd(plan.content || '') + '</div>';
+        if (sfCont) {
+          sfCont.innerHTML = '<div class="md-content">' + renderMd(plan.content || '') + '</div>';
+          if (typeof scheduleMermaid === 'function') scheduleMermaid(sfCont);
+        }
       } else {
         renderDocView(plan, currentDoc, planId, project.id, plan[currentDoc + '_subDocs']);
 
@@ -1697,9 +1733,11 @@ function renderDocView(plan, docName, planId, projectId, subDocs) {
       '<div id="doc-preview" class="md-content" style="flex:1;min-height:70vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius);padding:1rem;background:var(--bg)"></div>' +
     '</div>';
 
-  // Set initial editor value
+  // Set initial editor value (preview stays empty until Edit — avoids dual mermaid paint)
   document.getElementById('doc-editor').value = content;
-  document.getElementById('doc-preview').innerHTML = renderMd(content);
+  if (typeof scheduleMermaid === 'function') {
+    scheduleMermaid(document.getElementById('doc-rendered'));
+  }
 
   // Wire sub-doc tab clicks
   var tabs = cont.querySelectorAll('.subdoc-tab');
@@ -1714,7 +1752,10 @@ function renderDocView(plan, docName, planId, projectId, subDocs) {
           document.getElementById('doc-rendered').innerHTML = renderMd(result.content);
           var ed = document.getElementById('doc-editor');
           ed.value = result.content;
-          document.getElementById('doc-preview').innerHTML = renderMd(result.content);
+          document.getElementById('doc-preview').innerHTML = '';
+          if (typeof scheduleMermaid === 'function') {
+            scheduleMermaid(document.getElementById('doc-rendered'));
+          }
           if (ed.style.display !== 'none') autoGrowTextarea(ed);
           currentSubDoc = targetDoc;
         }
@@ -1730,9 +1771,14 @@ function renderDocView(plan, docName, planId, projectId, subDocs) {
   var editor = document.getElementById('doc-editor');
   var preview = document.getElementById('doc-preview');
 
-  // Real-time preview on input
+  // Real-time preview on input (debounce mermaid — expensive)
+  var _previewMmTimer = null;
   editor.addEventListener('input', function() {
     preview.innerHTML = renderMd(editor.value);
+    clearTimeout(_previewMmTimer);
+    _previewMmTimer = setTimeout(function() {
+      if (typeof scheduleMermaid === 'function') scheduleMermaid(preview);
+    }, 400);
   });
 
   btnView.onclick = function() {
@@ -1741,6 +1787,7 @@ function renderDocView(plan, docName, planId, projectId, subDocs) {
     btnSave.style.display = 'none';
     btnView.classList.add('btn-primary');
     btnEdit.classList.remove('btn-primary');
+    if (typeof scheduleMermaid === 'function') scheduleMermaid(rendered);
   };
   btnEdit.onclick = function() {
     rendered.style.display = 'none';
@@ -1748,6 +1795,8 @@ function renderDocView(plan, docName, planId, projectId, subDocs) {
     btnSave.style.display = '';
     btnEdit.classList.add('btn-primary');
     btnView.classList.remove('btn-primary');
+    preview.innerHTML = renderMd(editor.value);
+    if (typeof scheduleMermaid === 'function') scheduleMermaid(preview);
     autoGrowTextarea(editor);
   };
   btnSave.onclick = function() {
@@ -1757,6 +1806,7 @@ function renderDocView(plan, docName, planId, projectId, subDocs) {
       if (result.ok) {
         toast(t('common.saved'), 'success');
         rendered.innerHTML = renderMd(editor.value);
+        if (typeof scheduleMermaid === 'function') scheduleMermaid(rendered);
         plan[currentSubDoc] = editor.value;
         btnView.click();
       } else {
@@ -2282,12 +2332,15 @@ function renderTemplateEdit($app, templatePath) {
     var rendered = document.getElementById('tpl-rendered');
     var editor = document.getElementById('tpl-editor');
 
+    if (!isJson && typeof scheduleMermaid === 'function') scheduleMermaid(rendered);
+
     btnView.onclick = function() {
       rendered.style.display = '';
       editor.style.display = 'none';
       btnSave.style.display = 'none';
       btnView.classList.add('btn-primary');
       btnEdit.classList.remove('btn-primary');
+      if (!isJson && typeof scheduleMermaid === 'function') scheduleMermaid(rendered);
     };
     btnEdit.onclick = function() {
       rendered.style.display = 'none';
@@ -2303,6 +2356,7 @@ function renderTemplateEdit($app, templatePath) {
         if (result.ok) {
           toast(t('common.saved'), 'success');
           rendered.innerHTML = isJson ? '<pre><code>' + esc(editor.value) + '</code></pre>' : renderMd(editor.value);
+          if (!isJson && typeof scheduleMermaid === 'function') scheduleMermaid(rendered);
           btnView.click();
         } else {
           toast(result.error || t('error.saveFailed'), 'error');
@@ -3100,7 +3154,7 @@ function defaultPipeline(complexity) {
   // New pipeline names
   if (complexity === 's-bugfix' || complexity === 'm-urgent' || complexity === 'hotfix') return ['tasks'];
   if (complexity === 's-feature' || complexity === 'm-bugfix') return ['requirements', 'tasks'];
-  if (complexity === 'm-feature') return ['requirements', 'design', 'tasks'];
+  if (complexity === 'm-feature') return ['requirements', 'design', 'test-plan', 'tasks'];
   if (complexity === 'l-feature') return ['requirements', 'design', 'test-plan', 'deployment', 'tasks'];
   if (complexity === 'l-bugfix') return ['requirements', 'design', 'test-plan', 'tasks'];
   return ['tasks']; // ultimate fallback
@@ -3148,91 +3202,8 @@ function toast(msg, type) {
   setTimeout(function() { el.className = 'toast'; }, 3000);
 }
 
-// ── Markdown renderer (lightweight) ────────────
-function renderMd(md) {
-  if (!md) return '';
-  var html = esc(md);
-
-  // Code blocks (preserve content inside)
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, function(_, lang, code) {
-    return '<pre><code class="language-' + lang + '">' + code + '</code></pre>';
-  });
-
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  // Tables
-  html = html.replace(/((?:^\|.+\|[ ]*\n)+)/gm, function(tableBlock) {
-    var rows = tableBlock.trim().split('\n');
-    if (rows.length < 2) return tableBlock;
-    var isSep = /^\|[\s\-:|]+\|$/;
-    var headerDone = false;
-    var out = '<table>';
-    for (var r = 0; r < rows.length; r++) {
-      if (isSep.test(rows[r])) continue;
-      var cells = rows[r].split('|').filter(function(c, i, arr) { return i > 0 && i < arr.length - 1; }).map(function(c) { return c.trim(); });
-      if (!headerDone) {
-        out += '<tr>' + cells.map(function(c) { return '<th>' + mdInline(c) + '</th>'; }).join('') + '</tr>';
-        headerDone = true;
-      } else {
-        out += '<tr>' + cells.map(function(c) { return '<td>' + mdInline(c) + '</td>'; }).join('') + '</tr>';
-      }
-    }
-    return out + '</table>';
-  });
-
-  // Headers
-  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-
-  // Blockquotes
-  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
-
-  // Horizontal rules
-  html = html.replace(/^---+$/gm, '<hr>');
-
-  // Bold and italic
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-  // Links: [text](url) and [text](url "title")
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)(?:\s+"([^"]+)")?\)/g, function(_, text, url, title) {
-    return '<a href="' + esc(url) + '"' + (title ? ' title="' + esc(title) + '"' : '') + ' target="_blank">' + text + '</a>';
-  });
-
-  // Checklist items
-  html = html.replace(/^- \[x\] (.+)$/gm, '<li><input type="checkbox" checked disabled> $1</li>');
-  html = html.replace(/^- \[ \] (.+)$/gm, '<li><input type="checkbox" disabled> $1</li>');
-
-  // List items
-  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-
-  // Wrap consecutive <li> in <ul>
-  html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
-
-  // Paragraphs
-  html = html.replace(/\n\n+/g, '</p><p>');
-  html = '<p>' + html + '</p>';
-
-  // Clean up empty paragraphs around block elements
-  html = html.replace(/<p>\s*(<h[1-6]>)/g, '$1');
-  html = html.replace(/(<\/h[1-6]>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<ul>)/g, '$1');
-  html = html.replace(/(<\/ul>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<table>)/g, '$1');
-  html = html.replace(/(<\/table>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<pre>)/g, '$1');
-  html = html.replace(/(<\/pre>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<hr>)/g, '$1');
-  html = html.replace(/(<hr>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<blockquote>)/g, '$1');
-  html = html.replace(/(<\/blockquote>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*<\/p>/g, '');
-
-  return html;
-}
+// ── Markdown renderer: dashboard/public/md-render.js (global renderMd / paintMd) ──
+// Mermaid fences → .mermaid; after DOM paint call scheduleMermaid(root).
 
 function mdInline(text) {
   return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>');

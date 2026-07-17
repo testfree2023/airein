@@ -300,9 +300,13 @@ if ! cleanup_port "$PORT"; then
   exit 1
 fi
 
+# server.js resolves public/ via __dirname — must run with cwd = SCRIPT_DIR
+# so relative logs/pid stay consistent; also protects any relative requires.
+cd "$SCRIPT_DIR" || { echo "❌ 无法进入 $SCRIPT_DIR"; exit 1; }
+
 # ── 后台模式 ────────────────────────────────────────────────
 if [ "$BG_MODE" = true ]; then
-  nohup env DASHBOARD_BIND="$DASHBOARD_BIND" "$NODE" server.js > "$SCRIPT_DIR/dashboard.log" 2>&1 &
+  nohup env DASHBOARD_BIND="$DASHBOARD_BIND" "$NODE" "$SCRIPT_DIR/server.js" > "$SCRIPT_DIR/dashboard.log" 2>&1 &
   WRAPPER_PID=$!
   # 反查真实监听 pid：Windows git bash 下 $! 是 nohup wrapper，非真实 node 进程 pid；
   # Mac/Linux 反查同样更准（直接拿监听进程）。10×0.3s 轮询，失败兜底 wrapper pid。
@@ -352,4 +356,4 @@ if [ "$OPEN_BROWSER" = true ]; then
   fi
 fi
 
-exec env DASHBOARD_BIND="$DASHBOARD_BIND" "$NODE" server.js
+exec env DASHBOARD_BIND="$DASHBOARD_BIND" "$NODE" "$SCRIPT_DIR/server.js"

@@ -660,10 +660,10 @@ describe('quality-config: planWorkflow defaults', suite => {
     assertEqual(JSON.stringify(pipelines['hotfix']), JSON.stringify(['tasks']), 'hotfix pipeline');
   });
 
-  suite.test('m-feature is requirements, design, tasks', () => {
+  suite.test('m-feature is requirements, design, test-plan, tasks', () => {
     const { loadGlobalPipelines } = require(QUALITY_CONFIG_PATH);
     const pipelines = loadGlobalPipelines();
-    assertEqual(JSON.stringify(pipelines['m-feature']), JSON.stringify(['requirements', 'design', 'tasks']), 'm-feature pipeline');
+    assertEqual(JSON.stringify(pipelines['m-feature']), JSON.stringify(['requirements', 'design', 'test-plan', 'tasks']), 'm-feature pipeline');
   });
 
   suite.test('l-feature includes test-plan and deployment', () => {
@@ -818,6 +818,7 @@ tasks: none
     try {
       fs.mkdirSync(path.join(tmp, '.claude', 'config'), { recursive: true });
       const plansDir = path.join(tmp, 'docs', 'plans');
+      // complex → m-feature: requirements → design → test-plan → tasks
       const planDir = createPlanDir(plansDir, 'P012-pipeline', `# Progress: Pipeline
 complexity: complex
 grilling: completed
@@ -830,12 +831,13 @@ pending: 1
 
 ## Approval State
 requirements: approved
-design: draft
+design: approved
+test-plan: draft
 tasks: none
 `);
       const result = runApprovalSequence(path.join(planDir, 'tasks.md'), tmp);
-      assertEqual(result.status, 2, 'tasks.md blocked until design approved');
-      assertContains(result.stderr, 'design.md', 'message names previous document');
+      assertEqual(result.status, 2, 'tasks.md blocked until test-plan approved');
+      assertContains(result.stderr, 'test-plan.md', 'message names previous document');
     } finally {
       removeTempProject(tmp);
     }
@@ -867,13 +869,14 @@ pending: 1
 
 ## Approval State
 requirements: approved
+design: draft
 tasks: draft
 test-plan: none
 `);
-      // Global complex pipeline is: requirements, design, tasks
-      // 'test-plan' is NOT in global pipeline → allowed (outside pipeline)
+      // Global complex → m-feature includes test-plan; blocked until design approved
       const result = runApprovalSequence(path.join(planDir, 'test-plan.md'), tmp);
-      assertEqual(result.status, 0, 'test-plan.md allowed — not in global pipeline');
+      assertEqual(result.status, 2, 'test-plan.md blocked — in global m-feature pipeline');
+      assertContains(result.stderr, 'design.md', 'message names previous document');
     } finally {
       removeTempProject(tmp);
     }

@@ -32,6 +32,7 @@ const {
 const { listAliases } = require('../lib/session-aliases');
 const { aireinLog } = require('../lib/airein-logger');
 const { qualityConfigPath, projectDataSubpath, projectDataSubpathForRead } = require('../lib/project-paths');
+const { purgeStaleCcBashHooks } = require('../lib/cc-hook-command');
 
 function resolveHookCommands(hooks) {
   return JSON.stringify(hooks)
@@ -94,11 +95,32 @@ async function main() {
     const globalSettingsPath = path.join(getClaudeDir(), 'settings.json');
     if (!hasExpectedAireinHooks(globalSettingsPath)) {
       const { execSync } = require('child_process');
-      execSync(`bash "${path.join(getClaudeDir(), 'scripts', 'merge-hooks.sh')}" "${getClaudeDir()}" "${getProjectDir()}"`, { stdio: 'pipe', timeout: 10000 });
+      const kernelRoot = (() => {
+        const airein = path.join(require('os').homedir(), '.airein');
+        if (fs.existsSync(path.join(airein, 'scripts', 'merge-hooks.js'))) return airein;
+        return getClaudeDir();
+      })();
+      const mergeJs = path.join(kernelRoot, 'scripts', 'merge-hooks.js');
+      execSync(`${JSON.stringify(process.execPath)} ${JSON.stringify(mergeJs)} ${JSON.stringify(path.join(kernelRoot, 'hooks', 'hooks.json'))} ${JSON.stringify(kernelRoot)} ${JSON.stringify(path.join(getClaudeDir(), 'settings.json'))}`, { stdio: 'pipe', timeout: 10000 });
       aireinLog('info', 'session-start', 'Self-healed hooks into global settings.json');
     }
   } catch (err) {
     aireinLog('error', 'session-start', `Hook self-heal failed: ${err.message}`);
+  }
+
+  // Win32: purge leftover bash run-hook landmines (projects/*/hooks/hooks.json etc.).
+  // Stale --resume sessions may still spawn bash until Claude Code is restarted.
+  try {
+    const purged = purgeStaleCcBashHooks(getClaudeDir(), { platform: process.platform });
+    if (purged.fixed.length > 0) {
+      aireinLog(
+        'warn',
+        'session-start',
+        `Purged ${purged.fixed.length} stale bash/WSL hook landmine(s). Restart Claude Code if hooks still spawn bash.exe.`,
+      );
+    }
+  } catch (err) {
+    aireinLog('error', 'session-start', `Stale hook purge failed: ${err.message}`);
   }
 
   // Diagnostic: verify critical config files are parseable JSON

@@ -14,7 +14,7 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const { describe, assertEqual, assertOk, assertContains, printSummary, projectRoot } = require('./helpers');
+const { describe, assert, assertEqual, assertOk, assertContains, printSummary, projectRoot } = require('./helpers');
 const { installHost, KNOWN_HOSTS } = require('../scripts/install-host');
 const { registerCc } = require('../scripts/lib/cc-register');
 const { writeProfile, defaultProfile, upsertHost } = require('../scripts/lib/install-profile');

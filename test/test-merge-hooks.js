@@ -70,5 +70,38 @@ describe('mergeHooks: pluginRoot substitution', (suite) => {
   });
 });
 
+
+describe('mergeHooks: platform rewrite', (suite) => {
+  suite.test('win32 uses node direct (no bash run-hook.sh)', () => {
+    const settings = path.join(TMP, 'win-settings.json');
+    mergeHooks({
+      hooksFile: path.join(KERNEL, 'hooks', 'hooks.json'),
+      pluginRoot: KERNEL,
+      settingsFiles: [settings],
+      ensureProjectDirs: false,
+      platform: 'win32',
+    });
+    const cmd = JSON.parse(fs.readFileSync(settings, 'utf8')).hooks.PreToolUse[0].hooks[0].command;
+    assertOk(cmd.startsWith('node '), 'starts with node');
+    assertOk(cmd.includes('test-guard.js'), 'targets hook script');
+    assert(!cmd.includes('run-hook.sh'), 'no bash/WSL wrapper');
+    assert(!cmd.startsWith('bash '), 'not bash');
+  });
+
+  suite.test('darwin keeps bash run-hook.sh', () => {
+    const settings = path.join(TMP, 'darwin-settings.json');
+    mergeHooks({
+      hooksFile: path.join(KERNEL, 'hooks', 'hooks.json'),
+      pluginRoot: KERNEL,
+      settingsFiles: [settings],
+      ensureProjectDirs: false,
+      platform: 'darwin',
+    });
+    const cmd = JSON.parse(fs.readFileSync(settings, 'utf8')).hooks.PreToolUse[0].hooks[0].command;
+    assertOk(cmd.startsWith('bash '), 'keeps bash on darwin');
+    assertOk(cmd.includes('run-hook.sh'), 'keeps run-hook.sh on darwin');
+  });
+});
+
 const code = printSummary();
 process.exit(code);

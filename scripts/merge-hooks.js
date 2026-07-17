@@ -11,7 +11,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { AIREIN_PROJECT_DIR } = require('./lib/project-paths');
+const { rewriteResolvedHooks, purgeStaleCcBashHooks } = require('./lib/cc-hook-command');
 
 /**
  * @param {{ hooksFile: string, pluginRoot: string, settingsFiles: string[], ensureProjectDirs?: boolean }} opts
@@ -38,7 +40,10 @@ function mergeHooks(opts) {
     .split('${CLAUDE_PLUGIN_ROOT:-}').join(pluginRoot)
     .split('${CLAUDE_PLUGIN_ROOT}').join(pluginRoot);
 
-  const resolvedHooks = JSON.parse(resolvedHooksStr);
+  const resolvedHooks = rewriteResolvedHooks(
+    JSON.parse(resolvedHooksStr),
+    opts.platform || process.platform,
+  );
 
   const aireinHookNames = new Set();
   for (const list of Object.values(resolvedHooks)) {
@@ -130,7 +135,17 @@ function mergeHooks(opts) {
     }
   }
 
-  return { totalCount, perFile };
+  // Win32: rewrite leftover bash run-hook landmines under ~/.claude/projects/*/hooks/
+  // (and any settings still on the old form). Opt-in so unit tests stay isolated.
+  let purged = { fixed: [] };
+  if (opts.purgeStale === true) {
+    const claudeHome = opts.claudeHome || path.join(os.homedir(), '.claude');
+    purged = purgeStaleCcBashHooks(claudeHome, {
+      platform: opts.platform || process.platform,
+    });
+  }
+
+  return { totalCount, perFile, purged };
 }
 
 function main(argv) {
@@ -145,10 +160,21 @@ function main(argv) {
   const settingsFiles = args.slice(2);
 
   try {
-    const result = mergeHooks({ hooksFile, pluginRoot, settingsFiles });
+    const result = mergeHooks({
+      hooksFile,
+      pluginRoot,
+      settingsFiles,
+      purgeStale: true,
+      claudeHome: path.join(os.homedir(), '.claude'),
+    });
     for (const { file, count } of result.perFile) {
       const shortPath = file.replace((process.env.HOME || '') + '/', '~/');
       process.stdout.write(`  ✅ Registered ${count} hooks → ${shortPath}\n`);
+    }
+    if (result.purged && result.purged.fixed.length > 0) {
+      process.stderr.write(
+        `  ⚠️  Purged ${result.purged.fixed.length} stale bash/WSL hook landmine(s); restart Claude Code if a --resume session is still open.\n`,
+      );
     }
     process.stdout.write(`${result.totalCount}\n`);
   } catch (err) {

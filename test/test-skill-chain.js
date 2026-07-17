@@ -1,11 +1,12 @@
 /**
  * Test: Skill Chain Enforcement (F1)
  *
- * Verifies the new-plan → tdd-workflow → code-reviewer chain
+ * Verifies the new-plan → tdd → code-reviewer chain
  * by checking each skill's SKILL.md for terminal state / handoff sections.
+ * writing-plans / verification-loop / tdd-workflow are retired.
  */
 
-const { describe, assert, assertOk, assertContains, assertMatch, readSkill } = require('./helpers');
+const { describe, assert, assertOk, assertEqual, assertContains, assertMatch, readSkill } = require('./helpers');
 
 describe('F1: Skill chain — new-plan', suite => {
   const content = readSkill('new-plan');
@@ -20,9 +21,10 @@ describe('F1: Skill chain — new-plan', suite => {
     assertContains(content, '## 终止状态', 'terminal state heading');
   });
 
-  suite.test('new-plan links to tdd-workflow directly (no writing-plans step)', () => {
-    assertContains(content, 'tdd-workflow', 'tdd-workflow reference');
+  suite.test('new-plan links to tdd skill directly (no writing-plans step)', () => {
+    assertContains(content, '`tdd` skill', 'tdd skill reference');
     assertOk(!content.includes('writing-plans'), 'writing-plans should not be referenced in new-plan termination');
+    assertOk(!content.includes('tdd-workflow'), 'tdd-workflow renamed to tdd');
   });
 
   suite.test('new-plan forbids skipping to code', () => {
@@ -53,76 +55,38 @@ describe('F1: Skill chain — new-plan', suite => {
     assertContains(content, 'resolveRequirementsTemplate', 'tier resolve API');
     assertContains(content, 'templates/docs/requirements/m.md', 'm-tier path');
   });
+
+  suite.test('new-plan resolves design s/m/l via resolveDesignTemplate', () => {
+    assertContains(content, 'resolveDesignTemplate', 'design tier resolve API');
+    assertContains(content, 'templates/docs/design/m.md', 'design m-tier path');
+    assertContains(content, 'Impact & Follow-up Checks', 'design Impact section');
+  });
 });
 
-describe('F1: Skill chain — writing-plans', suite => {
-  const content = readSkill('writing-plans');
+describe('F1: Skill chain — tdd', suite => {
+  const content = readSkill('tdd');
 
-  suite.test('writing-plans SKILL.md exists', () => {
-    assertOk(content, 'writing-plans/SKILL.md should exist');
+  suite.test('tdd SKILL.md exists', () => {
+    assertOk(content, 'tdd/SKILL.md should exist');
   });
 
   if (!content) return;
 
-  suite.test('writing-plans has Execution Handoff section', () => {
-    assertContains(content, 'Execution Handoff', 'handoff heading');
-  });
-
-  suite.test('writing-plans hands off to tdd-workflow', () => {
-    assertContains(content, 'tdd-workflow', 'tdd-workflow reference in handoff');
-  });
-
-  suite.test('writing-plans mentions perTaskReview conditional', () => {
-    assertContains(content, 'perTaskReview', 'perTaskReview reference');
-  });
-
-  suite.test('writing-plans mentions code-reviewer subagent', () => {
-    assertContains(content, 'code-reviewer', 'code-reviewer reference');
-  });
-
-  suite.test('writing-plans saves to docs/plans/ (not superpowers/plans/)', () => {
-    assertContains(content, 'docs/plans/', 'correct save path');
-    assertOk(!content.includes('superpowers/plans/'), 'no superpowers/plans/ path');
-  });
-
-  suite.test('writing-plans plan header references tdd-workflow skill', () => {
-    assertContains(content, 'tdd-workflow', 'plan header references tdd-workflow');
-  });
-});
-
-describe('F1: Skill chain — tdd-workflow', suite => {
-  const content = readSkill('tdd-workflow');
-
-  suite.test('tdd-workflow SKILL.md exists', () => {
-    assertOk(content, 'tdd-workflow/SKILL.md should exist');
-  });
-
-  if (!content) return;
-
-  suite.test('tdd-workflow has 终止状态 section', () => {
+  suite.test('tdd has 终止状态 section', () => {
     assertContains(content, '## 终止状态', 'terminal state heading');
   });
 
-  suite.test('tdd-workflow terminal state links to code-reviewer', () => {
+  suite.test('tdd terminal state links to code-reviewer', () => {
     assertContains(content, 'code-reviewer', 'code-reviewer reference');
   });
 
-  suite.test('tdd-workflow terminal state forbids skipping review', () => {
+  suite.test('tdd terminal state forbids skipping review', () => {
     assertContains(content, '禁止', 'forbidding language present');
   });
-});
 
-describe('F1: Skill chain — verification-loop', suite => {
-  const content = readSkill('verification-loop');
-
-  suite.test('verification-loop SKILL.md exists', () => {
-    assertOk(content, 'verification-loop/SKILL.md should exist');
-  });
-
-  if (!content) return;
-
-  suite.test('verification-loop has Verification Before Completion gate', () => {
-    assertContains(content, 'Verification Before Completion', 'gate heading');
+  suite.test('tdd maintains plan tests.md ledger', () => {
+    assertContains(content, 'tests.md', 'tests ledger');
+    assertContains(content, 'Trace', 'Trace step');
   });
 });
 
@@ -185,6 +149,9 @@ describe('File consolidation: skill references', suite => {
     assertOk(!fs.existsSync(path.join(root, 'skills', 'lookup')), 'skills/lookup should not exist');
     assertOk(!fs.existsSync(path.join(root, 'skills', 'update-knowledge')), 'skills/update-knowledge should not exist');
     assertOk(!fs.existsSync(path.join(root, 'templates', 'knowledge')), 'templates/knowledge should not exist');
+    assertOk(!fs.existsSync(path.join(root, 'skills', 'writing-plans')), 'skills/writing-plans retired');
+    assertOk(!fs.existsSync(path.join(root, 'skills', 'verification-loop')), 'skills/verification-loop retired');
+    assertOk(!fs.existsSync(path.join(root, 'skills', 'tdd-workflow')), 'skills/tdd-workflow retired → tdd');
   });
 });
 
@@ -316,6 +283,35 @@ describe('P019: self-learning replaces self-improving', suite => {
   });
 });
 
+
+describe('F1: /tdd command aligns with skill tdd', suite => {
+  const path = require('path');
+  const fs = require('fs');
+  const cmdPath = path.join(__dirname, '..', 'commands', 'tdd.md');
+  const skillPath = path.join(__dirname, '..', 'skills', 'tdd', 'SKILL.md');
+  const cmd = fs.existsSync(cmdPath) ? fs.readFileSync(cmdPath, 'utf8') : '';
+  const skill = fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : '';
+
+  suite.test('commands/tdd.md exists', () => {
+    assertOk(cmd, 'commands/tdd.md should exist');
+  });
+
+  suite.test('command description is Spec-bound (matches skill brand)', () => {
+    const desc = (cmd.match(/^description:\s*(.+)$/m) || [])[1] || '';
+    const skillDesc = (skill.match(/^description:\s*(.+)$/m) || [])[1] || '';
+    assertOk(/Spec-bound/i.test(desc), 'command description must say Spec-bound, not legacy scaffold-first ECC text');
+    assertOk(!/Scaffold interfaces/i.test(desc), 'must not use legacy Scaffold interfaces blurb as description');
+    assertEqual(desc, skillDesc, 'commands/tdd.md description must mirror skills/tdd/SKILL.md');
+  });
+
+  suite.test('command defers to skills/tdd', () => {
+    assertOk(cmd.includes('skills/tdd'), 'command body must point at skills/tdd');
+  });
+
+  suite.test('skill tdd still Spec-bound', () => {
+    assertOk(/Spec-bound/i.test(skill), 'skills/tdd/SKILL.md remains Spec-bound');
+  });
+});
 // ── Run standalone ─────────────────────────────────────────────────
 const { printSummary } = require('./helpers');
 process.exit(printSummary());

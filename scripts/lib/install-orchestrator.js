@@ -207,8 +207,14 @@ function runShellScript(scriptPath, args, opts = {}) {
   }
   const bash = opts.bash || 'bash';
   const quoted = [scriptPath, ...args].map((a) => `"${String(a).replace(/"/g, '\\"')}"`).join(' ');
-  const execFn = opts.execFn || ((cmd) => execSync(cmd, { stdio: opts.stdio || 'pipe', cwd: opts.cwd }));
-  execFn(`${bash} ${quoted}`);
+  const execEnv = opts.env || process.env;
+  const meta = { env: execEnv, cwd: opts.cwd };
+  const execFn = opts.execFn || ((cmd, m = {}) => execSync(cmd, {
+    stdio: opts.stdio || 'pipe',
+    cwd: m.cwd || opts.cwd,
+    env: m.env || execEnv,
+  }));
+  execFn(`${bash} ${quoted}`, meta);
   return { ok: true };
 }
 
@@ -239,10 +245,20 @@ function runPostUpdateMaintenance(kernelRoot, homeDir, profile, opts = {}) {
   }
   const installDash = path.join(kernelRoot, 'scripts', 'dashboard', 'install-dashboard.sh');
   if (opts.skipDashboard !== true && fs.existsSync(installDash)) {
-    log('🖥️  同步 Dashboard (~/.airein/dashboard)...');
+    // MUST copy from the update *source* (checkout / temp clone), not kernelRoot.
+    // Passing kernelRoot made SRC==DST and install-dashboard skipped the copy —
+    // if sync was noop / partial, the running panel stayed on stale public assets
+    // (missing template-categories.js → 项目模板 Tab 回退到旧分类逻辑).
+    const dashSrc = opts.dashboardSource
+      ? path.resolve(opts.dashboardSource)
+      : kernelRoot;
+    log(`🖥️  同步 Dashboard ← ${dashSrc} → ${path.join(kernelRoot, 'dashboard')}`);
     results.push({
       step: 'dashboard',
-      ...runShellScript(installDash, [kernelRoot, '--with-dashboard'], shellOpts),
+      ...runShellScript(installDash, [dashSrc, '--with-dashboard'], {
+        ...shellOpts,
+        env: { ...(shellOpts.env || process.env), AIREIN_KERNEL: kernelRoot },
+      }),
     });
     log('   ✅ Dashboard 同步完成');
   }
@@ -494,13 +510,21 @@ async function update(opts = {}) {
 
   log('');
   log('① 解析升级源...');
+  // Prefer: explicit opts → checkout that invoked `./airein` → else clone (kernel自指禁止)
+  const invokeSource = process.env.AIREIN_INVOKE_SOURCE
+    && isAireinSource(process.env.AIREIN_INVOKE_SOURCE)
+    ? path.resolve(process.env.AIREIN_INVOKE_SOURCE)
+    : null;
   const resolved = resolveUpdateSource({
     ...opts,
     kernelRoot,
     homeDir,
-    scriptDir: opts.scriptDir || kernelRoot,
+    scriptDir: opts.scriptDir || invokeSource || kernelRoot,
     log,
   });
+  if (!opts.source && !opts.sourceDir && invokeSource && resolved.sourceDir === invokeSource) {
+    log(`   源: ${invokeSource}（调用方 checkout）`);
+  }
   const pkgVer = resolved.version;
   log(`   包版本: ${pkgVer || '(无 VERSION)'}`);
   if (pkgVer) {
@@ -524,8 +548,29 @@ async function update(opts = {}) {
   }
 
   log('');
-  log('③ 升级后维护 (clean + verify)...');
-  runPostUpdateMaintenance(kernelRoot, homeDir, profile, { ...opts, log });
+  log('③ 升级后维护 (clean + verify + dashboard)...');
+  // Dashboard 必须在 resolved.cleanup() 之前跑 —— 用尚未删除的源目录强制刷新面板静态资源。
+  // Re-require from disk after sync: online `airein update` 可能用旧内核启动 Node，
+  // 内存里仍是 pre-sync 代码；磁盘上的新编排器才带 dashboardSource 修复。
+  const orchPath = path.join(kernelRoot, 'scripts', 'lib', 'install-orchestrator.js');
+  let maintain = runPostUpdateMaintenance;
+  try {
+    delete require.cache[require.resolve(orchPath)];
+  } catch { /* resolve may fail if path not yet in cache */ }
+  try {
+    delete require.cache[orchPath];
+    const fresh = require(orchPath);
+    if (typeof fresh.runPostUpdateMaintenance === 'function') {
+      maintain = fresh.runPostUpdateMaintenance;
+    }
+  } catch (err) {
+    log(`   ⚠️  无法加载同步后的编排器，回退进程内维护: ${err.message}`);
+  }
+  maintain(kernelRoot, homeDir, profile, {
+    ...opts,
+    log,
+    dashboardSource: resolved.sourceDir,
+  });
 
   try { resolved.cleanup(); } catch { /* noop */ }
 

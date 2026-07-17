@@ -2,11 +2,10 @@
  * Test: No residual "superpowers" references in committed files
  *
  * After the v2.4 integration, all superpowers plugin references should
- * have been cleaned from:
- *   - writing-plans/SKILL.md (was referencing superpowers:subagent-driven-development)
- *   - Any other skill files or repo files
+ * have been cleaned from skill/source files. writing-plans (Superpowers lineage)
+ * was retired; README credits may name "Superpowers" as proper noun.
  *
- * Exception: this test file mentions "Superpowers" as a proper noun.
+ * Exception: this test file and README credits mention "Superpowers" as a proper noun.
  */
 
 const fs = require('fs');
@@ -19,18 +18,11 @@ function readText(filePath) {
 }
 
 describe('No residual superpowers references', suite => {
-  suite.test('writing-plans SKILL.md has no superpowers references', () => {
-    const content = readSkill('writing-plans');
+  suite.test('tdd SKILL.md has no superpowers references', () => {
+    const content = readSkill('tdd');
     if (!content) return;
     assert(!content.toLowerCase().includes('superpowers'),
-      'writing-plans should not mention superpowers');
-  });
-
-  suite.test('tdd-workflow SKILL.md has no superpowers references', () => {
-    const content = readSkill('tdd-workflow');
-    if (!content) return;
-    assert(!content.toLowerCase().includes('superpowers'),
-      'tdd-workflow should not mention superpowers');
+      'tdd should not mention superpowers');
   });
 
   suite.test('new-plan SKILL.md has no superpowers references', () => {
@@ -38,13 +30,6 @@ describe('No residual superpowers references', suite => {
     if (!content) return;
     assert(!content.toLowerCase().includes('superpowers'),
       'new-plan should not mention superpowers');
-  });
-
-  suite.test('verification-loop SKILL.md has no superpowers references', () => {
-    const content = readSkill('verification-loop');
-    if (!content) return;
-    assert(!content.toLowerCase().includes('superpowers'),
-      'verification-loop should not mention superpowers');
   });
 
   suite.test('CLAUDE.md has no superpowers: plugin-style references', () => {
