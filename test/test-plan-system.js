@@ -660,10 +660,10 @@ describe('quality-config: planWorkflow defaults', suite => {
     assertEqual(JSON.stringify(pipelines['hotfix']), JSON.stringify(['tasks']), 'hotfix pipeline');
   });
 
-  suite.test('m-feature is requirements, design, tasks', () => {
+  suite.test('m-feature is requirements, design, test-plan, tasks', () => {
     const { loadGlobalPipelines } = require(QUALITY_CONFIG_PATH);
     const pipelines = loadGlobalPipelines();
-    assertEqual(JSON.stringify(pipelines['m-feature']), JSON.stringify(['requirements', 'design', 'tasks']), 'm-feature pipeline');
+    assertEqual(JSON.stringify(pipelines['m-feature']), JSON.stringify(['requirements', 'design', 'test-plan', 'tasks']), 'm-feature pipeline');
   });
 
   suite.test('l-feature includes test-plan and deployment', () => {

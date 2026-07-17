@@ -13,8 +13,8 @@
     },
     "m-feature": {
       "label": "M-Feature",
-      "description": "中型项目新功能 —— 标准开发流程：需求分析、技术设计、任务拆分",
-      "docs": ["requirements", "design", "tasks"]
+      "description": "中型项目新功能 —— 需求分析、技术设计、测试计划、任务拆分",
+      "docs": ["requirements", "design", "test-plan", "tasks"]
     },
     "m-bugfix": {
       "label": "M-Bugfix",

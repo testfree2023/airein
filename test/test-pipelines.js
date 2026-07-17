@@ -145,9 +145,9 @@ describe('loadGlobalPipelines: reads templates/pipelines.json', suite => {
       's-bugfix docs');
   });
 
-  suite.test('m-feature has [requirements, design, tasks]', () => {
+  suite.test('m-feature has [requirements, design, test-plan, tasks]', () => {
     const pipelines = loadGlobalPipelines();
-    assertEqual(JSON.stringify(pipelines['m-feature']), JSON.stringify(['requirements', 'design', 'tasks']),
+    assertEqual(JSON.stringify(pipelines['m-feature']), JSON.stringify(['requirements', 'design', 'test-plan', 'tasks']),
       'm-feature docs');
   });
 
@@ -353,9 +353,9 @@ describe('approval-sequence: s-bugfix pipeline [tasks only]', suite => {
   });
 });
 
-// --- m-feature: [requirements, design, tasks] ---
+// --- m-feature: [requirements, design, test-plan, tasks] ---
 
-describe('approval-sequence: m-feature pipeline [requirements → design → tasks]', suite => {
+describe('approval-sequence: m-feature pipeline [requirements → design → test-plan → tasks]', suite => {
 
   suite.test('allows requirements.md as first doc', () => {
     const project = createPipelineProject({ complexity: 'm-feature', approval: {} });
@@ -391,21 +391,34 @@ describe('approval-sequence: m-feature pipeline [requirements → design → tas
     cleanup(project.dir);
   });
 
-  suite.test('blocks tasks.md before design approved', () => {
+  suite.test('blocks test-plan.md before design approved', () => {
     const project = createPipelineProject({
       complexity: 'm-feature',
       approval: { requirements: 'approved' },
     });
     const result = runApprovalSequence({
       tool_name: 'Write',
-      tool_input: { file_path: path.join(project.planDir, 'tasks.md'), content: '# Tasks' }
+      tool_input: { file_path: path.join(project.planDir, 'test-plan.md'), content: '# Test' }
     }, project.dir);
-    assertEqual(result.exitCode, 2, 'tasks.md blocked before design');
+    assertEqual(result.exitCode, 2, 'test-plan.md blocked before design');
     assertContains(result.stderr, 'design', 'error mentions design');
     cleanup(project.dir);
   });
 
-  suite.test('allows tasks.md after design approved', () => {
+  suite.test('allows test-plan.md after design approved', () => {
+    const project = createPipelineProject({
+      complexity: 'm-feature',
+      approval: { requirements: 'approved', design: 'approved' },
+    });
+    const result = runApprovalSequence({
+      tool_name: 'Write',
+      tool_input: { file_path: path.join(project.planDir, 'test-plan.md'), content: '# Test' }
+    }, project.dir);
+    assertEqual(result.exitCode, 0, 'test-plan.md allowed after design');
+    cleanup(project.dir);
+  });
+
+  suite.test('blocks tasks.md before test-plan approved', () => {
     const project = createPipelineProject({
       complexity: 'm-feature',
       approval: { requirements: 'approved', design: 'approved' },
@@ -414,7 +427,21 @@ describe('approval-sequence: m-feature pipeline [requirements → design → tas
       tool_name: 'Write',
       tool_input: { file_path: path.join(project.planDir, 'tasks.md'), content: '# Tasks' }
     }, project.dir);
-    assertEqual(result.exitCode, 0, 'tasks.md allowed after design');
+    assertEqual(result.exitCode, 2, 'tasks.md blocked before test-plan');
+    assertContains(result.stderr, 'test-plan', 'error mentions test-plan');
+    cleanup(project.dir);
+  });
+
+  suite.test('allows tasks.md after test-plan approved', () => {
+    const project = createPipelineProject({
+      complexity: 'm-feature',
+      approval: { requirements: 'approved', design: 'approved', 'test-plan': 'approved' },
+    });
+    const result = runApprovalSequence({
+      tool_name: 'Write',
+      tool_input: { file_path: path.join(project.planDir, 'tasks.md'), content: '# Tasks' }
+    }, project.dir);
+    assertEqual(result.exitCode, 0, 'tasks.md allowed after test-plan');
     cleanup(project.dir);
   });
 });
@@ -877,8 +904,9 @@ describe('pipelines.json: structure validation', suite => {
       }
       signatures.add(sig);
     }
-    // s-bugfix/m-urgent/hotfix share [tasks] (2 dup), s-feature/m-bugfix share [requirements,tasks] (1 dup)
-    assertEqual(duplicates, 3, `expected 3 duplicate doc lists, got ${duplicates}`);
+    // s-bugfix/m-urgent/hotfix share [tasks] (2 dup), s-feature/m-bugfix share [requirements,tasks] (1 dup),
+    // m-feature/l-bugfix share [requirements,design,test-plan,tasks] (1 dup)
+    assertEqual(duplicates, 4, `expected 4 duplicate doc lists, got ${duplicates}`);
   });
 });
 

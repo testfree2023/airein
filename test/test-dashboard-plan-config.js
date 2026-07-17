@@ -90,9 +90,10 @@ describe('pipelines: global template architecture', suite => {
     // s-bugfix and hotfix are tasks-only
     assertEqual(data.definitions['s-bugfix'].docs[0], 'tasks', 's-bugfix pipeline is tasks-only');
     assertEqual(data.definitions['s-bugfix'].docs.length, 1, 's-bugfix has only tasks');
-    // m-feature has requirements, design, tasks
+    // m-feature has requirements, design, test-plan, tasks
     assertOk(data.definitions['m-feature'].docs.indexOf('requirements') >= 0, 'm-feature has requirements');
     assertOk(data.definitions['m-feature'].docs.indexOf('design') >= 0, 'm-feature has design');
+    assertOk(data.definitions['m-feature'].docs.indexOf('test-plan') >= 0, 'm-feature has test-plan');
     assertOk(data.definitions['m-feature'].docs.indexOf('tasks') >= 0, 'm-feature has tasks');
     // l-feature has unified doc types (no prd/hld/lld)
     assertOk(data.definitions['l-feature'].docs.indexOf('requirements') >= 0, 'l-feature uses requirements (not prd)');

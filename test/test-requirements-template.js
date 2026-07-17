@@ -18,7 +18,7 @@ const {
 const DEFINITIONS = {
   's-feature': { docs: ['requirements', 'tasks'] },
   's-bugfix': { docs: ['tasks'] },
-  'm-feature': { docs: ['requirements', 'design', 'tasks'] },
+  'm-feature': { docs: ['requirements', 'design', 'test-plan', 'tasks'] },
   'm-bugfix': { docs: ['requirements', 'tasks'] },
   'm-urgent': { docs: ['tasks'] },
   'l-feature': { docs: ['requirements', 'design', 'test-plan', 'deployment', 'tasks'] },
@@ -99,11 +99,11 @@ describe('PRD templates: content gates', (suite) => {
     const m = fs.readFileSync(path.join(projectRoot(), 'templates/docs/requirements/m.md'), 'utf8');
     const l = fs.readFileSync(path.join(projectRoot(), 'templates/docs/requirements/l.md'), 'utf8');
     assertOk(s.includes('产品需求说明书') || s.includes('PRD'), 's PRD');
-    assertOk(s.includes('Users & Roles') && s.includes('Core Scenarios'), 's roles/scenarios');
+    assertOk(s.includes('Users & Roles') && s.includes('User Story') && s.includes('Use Case'), 's roles/story/uc');
     assertOk(s.includes('Acceptance Criteria') && s.includes('Out of Scope'), 's acceptance/oos');
     assertOk(m.includes('User Story') && m.includes('Non-Functional'), 'm story+NFR');
     assertOk(m.includes('禁止'), 'm negative constraint');
-    assertOk(l.includes('Success Metrics') && l.includes('Core Scenarios'), 'l metrics');
+    assertOk(l.includes('Success Metrics') && l.includes('Business Process Overview'), 'l metrics+overview');
     assertOk(l.includes('requirements-{topic}'), 'l split guidance');
   });
 

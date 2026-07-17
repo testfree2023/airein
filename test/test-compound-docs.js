@@ -24,7 +24,8 @@ const {
 
 const APPROVAL_SEQ_PATH = path.join(projectRoot(), 'scripts', 'hooks', 'approval-sequence.js');
 const PIPELINES_JSON_PATH = path.join(projectRoot(), 'templates', 'pipelines.json');
-const DESIGN_TEMPLATE_PATH = path.join(projectRoot(), 'templates', 'docs', 'design.md');
+const DESIGN_TEMPLATE_PATH = path.join(projectRoot(), 'templates', 'docs', 'design', 'l.md');
+const DESIGN_STUB_PATH = path.join(projectRoot(), 'templates', 'docs', 'design.md');
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -171,11 +172,18 @@ describe('SKILL.md: Compound Documents section', suite => {
 // 2. design.md template: has Sub-documents section
 // ════════════════════════════════════════════════════════════════════
 
-describe('design.md template: LLD sub-document structure', suite => {
+describe('design/l.md template: LLD sub-document structure', suite => {
   const template = fs.readFileSync(DESIGN_TEMPLATE_PATH, 'utf8');
 
-  suite.test('design.md template exists', () => {
-    assertOk(template, 'design.md template should exist');
+  suite.test('design/l.md template exists', () => {
+    assertOk(template, 'design/l.md template should exist');
+  });
+
+  suite.test('design.md compat stub points to tier templates', () => {
+    const stub = fs.readFileSync(DESIGN_STUB_PATH, 'utf8');
+    assertOk(stub.includes('COMPATIBILITY') || stub.includes('stub'), 'stub marker');
+    assertOk(stub.includes('resolveDesignTemplate'), 'resolver');
+    assertOk(stub.includes('design/'), 'tier path');
   });
 
   suite.test('has Sub-documents section', () => {

@@ -32,10 +32,11 @@ function classifyTemplateCategory(relPath) {
 
   // Product / archival core (aligned with project isCoreDoc)
   if (base === 'requirements.md' || top === 'requirements') return 'project-docs';
-  if (base === 'design.md' || top === 'design.md' || top.indexOf('design-') === 0) {
+  // design.md stub, design/{s,m,l}.md, or design-* subdoc templates
+  if (base === 'design.md' || top === 'design' || top.indexOf('design-') === 0) {
     return 'project-docs';
   }
-  if (base === 'test-plan.md' || base === 'deployment.md') return 'project-docs';
+  if (base === 'test-plan.md' || p.indexOf('docs/test-plan/') === 0 || base === 'deployment.md') return 'project-docs';
 
   // Other docs/* → project-docs (avoid the old "leftover" trap)
   return 'project-docs';

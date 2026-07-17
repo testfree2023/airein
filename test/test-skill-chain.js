@@ -55,6 +55,12 @@ describe('F1: Skill chain — new-plan', suite => {
     assertContains(content, 'resolveRequirementsTemplate', 'tier resolve API');
     assertContains(content, 'templates/docs/requirements/m.md', 'm-tier path');
   });
+
+  suite.test('new-plan resolves design s/m/l via resolveDesignTemplate', () => {
+    assertContains(content, 'resolveDesignTemplate', 'design tier resolve API');
+    assertContains(content, 'templates/docs/design/m.md', 'design m-tier path');
+    assertContains(content, 'Impact & Follow-up Checks', 'design Impact section');
+  });
 });
 
 describe('F1: Skill chain — tdd', suite => {

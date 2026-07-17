@@ -17,6 +17,7 @@
   - 所有任务完成后：提示用户归档或下一步操作
 - **需求/方案规划用 `/new-plan`，不用 CC 原生 plan mode** — 与用户沟通需求、准备写代码时，调用 `/new-plan` skill 走文档流水线（requirements→design→tasks + progress.md 审批）；不要进入 CC 自带 plan mode（`EnterPlanMode`/`ExitPlanMode`）。原因：airein 的审批/归档/roadmap 联动都挂在 `docs/plans/P{NNN}/`，原生 plan mode 不落地文件、不进 roadmap、plan-gate 与 archive-trigger 都感知不到。例外：纯探索性问答、不落代码的讨论可随意用任意方式。
 - **计划内 `requirements.md` = 产品需求说明书（PRD）** — 按 pipeline 规模选用 `templates/docs/requirements/{s|m|l}.md`（经 `resolveRequirementsTemplate`）；禁止写成简易需求摘要。
+- **计划内 `design.md` = 工程设计说明书（概要 + 按规模详细）** — 按 pipeline 选用 `templates/docs/design/{s|m|l}.md`（经 `resolveDesignTemplate`）；Impact 必填；菜单/页面须 Permissions（否则显式 N/A）；新跨模块依赖须加厚实现细节。
 
 ## Workflow（五步）
 

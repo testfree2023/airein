@@ -25,6 +25,9 @@ describe('classifyTemplateCategory: project (product/archived core)', (suite) =>
 
   suite.test('design.md and design-* nested → project-docs', () => {
     assertEqual(classifyTemplateCategory('docs/design.md'), 'project-docs', 'design.md');
+    assertEqual(classifyTemplateCategory('docs/design/s.md'), 'project-docs', 'design/s.md');
+    assertEqual(classifyTemplateCategory('docs/design/m.md'), 'project-docs', 'design/m.md');
+    assertEqual(classifyTemplateCategory('docs/design/l.md'), 'project-docs', 'design/l.md');
     assertEqual(classifyTemplateCategory('docs/design-database.md'), 'project-docs', 'design-database.md');
     assertEqual(classifyTemplateCategory('docs/design-architecture/javascript.md'), 'project-docs', 'design-architecture/js');
     assertEqual(classifyTemplateCategory('docs/design-conventions/bash.md'), 'project-docs', 'design-conventions/bash');
@@ -32,6 +35,8 @@ describe('classifyTemplateCategory: project (product/archived core)', (suite) =>
 
   suite.test('test-plan and deployment → project-docs', () => {
     assertEqual(classifyTemplateCategory('docs/test-plan.md'), 'project-docs', 'test-plan.md');
+    assertEqual(classifyTemplateCategory('docs/test-plan/m.md'), 'project-docs', 'test-plan/m.md');
+    assertEqual(classifyTemplateCategory('docs/test-plan/l.md'), 'project-docs', 'test-plan/l.md');
     assertEqual(classifyTemplateCategory('docs/deployment.md'), 'project-docs', 'deployment.md');
   });
 });

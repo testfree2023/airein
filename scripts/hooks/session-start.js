@@ -32,6 +32,7 @@ const {
 const { listAliases } = require('../lib/session-aliases');
 const { aireinLog } = require('../lib/airein-logger');
 const { qualityConfigPath, projectDataSubpath, projectDataSubpathForRead } = require('../lib/project-paths');
+const { purgeStaleCcBashHooks } = require('../lib/cc-hook-command');
 
 function resolveHookCommands(hooks) {
   return JSON.stringify(hooks)
@@ -105,6 +106,21 @@ async function main() {
     }
   } catch (err) {
     aireinLog('error', 'session-start', `Hook self-heal failed: ${err.message}`);
+  }
+
+  // Win32: purge leftover bash run-hook landmines (projects/*/hooks/hooks.json etc.).
+  // Stale --resume sessions may still spawn bash until Claude Code is restarted.
+  try {
+    const purged = purgeStaleCcBashHooks(getClaudeDir(), { platform: process.platform });
+    if (purged.fixed.length > 0) {
+      aireinLog(
+        'warn',
+        'session-start',
+        `Purged ${purged.fixed.length} stale bash/WSL hook landmine(s). Restart Claude Code if hooks still spawn bash.exe.`,
+      );
+    }
+  } catch (err) {
+    aireinLog('error', 'session-start', `Stale hook purge failed: ${err.message}`);
   }
 
   // Diagnostic: verify critical config files are parseable JSON

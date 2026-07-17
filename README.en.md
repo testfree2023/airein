@@ -33,7 +33,7 @@ Communicate & clarify (grilling) → produce docs by pipeline → approve one by
 ```
 
 - **Communicate & clarify**: before acting, nail down vague requirements. Ask one question at a time, challenge assumptions, force boundaries with concrete scenarios, and turn "build me an X" into a clear scope with acceptance criteria.
-- **Produce docs by pipeline**: based on task type (s-feature / m-feature / l-feature / hotfix ...), follow the corresponding doc pipeline — a small bugfix only needs `tasks`, a mid-size feature needs `requirements → design → tasks`, a large feature adds `test-plan`, `deployment`. The docs are specs — contracts for the implementation that follows.
+- **Produce docs by pipeline**: based on task type (s-feature / m-feature / l-feature / hotfix ...), follow the corresponding doc pipeline — a small bugfix only needs `tasks`, a mid-size feature needs `requirements → design → test-plan → tasks`, a large feature adds `deployment`. The docs are specs — contracts for the implementation that follows.
 - **Approval gates per doc**: each doc goes draft → your approval → approved, before the next one can be created. The `approval-sequence` hook enforces order; `approval-guard` protects approval state from tampering. Prevents AI from laying out all docs at once with no review.
 - **TDD implementation**: once in implementation, `test-guard` hard-blocks "source code without tests" in strict mode — a failing test must exist before implementation is allowed. `pre-commit-gate` runs build + tests + coverage before commit.
 - **Archive to close the loop**: when the plan is done, `/archive-plan` archives it so completed plans stop polluting the active context.

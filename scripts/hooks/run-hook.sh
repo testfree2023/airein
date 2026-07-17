@@ -6,6 +6,17 @@
 # Usage: bash run-hook.sh <script.js> [args...]
 #
 # stdin is passed through to the target script.
+#
+# Windows / WSL: System32\bash.exe launches this inside WSL. Claude Code's
+# stdin pipe across the WSL boundary often never closes → hung bash+wsl
+# orphans by the hundreds. On win32, airein registers `node hook.js` directly;
+# if this script is still reached (stale --resume session / landmine hooks.json),
+# fail-open immediately — never exec node under WSL for CC hooks.
+
+if [ -n "${WSL_DISTRO_NAME:-}" ] || { [ -f /proc/version ] && grep -qi microsoft /proc/version 2>/dev/null; }; then
+  echo "[airein] run-hook.sh refused under WSL/Windows bash (prevents process leak). Re-run airein update and restart Claude Code so hooks use node directly." >&2
+  exit 0
+fi
 
 NODE_BIN="$(command -v node 2>/dev/null || true)"
 if [ -z "$NODE_BIN" ]; then

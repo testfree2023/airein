@@ -28,6 +28,8 @@ bash test/run-all.sh clean     # test-no-superpowers.js
 |------|----------|--------|
 | `test-quality-config.js` | DEFAULTS 结构、deepMerge 合并、flowControl 开关、quality.json 集成 | 36 |
 | `test-skill-chain.js` | F1 链式传递：new-plan → tdd → code-reviewer | — |
+| `test-tasks-template-sdlc.js` | tasks/test-plan 模板 + new-plan：SDLC / Entry Coverage / 角色入口 Must | — |
+| `test-requirements-process-uc.js` | PRD：业务流程总览 + Story→UC + tasks 引用 UC-id | — |
 | `test-anti-rationalization.js` | F2 防合理化表（≥8 条）、Red Flags、Iron Law、5 步验证门禁、声明/证据表 | 24 |
 | `test-flow-control.js` | F3 每任务审查开关 + F4 worktree 隔离开关 + CLAUDE.md 新增段落 | 14 |
 | `test-json-validity.js` | 所有 JSON 文件解析 + hooks.json 结构（5 个 event key） | 13 |

@@ -64,7 +64,10 @@ Manage `projects.json` from the UI without CLI:
 ### Plan Management
 
 - **View plans** — progress, requirements, design, tasks documents
-- **Edit documents** — inline editor with markdown rendering
+### Document viewing
+
+- Markdown is rendered client-side (`public/md-render.js`).
+- Fenced ` ```mermaid ` blocks are painted with [Mermaid](https://mermaid.js.org/) loaded from jsDelivr CDN (no npm dependency). Offline or CDN failure → diagram source remains visible as text inside `.mermaid`.
 - **Create plans** — choose name and pipeline (s-feature / m-feature / l-feature / hotfix / …)
 - **Approve phases** — pipeline visualization with approval buttons that enforce per-pipeline doc rules
 

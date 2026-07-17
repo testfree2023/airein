@@ -33,7 +33,7 @@ Airein 的论点很直接——**把企业研发流程抽象成 AI 能遵循的 
 ```
 
 - **沟通澄清**：动手前先把模糊需求问清楚。一个一个问，挑战假设，用具体场景逼出边界，把"帮我做个 X"变成有验收标准的明确范围。
-- **按流水线产出文档**：根据任务类型（s-feature / m-feature / l-feature / hotfix …）走对应的文档流水线——小型 bugfix 只需 `tasks`，中型功能要 `requirements → design → tasks`，大型功能再加 `test-plan`、`deployment`。文档即 spec，是后续实现的契约。
+- **按流水线产出文档**：根据任务类型（s-feature / m-feature / l-feature / hotfix …）走对应的文档流水线——小型 bugfix 只需 `tasks`，中型功能要 `requirements → design → test-plan → tasks`，大型功能再加 `deployment`。文档即 spec，是后续实现的契约。
 - **逐份审批门禁**：每份文档 draft → 你审批 → approved，才允许创建下一份。`approval-sequence` hook 强制顺序，`approval-guard` 保护审批状态不被擅自篡改。避免 AI 一次性铺开所有文档却没人审。
 - **TDD 实现**：进入实现阶段后，`test-guard` 在 strict 模式下硬拦截"无测试的源码"——先有失败测试，才允许写实现。`pre-commit-gate` 在提交前跑 build + 测试 + 覆盖率。
 - **归档闭环**：计划完成后 `/archive-plan` 归档，完成的计划不再污染活跃上下文。
