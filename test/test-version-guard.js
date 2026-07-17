@@ -10,7 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { describe, assertEqual, assert, assertMatch, printSummary } = require('./helpers');
+const { describe, assertEqual, assert, assertOk, assertMatch, printSummary } = require('./helpers');
 const { compareVersion, checkGuard } = require('../scripts/lib/version-guard');
 
 const VERSION_PATH = path.join(__dirname, '..', 'VERSION');
@@ -21,9 +21,9 @@ describe('VERSION 文件', (suite) => {
     assertMatch(v, /^\d+\.\d{2}$/, `VERSION "${v}" 应为 x.xx 格式`);
   });
 
-  suite.test('P002 起点为 2.00', () => {
+  suite.test('VERSION >= P002 起点 2.00', () => {
     const v = fs.readFileSync(VERSION_PATH, 'utf8').trim();
-    assertEqual(v, '2.00', 'P002 起点版本');
+    assertOk(compareVersion(v, '2.00') >= 0, 'VERSION must be >= 2.00 (P002 baseline)');
   });
 });
 

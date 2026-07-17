@@ -113,6 +113,7 @@ pending: 4
 ## Approval State
 requirements: approved
 design: approved
+test-plan: approved
 tasks: draft
 
 ## Active Task
@@ -320,28 +321,47 @@ describe('approval-sequence: R→D→T order', suite => {
     }
   });
 
-  suite.test('blocks tasks.md for complex when design not approved', () => {
+  suite.test('blocks test-plan.md for complex when design not approved', () => {
     const tmp = createTempProject();
     try {
-      const progressNoDesign = COMPLEX_PROGRESS.replace('design: approved', 'design: draft');
+      // m-feature: requirements → design → test-plan → tasks (immediate predecessor only)
+      const progressNoDesign = COMPLEX_PROGRESS
+        .replace('design: approved', 'design: draft')
+        .replace('test-plan: approved', 'test-plan: none');
       createPlanDir(tmp, 'P003-complex', progressNoDesign);
-      const tasksPath = path.join(tmp, 'docs', 'plans', 'P003-complex', 'tasks.md');
-      const result = runHook(APPROVAL_SEQ_PATH, tasksPath, tmp);
+      const testPlanPath = path.join(tmp, 'docs', 'plans', 'P003-complex', 'test-plan.md');
+      const result = runHook(APPROVAL_SEQ_PATH, testPlanPath, tmp);
       assertContains(result.stderr, '[Approval Sequence]', 'should warn about design approval');
-      assertEqual(result.exitCode, 2, 'should block tasks without design approval');
+      assertContains(result.stderr, 'design.md', 'message names previous document');
+      assertEqual(result.exitCode, 2, 'should block test-plan without design approval');
     } finally {
       removeTempProject(tmp);
     }
   });
 
-  suite.test('allows tasks.md for complex when design approved', () => {
+  suite.test('allows tasks.md for complex when design and test-plan approved', () => {
     const tmp = createTempProject();
     try {
       createPlanDir(tmp, 'P003-complex', COMPLEX_PROGRESS);
       const tasksPath = path.join(tmp, 'docs', 'plans', 'P003-complex', 'tasks.md');
       const result = runHook(APPROVAL_SEQ_PATH, tasksPath, tmp);
-      assertEqual(result.exitCode, 0, 'should allow tasks with approved design');
+      assertEqual(result.exitCode, 0, 'should allow tasks with approved design and test-plan');
       assertEqual(result.stdout, result.input, 'should passthrough stdin');
+    } finally {
+      removeTempProject(tmp);
+    }
+  });
+
+  suite.test('blocks tasks.md for complex when test-plan not approved', () => {
+    const tmp = createTempProject();
+    try {
+      const progressNoTp = COMPLEX_PROGRESS.replace('test-plan: approved', 'test-plan: draft');
+      createPlanDir(tmp, 'P003-complex', progressNoTp);
+      const tasksPath = path.join(tmp, 'docs', 'plans', 'P003-complex', 'tasks.md');
+      const result = runHook(APPROVAL_SEQ_PATH, tasksPath, tmp);
+      assertContains(result.stderr, '[Approval Sequence]', 'should warn about test-plan approval');
+      assertContains(result.stderr, 'test-plan.md', 'message names previous document');
+      assertEqual(result.exitCode, 2, 'should block tasks without test-plan approval');
     } finally {
       removeTempProject(tmp);
     }
