@@ -56,3 +56,6 @@ contract-cache/
 # ── Dashboard 运行时产物（PID 文件 + 日志）───────────────────────
 dashboard.pid
 dashboard/dashboard.log
+
+# ── Agent Teams 需求分析（仅本地，不上游）─────────────────────────
+docs/agent-teams-requirements-analysis.md

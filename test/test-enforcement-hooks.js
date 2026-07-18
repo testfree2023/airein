@@ -159,6 +159,10 @@ describe('quality-config: planGate defaults', suite => {
   suite.test('planGate.requireActiveTask defaults to true', () => {
     assertEqual(DEFAULTS.planGate.requireActiveTask, true, 'requireActiveTask defaults true');
   });
+
+  suite.test('taskPickup.onBlocked defaults to wait_user', () => {
+    assertEqual(DEFAULTS.taskPickup.onBlocked, 'wait_user', 'onBlocked defaults wait_user');
+  });
 });
 
 // ── plan-gate tests ────────────────────────────────────────────────
@@ -387,14 +391,19 @@ describe('progress-sync: auto-update progress.md', suite => {
     try {
       const tasksContent = `# Tasks: Test
 
+## 1.0 Implement
+
 ### 1.1 Task A
 - **Status**: ✅ completed
+- **Depends on**: none
 
 ### 1.2 Task B
-- **Status**: 🔄 in-progress
+- **Status**: 🔄 in_progress
+- **Depends on**: 1.1
 
 ### 1.3 Task C
 - **Status**: ⏳ pending
+- **Depends on**: 1.2
 `;
       createPlanDir(tmp, 'P002-active', ACTIVE_PROGRESS, null, null, tasksContent);
       const tasksPath = path.join(tmp, 'docs', 'plans', 'P002-active', 'tasks.md');
@@ -418,14 +427,19 @@ describe('progress-sync: auto-update progress.md', suite => {
     try {
       const tasksContent = `# Tasks: Test
 
+## 1.0 Implement
+
 ### 1.1 Task A
 - **Status**: ✅ completed
+- **Depends on**: none
 
 ### 1.2 Task B
-- **Status**: 🔄 in-progress
+- **Status**: 🔄 in_progress
+- **Depends on**: 1.1
 
 ### 1.3 Task C
 - **Status**: ⏳ pending
+- **Depends on**: 1.2
 `;
       createPlanDir(tmp, 'P002-active', ACTIVE_PROGRESS, null, null, tasksContent);
       const tasksPath = path.join(tmp, 'docs', 'plans', 'P002-active', 'tasks.md');

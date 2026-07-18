@@ -28,6 +28,7 @@ const utils = require(path.join(SCRIPTS_LIB, 'utils'));
 const runtimeMetrics = require(path.join(SCRIPTS_LIB, 'runtime-metrics'));
 const projectPaths = require(path.join(SCRIPTS_LIB, 'project-paths'));
 const dashboardProjects = require(path.join(SCRIPTS_LIB, 'dashboard-projects'));
+const parseTasksPanel = require(path.join(SCRIPTS_LIB, 'parse-tasks-panel'));
 
 const loadGlobalPipelines = qualityConfig.loadGlobalPipelines;
 const loadGlobalLanguageProfiles = qualityConfig.loadGlobalLanguageProfiles;
@@ -1369,81 +1370,7 @@ function handleMigratePlan(projectPath, planId, res) {
 // ── Task progress handlers ─────────────────────────────
 
 function parseTasksMarkdown(content) {
-  const lines = content.split('\n');
-  const stages = [];
-  let currentStage = null;
-  let currentTask = null;
-
-  // Stage heading. Accepts several conventions:
-  //   "## 1.0 Name" | "## 1 Name" | "## Stage 1 — Name" | "## Stage A — Name"
-  // A leading number OR "Stage <letter>" marks a stage.
-  const stageNumRe = /^##\s+(?:Stage\s+)?(\d+)(?:\.0)?\s*[—\-:]?\s*(.+)$/i;
-  const stageAlphaRe = /^##\s+Stage\s+([A-Z0-9]+)\s*[—\-:]\s*(.+)$/i;
-
-  // Task heading. Accepts:
-  //   "### T1 — Name" | "### 1.1 Name" | "### T1 Name" | "### Name"
-  const taskRe = /^###\s+(?:([A-Za-z]?\d[\d.]*)\s*[—\-:\s]+)?(.+)$/;
-
-  // Status detail line. Key may be English (Status) or Chinese (状态), and the
-  // separator may be a colon, fullwidth colon, or en-dash. Value follows.
-  const statusRe = /^-\s+\*\*(?:Status|状态)\*\*[\s:：—\-]+(.+)$/i;
-
-  for (const line of lines) {
-    let stageMatch = line.match(stageNumRe);
-    if (!stageMatch) stageMatch = line.match(stageAlphaRe);
-    if (stageMatch) {
-      currentStage = { num: isNaN(parseInt(stageMatch[1], 10)) ? stageMatch[1] : parseInt(stageMatch[1], 10), name: stageMatch[2].trim(), tasks: [] };
-      stages.push(currentStage);
-      currentTask = null;
-      continue;
-    }
-
-    const taskMatch = line.match(taskRe);
-    if (taskMatch && currentStage) {
-      const id = taskMatch[1] || ('T' + (currentStage.tasks.length + 1));
-      const name = taskMatch[2].trim();
-      currentTask = { id: id, name: name, status: 'pending', details: {} };
-      currentStage.tasks.push(currentTask);
-      continue;
-    }
-
-    if (currentTask) {
-      // Status line gets special status-mapping treatment.
-      const statusMatch = line.match(statusRe);
-      if (statusMatch) {
-        const value = statusMatch[1].trim();
-        currentTask.details['Status'] = value;
-        const s = value.toLowerCase();
-        if (s.includes('done') || s.includes('✅') || s.includes('complete') || s.includes('green') || s.includes('已完成') || s.includes('完成')) {
-          currentTask.status = 'completed';
-        } else if (s.includes('in_progress') || s.includes('进行中') || s.includes('🔄') || s.includes('red')) {
-          currentTask.status = 'in_progress';
-        } else {
-          currentTask.status = 'pending';
-        }
-        continue;
-      }
-
-      // Other detail lines: "- **Key**: value"
-      const detailMatch = line.match(/^-\s+\*\*([^*]+)\*\*[\s:：]+(.+)$/);
-      if (detailMatch) {
-        currentTask.details[detailMatch[1].trim()] = detailMatch[2].trim();
-      }
-    }
-  }
-
-  // Calculate stats
-  let total = 0, completed = 0, inProgress = 0, pending = 0;
-  for (const stage of stages) {
-    for (const task of stage.tasks) {
-      total++;
-      if (task.status === 'completed') completed++;
-      else if (task.status === 'in_progress') inProgress++;
-      else pending++;
-    }
-  }
-
-  return { tasks: stages, total, completed, inProgress, pending };
+  return parseTasksPanel.parseTasksMarkdown(content);
 }
 
 function handleGetPlanTasks(projectPath, planId, res) {
@@ -1458,7 +1385,7 @@ function handleGetPlanTasks(projectPath, planId, res) {
   // Fallback: no tasks.md, derive stats from progress.md (## Task Stats)
   const progressPath = path.join(projectPath, 'docs', 'plans', planId, 'progress.md');
   if (!fs.existsSync(progressPath)) {
-    json(res, 200, { tasks: [], total: 0, completed: 0, inProgress: 0, pending: 0 });
+    json(res, 200, { tasks: [], total: 0, completed: 0, inProgress: 0, pending: 0, panelCompatible: true, unsupported: false, unsupportedMessage: null });
     return;
   }
 
@@ -1480,21 +1407,10 @@ function parseProgressStats(content) {
   out.completed = get('completed');
   out.inProgress = get('in_progress') || get('inProgress');
   out.pending = get('pending');
-  // No per-task breakdown available; surface a single synthetic stage so the
-  // progress page renders a meaningful summary instead of an empty list.
-  if (out.total) {
-    out.tasks = [{
-      num: 1, name: 'Tasks',
-      tasks: Array.from({ length: out.total }, (_, i) => ({
-        id: 'T' + (i + 1),
-        name: '',
-        status: i < out.completed ? 'completed'
-          : i < out.completed + out.inProgress ? 'in_progress'
-          : 'pending',
-        details: {}
-      }))
-    }];
-  }
+  // Counts only when tasks.md is absent — no synthetic nodes (panel stays empty).
+  out.panelCompatible = true;
+  out.unsupported = false;
+  out.unsupportedMessage = null;
   return out;
 }
 

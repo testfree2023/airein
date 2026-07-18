@@ -95,6 +95,9 @@ const DEFAULTS = {
     exemptPaths: ['docs/', '.airein/', '.claude/', 'scripts/hooks/', 'test/'],
     requireActiveTask: true
   },
+  taskPickup: {
+    onBlocked: 'wait_user'      // 'wait_user' | 'model_recommend' — P007; invalid → wait_user
+  },
   planWorkflow: {
     enforceGrilling: true,
     pipeline: 'auto'            // 'auto' (resolves to m-feature by default) | any pipeline name from templates/pipelines.json

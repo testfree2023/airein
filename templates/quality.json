@@ -26,6 +26,9 @@
     "exemptPaths": ["docs/", ".claude/", "scripts/hooks/", "test/"],
     "requireActiveTask": true
   },
+  "taskPickup": {
+    "onBlocked": "wait_user"
+  },
   "planWorkflow": {
     "enforceGrilling": true,
     "pipeline": "auto"

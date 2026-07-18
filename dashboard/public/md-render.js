@@ -224,17 +224,25 @@
     // Otherwise `window.mermaid` may exist while initialize has not run yet
     // (CDN script parsed, onload pending) → silent no-op / failed paint.
     if (window.mermaid && window.__aireinMermaidReady) {
-      // Coalesce bursts (e.g. schedule + btnView.click) into one frame.
-      if (window.__aireinMermaidRaf) {
-        cancelAnimationFrame(window.__aireinMermaidRaf);
-      }
+      // Coalesce bursts into one frame, but flush ALL pending roots.
+      // (Previously cancelAnimationFrame dropped earlier roots — progress
+      // panel DAG stayed as raw text until a later tab re-schedule.)
+      window.__aireinMermaidPending = window.__aireinMermaidPending || [];
+      window.__aireinMermaidPending.push(run);
+      if (window.__aireinMermaidRaf) return;
+      var flush = function () {
+        window.__aireinMermaidRaf = 0;
+        var batch = window.__aireinMermaidPending || [];
+        window.__aireinMermaidPending = [];
+        for (var i = 0; i < batch.length; i++) {
+          try { batch[i](); } catch (_) { /* keep going */ }
+        }
+      };
       if (typeof requestAnimationFrame === 'function') {
-        window.__aireinMermaidRaf = requestAnimationFrame(function () {
-          window.__aireinMermaidRaf = 0;
-          run();
-        });
+        window.__aireinMermaidRaf = requestAnimationFrame(flush);
       } else {
-        setTimeout(run, 0);
+        window.__aireinMermaidRaf = 1;
+        setTimeout(flush, 0);
       }
       return;
     }
