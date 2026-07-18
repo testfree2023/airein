@@ -91,6 +91,7 @@ Compare plan documents with existing project docs. Determine which project docs 
 | docs/database.md | 更新 | 加入 users/sessions 表结构 |
 | docs/conventions.md | 不变 | 本次计划未涉及规范变更 |
 | docs/deployment.md | 新建 | 首次归档部署方案 |
+| CHANGELOG.md | 追加 | 用户向发布摘要（见 Step 6；根目录白名单文件） |
 
 **不受影响的文档**: docs/security.md（认证相关变更已在 architecture.md 中覆盖）
 
@@ -176,16 +177,32 @@ hook). For each language scope the plan covers:
    leave it in place — the resolver still recognizes it. Do not force-rewrite
    legacy single-file to multi-scope; only add new scope files going forward.
 
-### Step 6: Update status
+### Step 6: Update status + CHANGELOG（必做）
 
 1. Update `docs/plans/{planId}/progress.md`:
-   - Change `status: in_progress` → `status: archived`
+   - Change `status: in_progress` / `completed` → `status: archived`
    - Update `updated:` to current date
 
 2. Update `docs/roadmap.md`:
    - Change the plan entry status to indicate archived
 
-3. Optionally update `docs/roadmap.md` ## Recent Changes section with archive note
+3. Optionally update `docs/roadmap.md` ## Recent Changes section with archive note（**过程日志**；可与 CHANGELOG 分工，勿把用户向发布摘要只写在这里）
+
+4. **必做 — 根目录 `CHANGELOG.md`（用户向发布摘要）**
+   - 路径：项目根 `CHANGELOG.md`（`doc-file-warning` 白名单标准名；允许创建或更新）
+   - 若该 plan 已在 `## [Unreleased]` 下有 `### {planId}` 小节：润色确认，**禁止再追加第二条**
+   - 若无：在 `## [Unreleased]` 下（紧接该标题后、最新在上）追加：
+
+```markdown
+### {planId} ({YYYY-MM-DD})
+
+- {3–8 条用户能感知的能力 / 修复 / 变更；Breaking 单独标明}
+```
+
+   - **写**：用户升级后能感到的变化  
+   - **禁止**：堆文件路径、复述 commit list、复制 roadmap Recent Changes 原文  
+   - 发版 bump `VERSION` 时，可将 `[Unreleased]` 中已发布条目移入 `## [{VERSION}] - {date}`（可选，与发版流程一起做）
+   - 打 **Git tag**（发布 / 检查点 / 回滚锚点）时：在 `## Tags` 表登记，并保证正文有对应节（或注明落入哪一 VERSION / tag 节）；tag 与 VERSION 同等重要
 
 ## 规则
 
@@ -194,6 +211,7 @@ hook). For each language scope the plan covers:
 - **保守原则** — 不受影响的文档不碰，不确定是否受影响的文档不碰
 - **整合而非覆盖** — 项目文档是积累的，每次归档是增量更新
 - **进度文件是验证依据** — 必须通过 progress.md 验证完成状态，不可凭记忆判断
+- **CHANGELOG.md 必写** — 用户向摘要；过程流仍用 roadmap Recent Changes；**每个发布 tag 须登记 Tags 表**
 
 ---
 

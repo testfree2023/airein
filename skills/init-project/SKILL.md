@@ -19,7 +19,8 @@ Initialize a project into the Airein system. Automatically detects whether the p
 
 注意事项：
   - 已存在的文件不会被覆盖，只会补充缺失的内容
-  - docs/roadmap.md 包含了 Issues（原 issues.md）和 Recent Changes（原 changelog.md）的合并内容
+  - docs/roadmap.md 包含了 Issues（原 issues.md）和 Recent Changes（**过程日志**；原过程向 changelog 已并入此处）
+  - **用户向**发布说明在项目根 `CHANGELOG.md`（白名单标准名）；空项目**不强制**创建，有 plan 归档或标 `completed` 时由 archive-plan / tdd 写入
   - 不再创建 docs/knowledge/ 目录和 CONTEXT.md（内容已由 rules/ 和 plan 文档覆盖）
 
 输入项目名称继续，或取消。

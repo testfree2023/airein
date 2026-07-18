@@ -1,12 +1,22 @@
 ---
 name: log-change
-description: Record significant changes to docs/roadmap.md ## Recent Changes — decisions, requirement changes, architecture shifts, bug discoveries. Use when a design decision is made, requirement changes, priority shifts, or plan status changes.
+description: Record significant process changes to docs/roadmap.md ## Recent Changes — decisions, requirement changes, architecture shifts, bug discoveries. User-facing release notes go to root CHANGELOG.md (via archive-plan / plan completed), not here.
 disable-model-invocation: true
 ---
 
 # Log Change
 
-Record a significant change to `docs/roadmap.md` under the `## Recent Changes` section.
+Record a significant **process** change to `docs/roadmap.md` under the `## Recent Changes` section.
+
+## 分工（勿混）
+
+| 目标 | 文件 | 何时 |
+|------|------|------|
+| 开发过程 / 决策 / plan 启停 | `docs/roadmap.md` → Recent Changes | 本 skill |
+| **用户向**发布摘要（升级能感到什么） | 根目录 `CHANGELOG.md` | plan `completed` / `/archive-plan`（见 archive-plan、tdd） |
+| **Git tag**（发布 / 回滚锚点） | 同上 `CHANGELOG.md` → Tags 表 + 正文对应节 | 打 tag / 发版时必登记 |
+
+**禁止**把用户向发布 bullet 只写进 Recent Changes 而漏写 `CHANGELOG.md`。每个发布 tag 也是变更过程的一部分，须在 CHANGELOG Tags 表可见。
 
 ## When to Log
 

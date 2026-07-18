@@ -220,6 +220,8 @@ With zero config files created, it **works out of the box** — all gates have s
 
 ## Upgrade / Offline Migration / Rollback
 
+User-facing release notes: [CHANGELOG.md](CHANGELOG.md).
+
 **Upgrade** (one command on any installed machine):
 
 ```bash

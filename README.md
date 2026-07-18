@@ -225,6 +225,8 @@ CLAUDE.md 全量常驻、token 金贵；硬约束靠 prompt 不靠谱、靠 hook
 
 ## 升级 / 离线迁移 / 回滚
 
+用户向版本说明见 [CHANGELOG.md](CHANGELOG.md)（开发过程流见 `docs/roadmap.md` Recent Changes）。
+
 **升级**（任一已装机器一条命令）：
 
 ```bash

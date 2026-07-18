@@ -122,6 +122,7 @@ CORE_FILES=(
   "scripts/manage-plugins.js"
   # ── top-level ──
   "VERSION"                          # P002: 版本守卫读（安装目标 VERSION 供下次升级比较）
+  "CHANGELOG.md"                     # user-facing release notes (plan complete / archive-plan)
   "README.md"
   # ── P001 multi-host adaptation layer (v0.2) ──
   # install-host.js reads skills/hooks.json/opencode from repoRoot (= this install dir),
