@@ -73,6 +73,11 @@ describe('doc-file-warning: path allowlist', suite => {
     assertEqual(r.exitCode, 0, '.claude/self-learning allowed');
   });
 
+
+  suite.test('allows CHANGELOG.md at project root', () => {
+    const r = runDocWarn(path.join(projectRoot(), 'CHANGELOG.md'));
+    assertEqual(r.exitCode, 0, 'CHANGELOG.md allowed at root');
+  });
   suite.test('allows SECURITY.md at project root', () => {
     const r = runDocWarn(path.join(projectRoot(), 'SECURITY.md'));
     assertEqual(r.exitCode, 0, 'SECURITY.md allowed at root');
