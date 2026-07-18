@@ -108,6 +108,52 @@ describe('session-start.js: clean startup (no PM noise)', suite => {
     assertContains(stdout, 'last_active=2026-07-09',
       'stdout should parse Last Active from seeded session-state');
   });
+
+  suite.test('P007: advances ready task and injects Current task hint', () => {
+    const cwd = makeTempProject();
+    const planDir = path.join(cwd, 'docs', 'plans', 'P007-ss');
+    fs.mkdirSync(planDir, { recursive: true });
+    fs.writeFileSync(path.join(planDir, 'tasks.md'), `# Tasks: SS
+
+## 1.0 Implement
+
+### 1.1 Ready
+- **Status**: ⏳ pending
+- **Depends on**: none
+`);
+    fs.writeFileSync(path.join(planDir, 'progress.md'), `# Progress: SS
+status: in_progress
+updated: 2026-07-18
+plan: P007-ss
+complexity: s-feature
+grilling: completed
+
+## Task Stats
+total: 1
+completed: 0
+in_progress: 0
+pending: 1
+
+## Approval State
+tasks: approved
+
+## Active Task
+none
+
+## Blockers
+- none
+`);
+    const { stdout, status } = runHook(
+      { hook_event_name: 'SessionStart', session_id: 'test-ss-p007', cwd },
+      { cwd }
+    );
+    assertEqual(status, 0, 'exit 0');
+    assertContains(stdout, 'Current task:', 'injects current task');
+    assertContains(stdout, '1.1', 'mentions task id');
+    const tasks = fs.readFileSync(path.join(planDir, 'tasks.md'), 'utf8');
+    assertContains(tasks, 'in_progress', 'tasks advanced on session-start');
+    fs.rmSync(cwd, { recursive: true, force: true });
+  });
 });
 
 process.exit(printSummary());

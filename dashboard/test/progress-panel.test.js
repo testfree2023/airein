@@ -1,0 +1,145 @@
+/**
+ * Spec: progress panel render helpers (P006 UC-S1-01).
+ */
+
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const {
+  describe, assertEqual, assertOk, assertContains, projectRoot,
+} = require('../../test/helpers');
+
+const panel = require(path.join(projectRoot(), 'dashboard', 'public', 'progress-panel.js'));
+
+describe('progress-panel helpers', suite => {
+  suite.test('script is IIFE-wrapped (no top-level api/esc clash with index.html)', () => {
+    const src = fs.readFileSync(
+      path.join(projectRoot(), 'dashboard', 'public', 'progress-panel.js'),
+      'utf8'
+    );
+    assertOk(/^\(function\s*\(/.test(src.trim()) || src.indexOf('(function (root)') >= 0, 'IIFE wrapper');
+    assertOk(!/^const api\s*=/m.test(src), 'no top-level const api');
+    assertOk(!/^function esc\s*\(/m.test(src), 'no top-level function esc');
+  });
+
+  suite.test('unsupported message for legacy', () => {
+    const html = panel.renderPanelBoard({
+      unsupported: true,
+      unsupportedMessage: '老的任务模板暂不支持',
+      tasks: [],
+      total: 0,
+    }, function (k) { return k; });
+    assertContains(html, '老的任务模板暂不支持', 'legacy message');
+    assertOk(html.indexOf('progress-panel-node') < 0, 'no fake nodes');
+  });
+
+  suite.test('renders nodes and edges in document order', () => {
+    const data = {
+      unsupported: false,
+      panelCompatible: true,
+      total: 2,
+      pending: 1,
+      inProgress: 1,
+      completed: 0,
+      tasks: [{
+        num: 1,
+        name: 'Implement',
+        tasks: [
+          { id: '1.1', name: 'A', status: 'completed', dependsOn: [] },
+          { id: '1.2', name: 'B', status: 'in_progress', dependsOn: ['1.1'] },
+        ],
+      }],
+    };
+    const html = panel.renderPanelBoard(data, function (k) { return k; });
+    assertContains(html, 'progress-panel-node', 'has nodes');
+    assertContains(html, 'data-task-id="1.1"', 'node 1.1');
+    assertContains(html, 'data-task-id="1.2"', 'node 1.2');
+    assertContains(html, 'data-edge="1.1->1.2"', 'dependency edge');
+    assertContains(html, 'status-in_progress', 'status class');
+    assertContains(html, 'is-current', 'current in_progress highlighted');
+  });
+
+
+  suite.test('buildDependencyMermaid emits flowchart from dependsOn', () => {
+    const data = {
+      tasks: [{
+        num: 1,
+        name: 'Implement',
+        tasks: [
+          { id: '1.1', name: 'A', status: 'completed', dependsOn: [] },
+          { id: '1.2', name: 'B', status: 'in_progress', dependsOn: ['1.1'] },
+          { id: '1.3', name: 'C', status: 'pending', dependsOn: ['1.1', '1.2'] },
+        ],
+      }],
+    };
+    const src = panel.buildDependencyMermaid(data);
+    assertOk(src, 'has mermaid source');
+    assertContains(src, 'flowchart', 'flowchart');
+    assertContains(src, '-->', 'edge arrow');
+    assertContains(src, '1.1', 'label keeps task id');
+    assertContains(src, 'T1_1', 'safe node id');
+    assertContains(src, 'T1_1', 'dep node');
+    assertOk(/T1_1\s*-->\s*T1_2/.test(src) || src.indexOf('T1_1 --> T1_2') >= 0, '1.1->1.2 edge');
+    assertOk(src.indexOf('T1_1 --> T1_3') >= 0 && src.indexOf('T1_2 --> T1_3') >= 0, 'multi-parent edges');
+  });
+
+  suite.test('buildDependencyMermaid returns null when no edges', () => {
+    const src = panel.buildDependencyMermaid({
+      tasks: [{ tasks: [{ id: '1.1', name: 'A', status: 'pending', dependsOn: [] }] }],
+    });
+    assertEqual(src, null, 'no edges → null');
+  });
+
+  suite.test('renderPanelBoard embeds mermaid DAG instead of plain edge list only', () => {
+    const data = {
+      unsupported: false,
+      panelCompatible: true,
+      total: 2,
+      pending: 0,
+      inProgress: 1,
+      completed: 1,
+      tasks: [{
+        num: 1,
+        name: 'Implement',
+        tasks: [
+          { id: '1.1', name: 'A', status: 'completed', dependsOn: [] },
+          { id: '1.2', name: 'B', status: 'in_progress', dependsOn: ['1.1'] },
+        ],
+      }],
+    };
+    const html = panel.renderPanelBoard(data, function (k) { return k; });
+    assertContains(html, 'progress-panel-mermaid', 'mermaid container');
+    assertContains(html, 'flowchart', 'diagram source');
+    assertContains(html, 'T1_1', 'safe id in html');
+    assertContains(html, 'progress-panel-deps', 'deps section');
+    assertOk(html.indexOf('data-edge="1.1->1.2"') >= 0, 'keeps data-edge for tests/a11y');
+  });
+
+  suite.test('does not invent orphan dep stubs for unknown ids', () => {
+    const src = panel.buildDependencyMermaid({
+      tasks: [{
+        tasks: [
+          { id: '2.10', name: 'INV', status: 'completed', dependsOn: ['1.3', 'A2', 'A3'] },
+          { id: '1.3', name: 'X', status: 'completed', dependsOn: [] },
+        ],
+      }],
+    });
+    assertOk(src, 'has diagram');
+    assertOk(src.indexOf('T1_3 --> T2_10') >= 0, 'known edge');
+    assertOk(src.indexOf('TA2') < 0 && src.indexOf('A2') < 0, 'no A2 stub');
+    assertOk(src.indexOf('TA3') < 0, 'no A3 stub');
+  });
+
+  suite.test('empty state when no tasks', () => {
+    const html = panel.renderPanelBoard({
+      unsupported: false,
+      tasks: [],
+      total: 0,
+      pending: 0,
+      inProgress: 0,
+      completed: 0,
+    }, function (k) { return k === 'progress.noTasks' ? 'No tasks' : k; });
+    assertContains(html, 'No tasks', 'empty');
+  });
+});

@@ -242,6 +242,31 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; }
   color: var(--text-muted);
 }
 .tabs .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.progress-panel-board { margin-top: .5rem; }
+.progress-panel-nodes { display: flex; flex-direction: column; gap: .5rem; }
+.progress-panel-node {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .65rem .85rem; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--bg);
+}
+.progress-panel-node.status-completed { border-left: 4px solid var(--success); }
+.progress-panel-node.status-in_progress { border-left: 4px solid var(--primary); }
+.progress-panel-node.is-current {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.progress-panel-node.status-pending { border-left: 4px solid #f0ad4e; }
+.progress-panel-id { font-weight: 600; min-width: 2.5rem; }
+.progress-panel-name { flex: 1; }
+.progress-panel-deps { margin-top: 1rem; }
+.progress-panel-edges-label { font-size: .85rem; color: var(--text-muted); margin-bottom: .5rem; font-weight: 600; }
+.progress-panel-mermaid { margin: .5rem 0; overflow-x: auto; }
+.progress-panel-mermaid svg { max-width: 100%; height: auto; }
+.progress-panel-edges { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+.progress-panel-edge { padding: .2rem 0; }
+.progress-panel-unsupported { padding: 2rem 1rem; }
 .tabs .tab:hover { color: var(--text); }
 
 /* Markdown content */
@@ -407,6 +432,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; }
 <script src="doc-links.js"></script>
 <script src="template-categories.js"></script>
 <script src="md-render.js"></script>
+<script src="progress-panel.js"></script>
 <!-- Mermaid: CDN only (zero npm). Offline → diagrams stay as source text in .mermaid. -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"
   onload="if (window.aireinMd) aireinMd.onMermaidReady();"
@@ -626,6 +652,10 @@ var I18N = {
     'progress.pending': 'Pending',
     'progress.noTasks': 'No tasks found',
     'progress.dependsOn': 'Depends: ',
+    'progress.tabPanel': 'Board',
+    'progress.tabText': 'Text',
+    'progress.legacyUnsupported': 'Legacy task template is not supported',
+    'progress.dependencies': 'Dependencies',
     'error.invalidProgressRef': 'Invalid progress reference',
     'topbar.tagline': 'AI-Powered Project Quality Framework',
     'nav.section.main': 'Main',
@@ -836,6 +866,10 @@ var I18N = {
     'progress.pending': '待开始',
     'progress.noTasks': '没有找到任务',
     'progress.dependsOn': '依赖: ',
+    'progress.tabPanel': '面板',
+    'progress.tabText': '文本',
+    'progress.legacyUnsupported': '老的任务模板暂不支持',
+    'progress.dependencies': '依赖关系',
     'error.invalidProgressRef': '无效的进度引用',
     'topbar.tagline': 'AI 驱动的项目质量框架',
     'nav.section.main': '主要',
@@ -1715,7 +1749,147 @@ function renderSubDocTabs(subDocs, docName, planId, projectId) {
   '</div>';
 }
 
+
+function renderPlanProgressEmbedded(plan, planId, projectId) {
+  var cont = document.getElementById('doc-content');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><p>Loading...</p></div>';
+  api('GET', '/projects/' + projectId + '/plans/' + planId + '/tasks').then(function(taskData) {
+    var total = taskData.total || 0;
+    var completed = taskData.completed || 0;
+    var inProgress = taskData.inProgress || 0;
+    var pending = taskData.pending || 0;
+    var pct = total ? Math.round(completed / total * 100) : 0;
+    var panelHtml = window.ProgressPanel
+      ? window.ProgressPanel.renderPanelBoard(taskData, t)
+      : '<div class="empty"><p>' + t('progress.noTasks') + '</p></div>';
+    var textHtml = window.ProgressPanel
+      ? window.ProgressPanel.renderTextList(taskData, t, esc)
+      : '';
+    var mdContent = plan.progress || '';
+    cont.innerHTML =
+      '<div id="progress-summary" class="card" style="margin-bottom:1rem">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">' +
+          '<span style="font-weight:600">' + t('progress.overallProgress') + '</span>' +
+          '<span>' + completed + '/' + total + ' (' + pct + '%)</span>' +
+        '</div>' +
+        '<div style="background:var(--bg-hover);border-radius:10px;height:8px;overflow:hidden">' +
+          '<div style="background:var(--success);width:' + pct + '%;height:100%"></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:1rem;margin-top:.5rem;font-size:.85rem">' +
+          '<span><span class="badge badge-completed">' + t('progress.completed') + '</span> ' + completed + '</span>' +
+          '<span><span class="badge badge-in_progress">' + t('progress.inProgress') + '</span> ' + inProgress + '</span>' +
+          '<span><span class="badge badge-pending">' + t('progress.pending') + '</span> ' + pending + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="tabs" style="margin-bottom:1rem">' +
+        '<button type="button" class="tab active" id="plan-progress-tab-panel-btn">' + t('progress.tabPanel') + '</button>' +
+        '<button type="button" class="tab" id="plan-progress-tab-text-btn">' + t('progress.tabText') + '</button>' +
+        '<button type="button" class="tab" id="plan-progress-tab-md-btn">progress.md</button>' +
+      '</div>' +
+      '<div id="plan-progress-tab-panel">' + panelHtml + '</div>' +
+      '<div id="plan-progress-tab-text" style="display:none">' + textHtml + '</div>' +
+      '<div id="plan-progress-tab-md" style="display:none">' +
+        '<div style="display:flex;gap:.5rem;margin-bottom:.5rem">' +
+          '<button class="btn btn-sm btn-primary" id="btn-view">' + t('common.view') + '</button>' +
+          '<button class="btn btn-sm" id="btn-edit">' + t('common.edit') + '</button>' +
+          '<button class="btn btn-sm btn-primary" id="btn-save" style="display:none">' + t('common.save') + '</button>' +
+        '</div>' +
+        '<div id="doc-rendered" class="md-content">' + renderMd(mdContent) + '</div>' +
+        '<div id="doc-edit-container" style="display:none;gap:1rem">' +
+          '<textarea id="doc-editor" class="editor" style="flex:1;min-height:50vh"></textarea>' +
+          '<div id="doc-preview" class="md-content" style="flex:1;min-height:50vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius);padding:1rem;background:var(--bg)"></div>' +
+        '</div>' +
+      '</div>';
+
+    function showPlanProgressTab(which) {
+      var panelEl = document.getElementById('plan-progress-tab-panel');
+      var textEl = document.getElementById('plan-progress-tab-text');
+      var mdEl = document.getElementById('plan-progress-tab-md');
+      var bPanel = document.getElementById('plan-progress-tab-panel-btn');
+      var bText = document.getElementById('plan-progress-tab-text-btn');
+      var bMd = document.getElementById('plan-progress-tab-md-btn');
+      if (!panelEl || !textEl || !mdEl) return;
+      panelEl.style.display = which === 'panel' ? '' : 'none';
+      textEl.style.display = which === 'text' ? '' : 'none';
+      mdEl.style.display = which === 'md' ? '' : 'none';
+      if (bPanel) bPanel.classList.toggle('active', which === 'panel');
+      if (bText) bText.classList.toggle('active', which === 'text');
+      if (bMd) bMd.classList.toggle('active', which === 'md');
+      if (which === 'md' && typeof scheduleMermaid === 'function') {
+        scheduleMermaid(document.getElementById('doc-rendered'));
+      }
+      if (which === 'panel' && typeof scheduleMermaid === 'function') {
+        scheduleMermaid(document.getElementById('plan-progress-tab-panel'));
+      }
+    }
+
+    document.getElementById('plan-progress-tab-panel-btn').onclick = function() { showPlanProgressTab('panel'); };
+    document.getElementById('plan-progress-tab-text-btn').onclick = function() { showPlanProgressTab('text'); };
+    document.getElementById('plan-progress-tab-md-btn').onclick = function() { showPlanProgressTab('md'); };
+
+    // First paint: panel tab is already visible — must schedule (tab click alone is not enough)
+    if (typeof scheduleMermaid === 'function') {
+      scheduleMermaid(document.getElementById('plan-progress-tab-panel'));
+    }
+
+    var btnView = document.getElementById('btn-view');
+    var btnEdit = document.getElementById('btn-edit');
+    var btnSave = document.getElementById('btn-save');
+    var rendered = document.getElementById('doc-rendered');
+    var editContainer = document.getElementById('doc-edit-container');
+    var editor = document.getElementById('doc-editor');
+    var preview = document.getElementById('doc-preview');
+    if (editor) editor.value = mdContent;
+    if (btnView && btnEdit && btnSave && rendered && editContainer && editor && preview) {
+      editor.addEventListener('input', function() {
+        preview.innerHTML = renderMd(editor.value);
+      });
+      btnView.onclick = function() {
+        rendered.style.display = '';
+        editContainer.style.display = 'none';
+        btnSave.style.display = 'none';
+        btnView.classList.add('btn-primary');
+        btnEdit.classList.remove('btn-primary');
+      };
+      btnEdit.onclick = function() {
+        rendered.style.display = 'none';
+        editContainer.style.display = 'flex';
+        btnSave.style.display = '';
+        btnEdit.classList.add('btn-primary');
+        btnView.classList.remove('btn-primary');
+        preview.innerHTML = renderMd(editor.value);
+        if (typeof autoGrowTextarea === 'function') autoGrowTextarea(editor);
+      };
+      btnSave.onclick = function() {
+        btnSave.disabled = true;
+        btnSave.textContent = t('common.saving');
+        api('PUT', '/projects/' + projectId + '/plans/' + planId + '/progress', { content: editor.value }).then(function(result) {
+          if (result.ok) {
+            toast(t('common.saved'), 'success');
+            rendered.innerHTML = renderMd(editor.value);
+            plan.progress = editor.value;
+            btnView.click();
+          } else {
+            toast(result.error || t('error.saveFailed'), 'error');
+          }
+          btnSave.disabled = false;
+          btnSave.textContent = t('common.save');
+        });
+      };
+    }
+  }).catch(function(err) {
+    cont.innerHTML = '<div class="empty"><p>' + esc(String(err && err.message || err)) + '</p></div>';
+  });
+}
+
 function renderDocView(plan, docName, planId, projectId, subDocs) {
+  // P006: Progress doc tab embeds task board (面板/文本), not only progress.md
+  if (docName === 'progress') {
+    renderPlanProgressEmbedded(plan, planId, projectId);
+    return;
+  }
+
   var content = plan[docName] || '';
   var currentSubDoc = docName;  // mutable: tracks the doc currently displayed/edited
   var cont = document.getElementById('doc-content');
@@ -1883,40 +2057,42 @@ function renderProgress($app, progressRef) {
             '</div>' +
           '</div>' +
 
-          // Task stages
-          (taskData.tasks || []).map(function(stage) {
-            var stageCompleted = stage.tasks.filter(function(t) { return t.status === 'completed'; }).length;
-            var stageTotal = stage.tasks.length;
-            var stagePct = stageTotal ? Math.round(stageCompleted / stageTotal * 100) : 0;
-            var stageLabel = typeof stage.num === 'number' ? (stage.num + '.0 ' + stage.name) : (stage.name);
+          // Progress tabs: panel (visual) + text (list)
+          '<div class="tabs" style="margin-bottom:1rem">' +
+            '<button type="button" class="tab active" id="progress-tab-panel-btn" data-progress-tab="panel">' + t('progress.tabPanel') + '</button>' +
+            '<button type="button" class="tab" id="progress-tab-text-btn" data-progress-tab="text">' + t('progress.tabText') + '</button>' +
+          '</div>' +
+          '<div id="progress-tab-panel">' +
+            (window.ProgressPanel
+              ? window.ProgressPanel.renderPanelBoard(taskData, t)
+              : '<div class="empty"><p>' + t('progress.noTasks') + '</p></div>') +
+          '</div>' +
+          '<div id="progress-tab-text" style="display:none">' +
+            (window.ProgressPanel
+              ? window.ProgressPanel.renderTextList(taskData, t, esc)
+              : '') +
+          '</div>';
 
-            return '<div class="card" style="margin-bottom:1rem">' +
-              '<h3 style="margin-bottom:.5rem">' + esc(stageLabel) + '</h3>' +
-              '<div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.5rem">' +
-                stageCompleted + '/' + stageTotal + ' (' + stagePct + '%)' +
-              '</div>' +
-              '<div style="background:var(--bg-hover);border-radius:10px;height:6px;overflow:hidden;margin-bottom:1rem">' +
-                '<div style="background:var(--primary);width:' + stagePct + '%;height:100%"></div>' +
-              '</div>' +
-              '<div style="display:grid;gap:.5rem">' +
-                stage.tasks.map(function(task) {
-                  var statusIcon = task.status === 'completed' ? '✅' : task.status === 'in_progress' ? '⏳' : '⏸️';
-                  var statusBadge = 'badge-' + task.status;
-                  var statusKey = task.status === 'in_progress' ? 'progress.inProgress' : 'progress.' + task.status;
-                  return '<div style="display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--border)">' +
-                    '<span style="font-size:1.1rem">' + statusIcon + '</span>' +
-                    '<div style="flex:1">' +
-                      '<div style="font-weight:500">' + esc(task.id) + ' — ' + esc(task.name) + '</div>' +
-                      (task.details['Depends on'] ? '<div style="font-size:.85rem;color:var(--text-muted)">' + t('progress.dependsOn') + esc(task.details['Depends on']) + '</div>' : '') +
-                    '</div>' +
-                    '<span class="badge ' + statusBadge + '">' + t(statusKey) + '</span>' +
-                  '</div>';
-                }).join('') +
-              '</div>' +
-            '</div>';
-          }).join('') +
-
-          (taskData.tasks.length === 0 ? '<div class="empty"><p>' + t('progress.noTasks') + '</p></div>' : '');
+        (function setupProgressTabs() {
+          var panelBtn = document.getElementById('progress-tab-panel-btn');
+          var textBtn = document.getElementById('progress-tab-text-btn');
+          var panelEl = document.getElementById('progress-tab-panel');
+          var textEl = document.getElementById('progress-tab-text');
+          if (!panelBtn || !textBtn || !panelEl || !textEl) return;
+          function show(tab) {
+            var isPanel = tab === 'panel';
+            panelEl.style.display = isPanel ? '' : 'none';
+            textEl.style.display = isPanel ? 'none' : '';
+            panelBtn.classList.toggle('active', isPanel);
+            textBtn.classList.toggle('active', !isPanel);
+            if (isPanel && typeof scheduleMermaid === 'function') {
+              scheduleMermaid(panelEl);
+            }
+          }
+          panelBtn.onclick = function () { show('panel'); };
+          textBtn.onclick = function () { show('text'); };
+          if (typeof scheduleMermaid === 'function') scheduleMermaid(panelEl);
+        })();
 
         // Update page title
         var titleEl = document.getElementById('page-title');

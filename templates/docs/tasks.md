@@ -3,13 +3,17 @@
 <!-- 定位：可执行工作分解（Implement / Verify / Deploy / Accept），不是「仅开发清单」 -->
 <!-- 核心门禁：Design refs（Implement）+ Source（Verify）+ Coverage Gate；精炼 ≠ 稀疏 -->
 <!-- 禁止：无源 Verify；只拆 Critical 丢 VS；堆标题空 Acceptance；抄 UC/TC 步骤正文 -->
+<!-- 面板契约（Dashboard Progress 可解析）：Status ∈ {pending, in_progress, completed}（可带装饰如 ⏳）； -->
+<!--   Depends on ∈ {none} 或 Task ID 列表（禁止散文）；每个 Kind（含 Accept）必有 Status； -->
+<!--   Dependency Graph 仅示意，权威依赖以各任务 Depends on 为准。旧模板无法满足契约时面板提示不支持。 -->
 
 # Tasks: {Title}
 
 > Progress: 0/{N} tasks (0%)  
 > **定位**：软件开发生命周期上的可执行分解（SDLC：Implement / Verify / Deploy / Accept），承接 PRD / Design / test-plan。  
 > **核心门禁（相对上游升级）**：Implement 必绑 **Design refs**；Verify 必填 **Source**（Critical / VS / Exit / INV）；写完过 **Coverage Gate**；台账见计划 **tests.md**。  
-> **拆解补充**：PRD **UC** → Implement（开发任务）；test-plan **Critical / VS** → Verify（测试任务）。
+> **拆解补充**：PRD **UC** → Implement（开发任务）；test-plan **Critical / VS** → Verify（测试任务）。  
+> **面板契约**：`Status` ∈ `pending` | `in_progress` | `completed`（允许装饰前缀）；`Depends on` = `none` 或 Task ID（如 `1.1` / `1.1, 2.1`）；含 Accept 在内每个任务都写 Status。
 
 ## Global Constraints（bind 所有任务）
 
@@ -66,7 +70,7 @@
 - **Persona**: {角色；无 UI 则 `n/a — API/infra`}
 - **UI Entry**: {端 + 路径/菜单/FAB/文案；无则 `n/a`}
 - **Design refs**: {`design.md` 锚点 — API 方法 / 表或模型 / **INV-…** / DD 小节；无设计文档则 `n/a — {理由}`}
-- **Depends on**: {none | task ID}
+- **Depends on**: {none | Task ID 列表，如 `1.1` 或 `1.1, 1.2` — 禁止散文}
 - **Scope**: {文件/模块}
 - **consume**: {前置契约}
 - **produce**: {产出契约（给后续 Implement / Verify）}
@@ -91,7 +95,7 @@
 - **Source**: {`Critical-…` | `VS-{UC-id}-{维}` | `INV-…` | `Exit-…` | `PRD-UC-…` — **必填**}
 - **Persona**: {单一角色 — 禁止「销售/门店」合并}
 - **UI Entry**: {含 UI 则步骤从打开入口起；否则 `n/a`}
-- **Depends on**: {对应 Implement Task ID}
+- **Depends on**: {对应 Implement Task ID（如 `1.1`）| none}
 - **Ledger**: {计划 `tests.md` 行意图；未建则 `pending — 开工时创建`}
 - **Acceptance**: |
   - 可执行：`{test 命令或 E2E 路径 — 勿粘贴 TC 步骤全文}`
@@ -119,9 +123,11 @@
 ## 4.0 Accept — {退出 / 交付}
 
 ### 4.1 {Exit Criteria 或 PRD 交付物}
+- **Status**: ⏳ pending
 - **Kind**: accept
 - **Priority**: Must
 - **Source**: {`Exit-…` | PRD §交付物}
+- **Depends on**: {相关 Must Verify Task ID 列表 | none}
 - **Acceptance**: |
   - 可执行：`{门禁命令或验收步骤}`
   - 可验收：`{pass 输出 / 签字条件}`
@@ -129,6 +135,8 @@
 ---
 
 ## Dependency Graph
+
+> **示意 / 非权威**：下图仅帮助阅读；机器与面板以各任务 **Depends on**（Task ID）为准。
 
 ```
 {Implement} → {Verify Source=Critical/VS} → {Deploy?} → {Accept?}

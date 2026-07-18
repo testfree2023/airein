@@ -153,7 +153,7 @@ describe('md-render: skip hidden preview mermaid hosts', (suite) => {
     assertOk(src.includes('__aireinMermaidChain'), 'global promise chain');
     assertOk(src.includes('__aireinMermaidClaimed'), 'WeakSet claim');
     assertOk(src.includes('runMermaidInSerial'), 'serial runner');
-    assertOk(src.includes('cancelAnimationFrame'), 'coalesce rAF bursts');
+    assertOk(src.includes('__aireinMermaidPending'), 'batch pending roots in one rAF');
     assertOk(
       !src.includes("setAttribute('data-processed', 'pending')"),
       'does not pre-set data-processed (mermaid would skip)',

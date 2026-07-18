@@ -221,17 +221,62 @@ async function main() {
   }
 
   // 4. Active plan (if any) — directory format with progress.md
+  // P007: run task pickup (advance ready → in_progress) then inject Current task hint.
+  let pickupHint = null;
   const plansDir = path.join(getProjectDir(), 'docs', 'plans');
   if (fs.existsSync(plansDir)) {
     try {
       const { findActivePlan, parseProgress } = require('../lib/plan-parser');
       const active = findActivePlan(getProjectDir());
       if (active) {
-        const stats = parseProgress(active.progress);
+        const planDir = path.join(plansDir, active.dir);
+        const tasksPath = path.join(planDir, 'tasks.md');
+        const progressPath = path.join(planDir, 'progress.md');
+        if (fs.existsSync(tasksPath) && fs.existsSync(progressPath)) {
+          try {
+            const { syncFromTasksMarkdown } = require('../lib/progress-from-tasks');
+            const { loadQualityConfig } = require('../lib/quality-config');
+            let onBlocked = 'wait_user';
+            try {
+              const cfg = loadQualityConfig();
+              if (cfg && cfg.taskPickup && cfg.taskPickup.onBlocked === 'model_recommend') {
+                onBlocked = 'model_recommend';
+              }
+            } catch { /* defaults */ }
+            const tasksContent = fs.readFileSync(tasksPath, 'utf8');
+            const progressContent = fs.readFileSync(progressPath, 'utf8');
+            const sync = syncFromTasksMarkdown(tasksContent, progressContent, { onBlocked });
+            if (!sync.unsupported) {
+              if (sync.tasksMarkdown) {
+                try { fs.writeFileSync(tasksPath, sync.tasksMarkdown, 'utf8'); } catch { /* ignore */ }
+              }
+              if (sync.progressMarkdown) {
+                try { fs.writeFileSync(progressPath, sync.progressMarkdown, 'utf8'); } catch { /* ignore */ }
+              }
+              const pu = sync.pickup;
+              if (pu) {
+                if (pu.action === 'done') {
+                  pickupHint = 'Task pickup: all tasks completed — stop task staring; proceed to next phase (archive / verify / roadmap).';
+                } else if (pu.action === 'blocked' && pu.hint) {
+                  pickupHint = 'Task pickup blocked: ' + pu.hint.message;
+                } else if (pu.activeTaskPointer && pu.activeTaskPointer !== 'none') {
+                  pickupHint = 'Current task: ' + pu.activeTaskPointer;
+                  if (pu.hint && pu.hint.message && pu.action === 'noop' && pu.nextReady) {
+                    pickupHint += ' | Next ready: ' + require('../lib/task-pickup').buildActiveTaskPointer(pu.nextReady);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            aireinLog('error', 'session-start', `Task pickup failed: ${err.message}`);
+          }
+        }
+
+        let progressBody = active.progress;
+        try { progressBody = fs.readFileSync(progressPath, 'utf8'); } catch { /* keep */ }
+        const stats = parseProgress(progressBody);
         const planName = active.dir;
-        const progressInfo = stats.completed < stats.total
-          ? `${stats.completed}/${stats.total}`
-          : `${stats.completed}/${stats.total}`;
+        const progressInfo = `${stats.completed}/${stats.total}`;
         const taskInfo = stats.activeTask ? `, ${stats.activeTask}` : '';
         parts.push(`plan=${planName} [${progressInfo}${taskInfo}]`);
       }
@@ -249,6 +294,10 @@ async function main() {
     aireinLog('info', 'session-start', `Minimal context injected: ${parts.length} fields`);
   } else {
     aireinLog('info', 'session-start', 'No previous context to inject');
+  }
+
+  if (pickupHint) {
+    output(pickupHint);
   }
 
   // Consolidate and clean up old chat logs (>7 days)

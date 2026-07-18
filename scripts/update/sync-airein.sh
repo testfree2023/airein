@@ -82,6 +82,10 @@ CORE_FILES=(
   "scripts/lib/resolve-formatter.js"    # hooks/post-edit-format.js + quality-gate.js require it
   "scripts/lib/commit-gate.js"          # hooks/pre-commit-gate.js requires it (classify staged files)
   "scripts/lib/install-helpers.sh"      # setup/chores/merge-hooks source it (node resolution + remote check)
+  # ── P006/P007 task panel + pickup sync ──
+  "scripts/lib/parse-tasks-panel.js"    # tasks.md panel parser (dashboard + pickup)
+  "scripts/lib/task-pickup.js"          # auto-claim next pending → in_progress
+  "scripts/lib/progress-from-tasks.js"  # progress.md Stats/Active Task from tasks.md
   # ── P004 unified install orchestrator ──
   "airein"
   "scripts/lib/install-orchestrator.js"
