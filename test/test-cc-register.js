@@ -14,10 +14,11 @@ const HOME = path.join(TMP, 'home');
 const KERNEL = path.join(TMP, 'kernel');
 
 function seedKernel() {
-  for (const d of ['skills/x', 'commands', 'rules', 'scripts/hooks', 'hooks', '.claude/rules']) {
+  for (const d of ['skills/x', 'commands', 'agents', 'rules', 'scripts/hooks', 'hooks', '.claude/rules']) {
     fs.mkdirSync(path.join(KERNEL, d), { recursive: true });
   }
   fs.writeFileSync(path.join(KERNEL, 'skills', 'x', 'SKILL.md'), '---\nname: x\n---\n');
+  fs.writeFileSync(path.join(KERNEL, 'agents', 'pm.md'), '---\nname: pm\n---\n');
   fs.writeFileSync(path.join(KERNEL, 'rules', '00-iron-rules.md'), '# iron\n');
   fs.writeFileSync(path.join(KERNEL, '.claude', 'rules', 'conventions-javascript.md'), '# js\n');
   fs.writeFileSync(path.join(KERNEL, 'commands', 'tdd.md'), '# tdd\n');
@@ -29,7 +30,7 @@ function seedKernel() {
 }
 
 describe('cc-register: registerCc unified', (suite) => {
-  suite.test('skills/commands 软链 + rules deploy + settings merge', () => {
+  suite.test('skills/commands/agents 软链 + rules deploy + settings merge', () => {
     seedKernel();
     const r = registerCc({ kernelRoot: KERNEL, homeDir: HOME, delivery: 'unified' });
     assertEqual(r.ok, true, 'ok');
@@ -39,6 +40,7 @@ describe('cc-register: registerCc unified', (suite) => {
     assert(cmd.includes(KERNEL.replace(/\\/g, '/')), 'kernel in command');
     assertOk(isSymlink(path.join(HOME, '.claude', 'skills')), 'skills link');
     assertOk(isSymlink(path.join(HOME, '.claude', 'commands')), 'commands link');
+    assertOk(isSymlink(path.join(HOME, '.claude', 'agents')), 'agents link');
     assert(!isSymlink(path.join(HOME, '.claude', 'rules')), 'rules not link');
     assertOk(fs.existsSync(path.join(HOME, '.claude', 'rules', '00-iron-rules.md')), 'rules deployed');
   });

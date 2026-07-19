@@ -1,7 +1,7 @@
 /**
  * cc-register — P004 CC 用户级注册层（~/.claude shim + merge-hooks）
  *
- * skills/commands 跟 delivery（unified|copy）；rules 固定 deploy；hooks 固定 merge。
+ * skills/commands/agents 跟 delivery（unified|copy）；rules 固定 deploy；hooks 固定 merge。
  */
 
 'use strict';
@@ -19,7 +19,7 @@ const {
   isSymlink,
 } = require('./asset-delivery');
 
-const CC_ASSET_DIRS = ['skills', 'commands'];
+const CC_ASSET_DIRS = ['skills', 'commands', 'agents'];
 
 function pathExists(p) {
   try { return fs.existsSync(p); } catch { return false; }
