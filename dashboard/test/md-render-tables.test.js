@@ -45,6 +45,15 @@ describe('md-render: indented tables under list items', (suite) => {
     assertContains(html, '<td>2</td>', 'last cell with trailing nl');
   });
 
+  suite.test('CRLF line endings still become <table> (Windows docs)', () => {
+    const md = ['| A | B |', '|---|---|', '| 1 | 2 |', ''].join('\r\n');
+    const html = mdRender.renderMd(md);
+    assertContains(html, '<table>', 'crlf table');
+    assertContains(html, '<th>A</th>', 'crlf header');
+    assertContains(html, '<td>1</td>', 'crlf cell');
+    assertNotContains(html, '| A | B |', 'no raw pipes after crlf normalize');
+  });
+
   suite.test('P100-style truth table under bold list label renders', () => {
     const md = [
       '- **8 组合真值表（闸门①×③×②）**：',
@@ -62,6 +71,32 @@ describe('md-render: indented tables under list items', (suite) => {
     assertNotContains(html, '| payStatus |', 'no raw header pipe row');
     assertContains(html, '<td>&#42;</td>', 'wildcard star preserved as entity');
     assertNotContains(html, '<em></em>', 'no empty em from cross-cell * match');
+  });
+
+  suite.test('plans/ relative links rewrite to project docs hash route', () => {
+    const md = '- **[P008-x](plans/P008-x/)** — demo';
+    const html = mdRender.renderMd(md, { projectId: 'my-proj' });
+    assertContains(html, 'href="#/projects/my-proj/docs/docs/plans/P008-x"', 'hash route');
+    assertNotContains(html, 'target="_blank"', 'no blank for hash');
+    assertNotContains(html, 'href="plans/P008-x/"', 'no raw plans href');
+  });
+
+  suite.test('sibling .md links rewrite when planId set', () => {
+    const html = mdRender.renderMd('[arch](design-architecture.md)', {
+      projectId: 'scan-1',
+      planId: 'P001-daily-notes-fullstack',
+    });
+    assertContains(
+      html,
+      'href="#/projects/scan-1/docs/docs/plans/P001-daily-notes-fullstack/design-architecture.md"',
+      'sibling plan md'
+    );
+    assertNotContains(html, 'target="_blank"', 'hash no blank');
+  });
+
+  suite.test('docs/ relative links rewrite to project docs route', () => {
+    const html = mdRender.renderMd('[r](docs/roadmap.md)', { projectId: 'p' });
+    assertContains(html, '#/projects/p/docs/docs/roadmap.md', 'docs rewrite');
   });
 });
 

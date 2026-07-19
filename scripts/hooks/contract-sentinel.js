@@ -99,7 +99,7 @@ function main() {
       const removed = cachedExports.filter(e => !currentExports.includes(e));
 
       if (removed.length > 0) {
-        console.log(`⚠️ [Contract Change] Removed exports in ${path.basename(filePath)}:\n${removed.map(e => `  - REMOVED: ${e}`).join('\n')}\nCheck consumers that reference these. Consider using code-reviewer agent.`);
+        console.log(`⚠️ [Contract Change] Removed exports in ${path.basename(filePath)}:\n${removed.map(e => `  - REMOVED: ${e}`).join('\n')}\nCheck consumers that reference these. Consider using tech-lead (mode: review).`);
         aireinLog('warn', 'contract-sentinel', `Removed ${removed.length} exports from ${path.basename(filePath)}: ${removed.join(', ')}`);
       } else if (added.length > 0) {
         console.log(`ℹ️ [Contract Change] New exports in ${path.basename(filePath)}:\n${added.map(e => `  + ADDED: ${e}`).join('\n')}`);

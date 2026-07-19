@@ -18,6 +18,11 @@ Airein's thesis is direct: **abstract the enterprise development process into a 
 
 The core idea in one line: **Prompt is advice, Hook is law.** Rules written in CLAUDE.md are "advice" — the model reads them, mostly follows them, but can be overwhelmed by context, bypassed, or forgotten; a hook's `exit 2` is "law" — guaranteed by code, blocking on violation, not relying on the model's self-discipline. What can be hook-enforced shouldn't rely on prompt alone.
 
+### Positioning (important)
+
+Airein is **not** a full-stack manager of your AI coding tool. It is a **skills / plugin layer** inside the host (Claude Code / Cursor / ...). We own **project docs + progress** (init-project / 
+ew-plan / approval + hooks / Dashboard) — not a kitchen-sink of generic Agents/commands. Leave those to your own stack or install [ECC](https://github.com/affaan-m/everything-claude-code) separately.
+
 ---
 
 ## Three Core Capabilities
@@ -128,10 +133,11 @@ claude
 | Command | Purpose |
 |---------|---------|
 | `/init-project` | Project initialization (auto-distinguishes empty/existing) |
+| `/new-plan` | Start a plan: clarify → docs pipeline → approval |
 | `/next` | Recommend the most important next step |
 | `/status` | See overall project status and progress |
 | `/tdd` | Enter the RED → GREEN → REFACTOR TDD flow |
-| `/code-review` `/quality-gate` `/refactor-clean` `/plan` `/verify` | Workflow shortcuts |
+| `/code-review` `/verify` | Spec-bound review / verify shortcuts |
 
 > This repo is **Airein's source code**, not the install target. Daily use is in your project directory, driven by the deployed kernel at `~/.airein` plus host registration layers.
 
@@ -413,7 +419,7 @@ A: Check whether `.airein/self-learning/pending.md` captured anything this round
 
 ## Credits
 
-Three relationship kinds — so we neither claim “all original” nor “inspiration only”:
+Three relationship kinds — so we neither claim "all original" nor "inspiration only":
 
 | Kind | Meaning |
 |------|---------|
@@ -423,8 +429,8 @@ Three relationship kinds — so we neither claim “all original” nor “inspi
 
 | Project | Kind | Notes | Link |
 |---------|------|-------|------|
-| **Everything Claude Code (ECC)** | **Formerly used** + references | **Formerly used**: early bundled `tdd-workflow` / `verification-loop` adapted from ECC; now replaced by airein-owned skill `tdd` (spec-bound flow + plan `tests.md` ledger) and the completion gate in `rules/20-workflow.md`. **References**: overall architecture and hook event model. | [github.com/affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) |
-| **Superpowers** | **Formerly used** | Early adaptation of `writing-plans`; planning is now airein’s `new-plan`. That skill is retired (`clean-airein.sh` removes leftovers). | [github.com/obra/superpowers](https://github.com/obra/superpowers) |
+| **Everything Claude Code (ECC)** | **Formerly used** + references | **Formerly used**: early adapted agents/commands (including `tdd-guide`, `/plan`, `/quality-gate`, language reviewers) removed or internalized; `tdd-workflow` / `verification-loop` became `skills/tdd` and `rules/20-workflow.md`. Current surface is a single role agent `tech-lead` (modes: design / review / security) plus commands `tdd` / `code-review` / `verify` — **airein-owned**, consolidated from earlier ECC capability slices. **References**: architecture and hook event model. Planning stays on `/new-plan`; users may install full ECC separately. | [github.com/affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) |
+| **Superpowers** | **Formerly used** | Early adaptation of `writing-plans`; planning is now airein's `new-plan`. That skill is retired (`clean-airein.sh` removes leftovers). | [github.com/obra/superpowers](https://github.com/obra/superpowers) |
 | **Claude Code (Anthropic)** | **References** | Hook protocol stdin/stdout JSON, native conditional rules (paths + @include), Session/Compact/Stop events | [claude.ai/code](https://claude.ai/code) |
 | **TDD (Test-Driven Development)** | **References** | RED → GREEN → REFACTOR, test-first discipline | [Agile Manifesto](https://agilemanifesto.org) |
 | **DDD (Domain-Driven Design)** | **References** | Domain model template, aggregate/entity/value-object patterns | [domainlanguage.com/ddd](https://domainlanguage.com/ddd/) |
@@ -434,4 +440,4 @@ Three relationship kinds — so we neither claim “all original” nor “inspi
 
 **Special note**: An early version referenced a community skill's self-learning mechanism (heartbeat/reflections/corrections), later refactored into buffer/archive/promotion with external dependencies removed.
 
-**Boundary**: hooks / scripts / all current skills (including `tdd`, `new-plan`) are airein-authored or internalized text; runtime has **zero npm dependencies** (Node.js builtins only). “Formerly used” credits history — not a live dependency on those repos or npm packages.
+**Boundary**: hooks / scripts / airein-owned skill core (`new-plan`, `tdd`, `init-project`, `archive-plan`, self-learning, etc.) and the Dashboard are airein-authored or internalized. Whitelist agent/command bodies are now airein-owned; ECC is credited as **Formerly used** / references only — do **not** describe historical adaptations as current ECC verbatim text. Users may install full ECC separately; later upgrades aim to shrink to the docs/progress core under the skills/plugin positioning, and reduce clashes with a user-installed ECC.

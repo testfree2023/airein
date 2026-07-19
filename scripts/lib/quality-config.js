@@ -11,6 +11,18 @@
  *     "enabled": true,              // false = completely disabled
  *     "mode": "strict"              // "strict" (block) | "advisory" (warn only)
  *   },
+ *   "testsLedger": {
+ *     "enabled": false,
+ *     "mode": "strict"
+ *   },
+ *   "roadmapGate": {
+ *     "enabled": true,
+ *     "mode": "advisory"
+ *   },
+ *   "progressCompletionGate": {
+ *     "enabled": true,
+ *     "mode": "strict"
+ *   },
  *   "approvalGuard": {
  *     "mode": "console-confirm"     // "advisory" | "console-confirm" | "manual-only"
  *   },
@@ -30,8 +42,11 @@
  *     "buildFailure": true,         // hard block (exit 2) on build failures
  *     "untestedSource": true        // hard block (exit 2) on untested source (legacy, prefer testGuard)
  *   },
+ *   "pipelineRoles": {
+ *     "enabled": true               // false = Solo PM (no forced specialist dispatch)
+ *   },
  *   "flowControl": {
- *     "perTaskReview": false,       // dispatch code-reviewer subagent after each task
+ *     "perTaskReview": false,       // dispatch tech-lead (mode: review) after each task
  *     "worktreeIsolation": false    // use worktree isolation for features/refactors
  *   },
  *   "selfLearning": {
@@ -74,13 +89,28 @@ const DEFAULTS = {
     retentionDays: 7,
     slowHookMs: 2000
   },
+  pipelineRoles: {
+    enabled: true               // true = Agent Teams; false = Solo PM (no forced specialists)
+  },
   flowControl: {
-    perTaskReview: false,       // dispatch code-reviewer subagent after each task
+    perTaskReview: false,       // dispatch tech-lead (mode: review) after each task
     worktreeIsolation: false    // suggest worktree isolation for features/refactors
   },
   testGuard: {
     enabled: true,              // false = completely disabled (no check at all)
     mode: 'strict'              // 'strict' = block (exit 2) | 'advisory' = warn only (exit 0)
+  },
+  testsLedger: {
+    enabled: false,             // opt-in: implement task completion requires tests.md pass row
+    mode: 'strict'              // 'strict' = exit 2 | 'advisory' = warn + allow
+  },
+  roadmapGate: {
+    enabled: true,              // validate docs/roadmap.md active-section contract
+    mode: 'advisory'            // 'advisory' = warn + allow | 'strict' = exit 2
+  },
+  progressCompletionGate: {
+    enabled: true,              // progress.md completion claims require tasks.md Status=completed
+    mode: 'strict'              // 'strict' = exit 2 | 'advisory' = warn + allow
   },
   approvalGuard: {
     mode: 'console-confirm'

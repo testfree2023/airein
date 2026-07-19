@@ -40,4 +40,4 @@ Write down:
 If still stuck after this protocol:
 1. Present the user with: what was tried, what failed, 2-3 possible next directions
 2. Ask the user for guidance or external resources
-3. Consider pairing with a subagent (architect, code-reviewer) for a fresh perspective
+3. Consider pairing with `tech-lead` (mode: design or review) for a fresh perspective

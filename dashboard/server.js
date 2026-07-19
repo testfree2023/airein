@@ -29,6 +29,7 @@ const runtimeMetrics = require(path.join(SCRIPTS_LIB, 'runtime-metrics'));
 const projectPaths = require(path.join(SCRIPTS_LIB, 'project-paths'));
 const dashboardProjects = require(path.join(SCRIPTS_LIB, 'dashboard-projects'));
 const parseTasksPanel = require(path.join(SCRIPTS_LIB, 'parse-tasks-panel'));
+const parseTestsLedger = require(path.join(SCRIPTS_LIB, 'parse-tests-ledger'));
 
 const loadGlobalPipelines = qualityConfig.loadGlobalPipelines;
 const loadGlobalLanguageProfiles = qualityConfig.loadGlobalLanguageProfiles;
@@ -1070,6 +1071,13 @@ async function handleApprove(projectPath, planId, req, res) {
   const finalContent = updated.replace(/^updated:.*$/m, 'updated: ' + today);
 
   utils.writeFile(progressPath, finalContent);
+
+  // Sync phase doc footer ## Status with Approval State
+  const docRaw = fs.readFileSync(docPath, 'utf-8');
+  const docSynced = planParser.setDocStatusApproved(docRaw);
+  if (docSynced !== docRaw) {
+    utils.writeFile(docPath, docSynced);
+  }
   const newApproval = planParser.getApprovalState(finalContent);
   json(res, 200, { ok: true, approval: newApproval });
 }
@@ -1378,14 +1386,24 @@ function handleGetPlanTasks(projectPath, planId, res) {
   const tasksPath = path.join(projectPath, 'docs', 'plans', planId, 'tasks.md');
   if (fs.existsSync(tasksPath)) {
     const content = fs.readFileSync(tasksPath, 'utf-8');
-    json(res, 200, parseTasksMarkdown(content));
+    let parsed = parseTasksMarkdown(content);
+    parsed.hasTasksDoc = true;
+    const progressPathForStatus = path.join(projectPath, 'docs', 'plans', planId, 'progress.md');
+    if (!parsed.unsupported && fs.existsSync(progressPathForStatus)) {
+      parsed = parseTasksPanel.applyProgressTaskStatuses(
+        parsed,
+        fs.readFileSync(progressPathForStatus, 'utf-8')
+      );
+      parsed.hasTasksDoc = true;
+    }
+    json(res, 200, parsed);
     return;
   }
 
   // Fallback: no tasks.md, derive stats from progress.md (## Task Stats)
   const progressPath = path.join(projectPath, 'docs', 'plans', planId, 'progress.md');
   if (!fs.existsSync(progressPath)) {
-    json(res, 200, { tasks: [], total: 0, completed: 0, inProgress: 0, pending: 0, panelCompatible: true, unsupported: false, unsupportedMessage: null });
+    json(res, 200, { tasks: [], total: 0, completed: 0, inProgress: 0, pending: 0, blocked: 0, hasTasksDoc: false, panelCompatible: true, unsupported: false, unsupportedMessage: null });
     return;
   }
 
@@ -1393,11 +1411,33 @@ function handleGetPlanTasks(projectPath, planId, res) {
   json(res, 200, stats);
 }
 
+
+function handleGetPlanTestsLedger(projectPath, planId, res) {
+  if (!validatePlanId(planId)) return json(res, 400, { error: 'Invalid plan ID' });
+  const ledgerPath = path.join(projectPath, 'docs', 'plans', planId, 'tests.md');
+  if (!fs.existsSync(ledgerPath)) {
+    return json(res, 200, {
+      hasTestsDoc: false,
+      format: null,
+      entries: [],
+      groups: [],
+      panelCompatible: true,
+    });
+  }
+  const content = fs.readFileSync(ledgerPath, 'utf-8');
+  const parsed = parseTestsLedger.parseTestsLedger(content);
+  const groups = parseTestsLedger.groupLedgerByTask(parsed.entries || []);
+  json(res, 200, Object.assign({}, parsed, {
+    hasTestsDoc: true,
+    groups: groups,
+  }));
+}
+
 // Extract task counts from a progress.md ## Task Stats block.
 // Returns the same shape as parseTasksMarkdown so the frontend needs no changes.
 function parseProgressStats(content) {
   const block = content.match(/##\s*Task Stats\s*\n([\s\S]*?)(?=\n##|\n*$)/i);
-  const out = { tasks: [], total: 0, completed: 0, inProgress: 0, pending: 0 };
+  const out = { tasks: [], total: 0, completed: 0, inProgress: 0, pending: 0, blocked: 0, hasTasksDoc: false };
   if (!block) return out;
   const get = (key) => {
     const m = block[1].match(new RegExp(key + '\\s*:\\s*(\\d+)', 'i'));
@@ -1407,6 +1447,7 @@ function parseProgressStats(content) {
   out.completed = get('completed');
   out.inProgress = get('in_progress') || get('inProgress');
   out.pending = get('pending');
+  out.blocked = get('blocked');
   // Counts only when tasks.md is absent — no synthetic nodes (panel stays empty).
   out.panelCompatible = true;
   out.unsupported = false;
@@ -1971,6 +2012,13 @@ async function handler(req, res) {
       const project = findProject(planTasksMatch[1]);
       if (!project) return json(res, 404, { error: 'Project not found' });
       return handleGetPlanTasks(project.path, planTasksMatch[2], res);
+    }
+
+    const planTestsLedgerMatch = p.match(/^\/api\/projects\/([^/]+)\/plans\/([^/]+)\/tests-ledger$/);
+    if (planTestsLedgerMatch && method === 'GET') {
+      const project = findProject(planTestsLedgerMatch[1]);
+      if (!project) return json(res, 404, { error: 'Project not found' });
+      return handleGetPlanTestsLedger(project.path, planTestsLedgerMatch[2], res);
     }
 
     const docMatch = p.match(/^\/api\/projects\/([^/]+)\/plans\/([^/]+)\/([a-z0-9][a-z0-9_-]*)$/i);

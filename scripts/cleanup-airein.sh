@@ -141,9 +141,6 @@ MANAGED_SKILLS=(
   "model-guide"
   "archive-plan"
   "tdd"
-  "code-review"
-  "quality-gate"
-  "refactor-clean"
   "self-learning"
   "regression-test-gate"
 )

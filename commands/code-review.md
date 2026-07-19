@@ -1,40 +1,13 @@
-# Code Review
+---
+description: Dispatch airein tech-lead in review mode on the current uncommitted diff. Use after a task or before claiming done.
+---
 
-Comprehensive security and quality review of uncommitted changes:
+# /code-review
 
-1. Get changed files: git diff --name-only HEAD
+Thin entry — **do not** paste a second checklist here.
 
-2. For each changed file, check for:
+1. Dispatch **`tech-lead`** (`agents/tech-lead.md`) with **`mode: review`**.
+2. Prompt only: `mode: review` — examine the current git diff (staged + unstaged). **Do not paste the diff** (agent gathers it). Prefer model **haiku**.
+3. CRITICAL/HIGH → fix before continuing; MEDIUM/LOW → record and proceed per iron rules / `quality.json`.
 
-**Security Issues (CRITICAL):**
-- Hardcoded credentials, API keys, tokens
-- SQL injection vulnerabilities
-- XSS vulnerabilities  
-- Missing input validation
-- Insecure dependencies
-- Path traversal risks
-
-**Code Quality (HIGH):**
-- Functions > 50 lines
-- Files > 800 lines
-- Nesting depth > 4 levels
-- Missing error handling
-- console.log statements
-- TODO/FIXME comments
-- Missing JSDoc for public APIs
-
-**Best Practices (MEDIUM):**
-- Mutation patterns (use immutable instead)
-- Emoji usage in code/comments
-- Missing tests for new code
-- Accessibility issues (a11y)
-
-3. Generate report with:
-   - Severity: CRITICAL, HIGH, MEDIUM, LOW
-   - File location and line numbers
-   - Issue description
-   - Suggested fix
-
-4. Block commit if CRITICAL or HIGH issues found
-
-Never approve code with security vulnerabilities!
+Canonical rules: `agents/tech-lead.md` → mode:review；`rules/00-iron-rules.md`.

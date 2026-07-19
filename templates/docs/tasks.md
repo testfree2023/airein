@@ -11,7 +11,7 @@
 
 > Progress: 0/{N} tasks (0%)  
 > **定位**：软件开发生命周期上的可执行分解（SDLC：Implement / Verify / Deploy / Accept），承接 PRD / Design / test-plan。  
-> **核心门禁（相对上游升级）**：Implement 必绑 **Design refs**；Verify 必填 **Source**（Critical / VS / Exit / INV）；写完过 **Coverage Gate**；台账见计划 **tests.md**。  
+> **核心门禁（相对上游升级）**：Implement 必绑 **Design refs**；Verify 必填 **Source**（Critical / VS / Exit / INV）；写完过 **Coverage Gate**；**Implement** 台账见计划 **tests.md**（Verify 不强制台账行）。  
 > **拆解补充**：PRD **UC** → Implement（开发任务）；test-plan **Critical / VS** → Verify（测试任务）。  
 > **面板契约**：`Status` ∈ `pending` | `in_progress` | `completed`（允许装饰前缀）；`Depends on` = `none` 或 Task ID（如 `1.1` / `1.1, 2.1`）；含 Accept 在内每个任务都写 Status。
 
@@ -49,10 +49,12 @@
 
 | Phase | Kind | 拆解源 | 必须拆出的任务 |
 |-------|------|--------|----------------|
-| **Implement（开发任务）** | `implement` | PRD UC + Design（API/表/INV/时序） | 垂直片；每条有 UC-id + **Design refs** |
-| **Verify（测试任务）** | `verify` | test-plan Critical / VS / Exit（无则 PRD UC） | 每条有 **Source**；命令可跑；对齐 `tests.md` |
+| **Implement（开发任务）** | `implement` | PRD UC + Design（API/表/INV/时序） | 垂直片；每条有 UC-id + **Design refs**；**唯一强制**维护计划 `tests.md` 台账（见下） |
+| **Verify（测试任务）** | `verify` | test-plan Critical / VS / Exit（无则 PRD UC） | 每条有 **Source**；命令可跑；可**可选引用** implement 台账行 |
 | **Deploy** | `deploy` | `deployment.md` / 发布清单 | 迁移、发版、配置、回滚；无则 `Deploy: n/a — {理由}` |
 | **Accept** | `accept` | Exit Criteria / PRD 交付物 | 产品验收、培训/手册等义务项 |
+
+**台账义务（`tests.md`）**：仅 `Kind: implement` 在标 `completed` 前须有 Task=本任务 ID 且 Status=`pass` 的合格行（`quality.json` → `testsLedger.enabled` 开启时 hook 阻断）。Verify / Deploy / Accept **不**强制台账行。
 
 **不得**只写 Implement 而省略 Verify。有 test-plan 时：**禁止**只拆 Critical 主路径而丢掉 VS 穷举维。
 
@@ -86,7 +88,7 @@
 ## 2.0 Verify — {Critical / VS 组}
 
 > 从 test-plan 拆：Critical 一行 → 一条；VS 各维凡可跑者 → 条或挂靠。无 test-plan 时 Source 写 `PRD-UC-…`。  
-> **禁止无源 Verify**。实现阶段由 `tdd` 维护计划 **`tests.md`**（Acceptance 命令 ↔ 台账 Command）。
+> **禁止无源 Verify**。计划 **`tests.md` 台账行归属 Implement Task ID**（由 `tdd` Trace 维护）；Verify **不**强制另开台账行。
 
 ### 2.1 {Critical-id 或 VS-id · 单 Persona}
 - **Status**: ⏳ pending
@@ -96,7 +98,7 @@
 - **Persona**: {单一角色 — 禁止「销售/门店」合并}
 - **UI Entry**: {含 UI 则步骤从打开入口起；否则 `n/a`}
 - **Depends on**: {对应 Implement Task ID（如 `1.1`）| none}
-- **Ledger**: {计划 `tests.md` 行意图；未建则 `pending — 开工时创建`}
+- **Ledger**: {可选 — 指向相关 Implement 台账行意图 / Task ID；无则 `n/a`}
 - **Acceptance**: |
   - 可执行：`{test 命令或 E2E 路径 — 勿粘贴 TC 步骤全文}`
   - 可验收：`{断言要点；含入口可见性（若 UI）}`
@@ -149,7 +151,7 @@
 - [ ] 有 test-plan 时：**每条 Critical** → ≥1 Verify Must；**关键 UC 的 VS 维**凡可跑者有 Verify（禁止只留 Critical）
 - [ ] 每个 Verify 有非空 **Source**；无源任务删掉或补源
 - [ ] Design 命脉 **INV-** 有 Implement 落地 + Verify 断言（或 N/A）
-- [ ] 计划维护 **`tests.md`**；Verify 命令与台账可对齐
+- [ ] 每个 **Implement** Must 在计划 **`tests.md`** 有 Task=ID 且 Status=`pass` 的合格行（或 `testsLedger.enabled=false` 时人工自检）
 
 ## Must / Should 规则
 

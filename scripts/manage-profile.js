@@ -58,17 +58,13 @@ const KEEP_SKILLS = [
 ];
 
 const KEEP_AGENTS = [
-  'code-reviewer', 'tdd-guide', 'planner', 'architect',
-  'security-reviewer', 'build-error-resolver', 'e2e-runner',
-  'refactor-cleaner', 'doc-updater', 'docs-lookup',
-  'python-reviewer', 'go-reviewer',
+  'pm',
+  'product-expert',
+  'tech-lead',
 ];
 
 const KEEP_COMMANDS = [
-  'plan', 'code-review', 'build-fix', 'refactor-clean', 'quality-gate',
-  'test-coverage', 'update-docs', 'update-codemaps',
-  'learn-eval', 'instinct-status', 'instinct-import', 'instinct-export',
-  'evolve', 'sessions', 'skill-create', 'docs',
+  'tdd', 'code-review', 'verify',
 ];
 
 // ── Implementation ───────────────────────────────────────────────

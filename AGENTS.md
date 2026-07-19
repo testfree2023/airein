@@ -18,7 +18,7 @@
 | `docs/conventions-javascript.md` | 编辑 `scripts/**/*.js` / `test/**/*.js` |
 | `docs/conventions-bash.md` | 编辑 `*.sh` |
 | `docs/design.md` | 需要架构总览 |
-| `docs/roadmap.md` | 看项目状态 |
+| `docs/roadmap.md` | 看项目状态（形态见 `templates/docs/roadmap.md`） |
 
 ## 不可妥协的约束（铁律）
 
@@ -52,3 +52,20 @@ node test/test-foo.js         # 单个
 
 Conventional Commits（`feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:` / `perf:` / `ci:`）。
 永不 `--no-verify`，永不提交无法 `node test/test-*.js` 通过的代码。
+
+## Agent Teams v0
+
+> **Pipeline Roles**（Agent Teams v0 · 规划/质量最小团队协议）。主会话 = **PM**（编排，不包办专长产出）。
+
+| 节点 | 角色 |
+|------|------|
+| 编排 / progress | `agents/pm.md` |
+| `requirements` | `agents/product-expert.md` |
+| `design` | `agents/tech-lead.md` · **mode: design** |
+| review / `/code-review` / security STOP | `agents/tech-lead.md` · **mode: review** / **security** |
+
+- 角色产出须对齐 `templates/docs/` 对应文档模板。
+- 实现期仍可由 `skills/tdd` 与 main 执行（完整实现期 Teams 另案）。
+- 强制节点未派角须在 progress Notes 显式豁免。
+
+<!-- airein:pipeline-roles-banner -->

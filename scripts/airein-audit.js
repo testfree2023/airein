@@ -329,10 +329,10 @@ function getChecks() {
       category: 'Security Guardrails',
       points: 3,
       scopes: ['repo', 'agents'],
-      path: 'agents/security-reviewer.md',
+      path: 'agents/tech-lead.md',
       description: 'Security reviewer agent exists',
-      pass: fileExists('agents/security-reviewer.md'),
-      fix: 'Add agents/security-reviewer.md for delegated security audits.',
+      pass: fileExists('agents/tech-lead.md'),
+      fix: 'Add agents/tech-lead.md for delegated security audits.',
     },
     {
       id: 'security-prompt-hook',

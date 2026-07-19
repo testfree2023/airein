@@ -23,6 +23,23 @@ describe('progress-panel helpers', suite => {
     assertOk(!/^function esc\s*\(/m.test(src), 'no top-level function esc');
   });
 
+  suite.test('shouldShowTaskProgress: hide until tasks.md has nodes', () => {
+    assertEqual(panel.shouldShowTaskProgress(null), false, 'null');
+    assertEqual(panel.shouldShowTaskProgress({ hasTasksDoc: false, total: 3, tasks: [] }), false, 'progress fallback');
+    assertEqual(panel.shouldShowTaskProgress({ hasTasksDoc: true, total: 0, tasks: [] }), false, 'empty tasks.md');
+    assertEqual(panel.shouldShowTaskProgress({
+      hasTasksDoc: true,
+      unsupported: true,
+      unsupportedMessage: 'legacy',
+      tasks: [],
+    }), true, 'unsupported still shows');
+    assertEqual(panel.shouldShowTaskProgress({
+      hasTasksDoc: true,
+      total: 1,
+      tasks: [{ num: 1, name: 'I', tasks: [{ id: '1.1', name: 'A', status: 'pending', dependsOn: [] }] }],
+    }), true, 'real tasks');
+  });
+
   suite.test('unsupported message for legacy', () => {
     const html = panel.renderPanelBoard({
       unsupported: true,
@@ -141,5 +158,76 @@ describe('progress-panel helpers', suite => {
       completed: 0,
     }, function (k) { return k === 'progress.noTasks' ? 'No tasks' : k; });
     assertContains(html, 'No tasks', 'empty');
+  });
+
+  suite.test('renderTestsLedger: not ready when no tests.md', () => {
+    const html = panel.renderTestsLedger(
+      { hasTestsDoc: false, entries: [] },
+      function (k) { return k === 'progress.testsLedgerNotReady' ? 'No ledger yet' : k; },
+      function (s) { return s; }
+    );
+    assertContains(html, 'No ledger yet', 'not ready');
+  });
+
+  suite.test('renderTestsLedger: empty when no rows', () => {
+    const html = panel.renderTestsLedger(
+      { hasTestsDoc: true, entries: [], groups: [] },
+      function (k) { return k === 'progress.testsLedgerEmpty' ? 'Empty ledger' : k; },
+      function (s) { return s; }
+    );
+    assertContains(html, 'Empty ledger', 'empty');
+  });
+
+  suite.test('renderTestsLedger: groups by task with status badge', () => {
+    const html = panel.renderTestsLedger({
+      hasTestsDoc: true,
+      entries: [
+        { taskId: '1.1', taskName: 'Write parser', behavior: 'parse rows', test: 'test-a', status: 'pass' },
+        { taskId: '1.1', taskName: 'Write parser', behavior: 'empty file', test: 'test-b', status: 'pending' },
+        { taskId: '1.2', taskName: 'Wire API', behavior: 'GET ledger', test: 'test-c', command: 'node t.js', status: 'written' },
+      ],
+      groups: [
+        { taskId: '1.1', taskName: 'Write parser', entries: [
+          { taskId: '1.1', behavior: 'parse rows', test: 'test-a', status: 'pass' },
+          { taskId: '1.1', behavior: 'empty file', test: 'test-b', status: 'pending' },
+        ]},
+        { taskId: '1.2', taskName: 'Wire API', entries: [
+          { taskId: '1.2', behavior: 'GET ledger', test: 'test-c', command: 'node t.js', status: 'written' },
+        ]},
+      ],
+    }, function (k) { return k; }, function (s) { return String(s); });
+    assertContains(html, 'progress-tests-ledger', 'root');
+    assertContains(html, 'progress-ledger-task', 'per-task block');
+    assertContains(html, '<table', 'table layout');
+    assertContains(html, '1.1', 'task 1.1');
+    assertContains(html, 'Write parser', 'task name');
+    assertContains(html, 'parse rows', 'behavior');
+    assertContains(html, 'badge-pass', 'pass badge');
+    assertContains(html, 'node t.js', 'command');
+    assertContains(html, 'progress.ledgerSummary', 'summary card');
+  });
+
+  suite.test('renderTestsLedger: strips backticks and enriches task name', () => {
+    const html = panel.renderTestsLedger({
+      hasTestsDoc: true,
+      entries: [
+        { taskId: '1.0a', behavior: 'save note', test: '`test/foo.js`', command: '`node test/foo.js`', status: 'pass' },
+      ],
+      groups: [
+        { taskId: '1.0a', taskName: '', entries: [
+          { taskId: '1.0a', behavior: 'save note', test: '`test/foo.js`', command: '`node test/foo.js`', status: 'pass' },
+        ]},
+      ],
+    }, function (k) {
+      if (k === 'progress.ledgerStatus.pass') return '通过';
+      return k;
+    }, function (s) { return String(s); }, {
+      taskNameById: { '1.0a': 'Daily note CRUD' },
+    });
+    assertContains(html, '1.0a — Daily note CRUD', 'enriched title');
+    assertContains(html, 'test/foo.js', 'stripped test path');
+    assertContains(html, 'node test/foo.js', 'stripped command');
+    assertOk(html.indexOf('`test/foo.js`') < 0, 'no raw backticks on test');
+    assertContains(html, '通过', 'localized status');
   });
 });

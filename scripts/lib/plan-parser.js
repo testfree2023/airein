@@ -219,11 +219,30 @@ function getComplexity(content) {
   return m ? m[1].toLowerCase() : 'm-feature';
 }
 
+/**
+ * Flip plan sub-document footer Status heading to approved.
+ * Templates end with Status draft; approval must sync this with
+ * progress.md Approval State (Dashboard approve / new-plan skill).
+ * Idempotent when already approved; unchanged when no Status heading.
+ *
+ * @param {string} content - Phase doc markdown (requirements.md, etc.)
+ * @returns {string} Updated content
+ */
+function setDocStatusApproved(content) {
+  if (content == null || content === '') return content;
+  const re = /^(##\s*Status:\s*)(\S+)\s*$/im;
+  const m = String(content).match(re);
+  if (!m) return content;
+  if (String(m[2]).replace(/\r$/, '').toLowerCase() === 'approved') return content;
+  return String(content).replace(re, '$1approved');
+}
+
 module.exports = {
   findActivePlan,
   parseProgress,
   getApprovalState,
   setApprovalState,
+  setDocStatusApproved,
   getGrillingState,
   isPlanCompleted,
   getComplexity,

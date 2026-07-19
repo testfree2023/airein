@@ -106,6 +106,14 @@ describe('project docs: dashboard UI', suite => {
     assertContains(index, 'renderDocCards', 'UI has renderDocCards function');
   });
 
+  suite.test('renderDocCards shows Roadmap card beside AI docs when docs/roadmap.md exists', () => {
+    assertContains(index, "groups['roadmap']", 'groups tracks roadmap docs');
+    assertContains(index, 'docs/roadmap.md', 'recognizes docs/roadmap.md path');
+    assertContains(index, '/docs/docs/roadmap.md', 'Roadmap card links to docs/roadmap.md editor');
+    assertMatch(index, /grid grid-2[\s\S]*?AI 基础文档[\s\S]*?Roadmap|AI 基础文档[\s\S]*?grid grid-2[\s\S]*?Roadmap/,
+      'AI docs and Roadmap share a side-by-side grid');
+  });
+
   suite.test('new doc page has template selector', () => {
     assertMatch(index, /doc-template|template.*select/i, 'new doc page has template dropdown');
   });

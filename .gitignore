@@ -59,3 +59,4 @@ dashboard/dashboard.log
 
 # ── Agent Teams 需求分析（仅本地，不上游）─────────────────────────
 docs/agent-teams-requirements-analysis.md
+docs/ecc-provenance-and-cleanup.md

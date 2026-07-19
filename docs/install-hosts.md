@@ -40,7 +40,7 @@ node scripts/install-host.js <install|plan|uninstall|verify> \
   - K1 `skills/<name>/SKILL.md`
   - K2 `rules/*.mdc`（L0 `alwaysApply:true`；L1 `alwaysApply:false` + `globs`，`@include` 内联展开）
   - K3 `hooks.json`（事件名 camelCase：`preToolUse` / `sessionStart` / …；command 引用 `$CURSOR_PROJECT_DIR/scripts/hooks/host/cursor.js`）
-  - **K4** `commands/*.md`（16 个 slash command，如 `tdd.md` → `/tdd`）
+  - **K4** `commands/*.md`（3 个 slash command（主链：`tdd` / `code-review` / `verify`））
 - **阻断机制**：PreToolUse `exit 2` → cursor.js 映射为 stdout `{permission:"deny"}`（CUR 原生协议）。
 
 ### Codex（CDX）

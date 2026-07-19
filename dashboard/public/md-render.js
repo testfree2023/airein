@@ -21,14 +21,55 @@
       .replace(/\*(.+?)\*/g, '<em>$1</em>');
   }
 
-  function renderMd(md) {
+  function rewriteDocHref(url, opts) {
+    opts = opts || {};
+    var projectId = opts.projectId;
+    if (!projectId) return url;
+    var u = String(url || '').trim();
+    if (!u || /^https?:\/\//i.test(u) || u.charAt(0) === '#' || /^mailto:/i.test(u)) return u;
+
+    // plans/... or docs/plans/...
+    var m = u.match(/^(?:\.\.?\/)*(?:docs\/)?plans\/(.+)$/i);
+    if (m) {
+      var rest = m[1].replace(/\/+$/, '');
+      var segments = rest.split('/').filter(Boolean).map(function (s) {
+        return encodeURIComponent(s);
+      });
+      return '#/projects/' + encodeURIComponent(projectId) + '/docs/docs/plans/' + segments.join('/');
+    }
+
+    // docs/foo (project docs tree, not under plans/)
+    var dm = u.match(/^(?:\.\.?\/)*docs\/(.+)$/i);
+    if (dm) {
+      var drest = dm[1].replace(/\/+$/, '');
+      var dseg = drest.split('/').filter(Boolean).map(function (s) {
+        return encodeURIComponent(s);
+      });
+      return '#/projects/' + encodeURIComponent(projectId) + '/docs/docs/' + dseg.join('/');
+    }
+
+    // Same-directory relative file inside a plan: design-architecture.md, ./foo.md
+    if (opts.planId && /^(?:\.\/)?[^/]+\.md$/i.test(u)) {
+      var file = u.replace(/^\.\//, '');
+      return '#/projects/' + encodeURIComponent(projectId) +
+        '/docs/docs/plans/' + encodeURIComponent(opts.planId) + '/' + encodeURIComponent(file);
+    }
+    return u;
+  }
+
+  function renderMd(md, opts) {
     if (!md) return '';
+    opts = opts || {};
+
+    // Normalize newlines first: Windows CRLF breaks table regexes that
+    // anchor on ^...\n — docs like roadmap.md then show raw pipe rows.
+    var text = String(md).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     // Pull fenced blocks out BEFORE esc / paragraph splitting.
     // Otherwise blank lines inside ```mermaid become </p><p> and break the lexer
     // (TAGSTART on "<p>"), and <br/> becomes a tag token under strict mode.
     var fences = [];
-    var text = String(md).replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
+    text = text.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
       var i = fences.length;
       fences.push({ lang: lang || '', code: code });
       return '\0FENCE' + i + '\0';
@@ -88,7 +129,9 @@
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
     html = html.replace(/\[([^\]]+)\]\(([^)]+)(?:\s+"([^"]+)")?\)/g, function (_, text, url, title) {
-      return '<a href="' + esc(url) + '"' + (title ? ' title="' + esc(title) + '"' : '') + ' target="_blank">' + text + '</a>';
+      var href = rewriteDocHref(url, opts);
+      var blank = href.charAt(0) === '#' ? '' : ' target="_blank"';
+      return '<a href="' + esc(href) + '"' + (title ? ' title="' + esc(title) + '"' : '') + blank + '>' + text + '</a>';
     });
 
     html = html.replace(/^- \[x\] (.+)$/gm, '<li><input type="checkbox" checked disabled> $1</li>');
@@ -251,9 +294,9 @@
   }
 
   /** Set markdown HTML and schedule mermaid paint. */
-  function paintMd(el, md) {
+  function paintMd(el, md, opts) {
     if (!el) return;
-    el.innerHTML = renderMd(md);
+    el.innerHTML = renderMd(md, opts);
     scheduleMermaid(el);
   }
 
@@ -284,6 +327,7 @@
   var api = {
     renderMd: renderMd,
     paintMd: paintMd,
+    rewriteDocHref: rewriteDocHref,
     scheduleMermaid: scheduleMermaid,
     runMermaidIn: runMermaidIn,
     onMermaidReady: onMermaidReady,

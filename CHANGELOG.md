@@ -23,6 +23,22 @@
 
 相对 tag **`2026-07-18`** 之后、尚未打进下一 VERSION / tag 的变更。
 
+### tech-lead role (2026-07-18)
+
+- 合并 `architect` / `code-reviewer` / `security-reviewer` 为单一角色 `tech-lead`（mode：design / review / security）
+- `/code-review`、铁律 perTaskReview / 安全 STOP 改为派 `tech-lead` 对应 mode
+
+### Whitelist internalization (2026-07-18)
+
+- 重写为 airein 短角色卡 / 薄命令；ECC 致谢改为「曾使用」
+- 删除 `tdd-guide`；`/verify` 对齐 Verification Before Completion、`/code-review` 仅派 `code-reviewer`
+
+### ECC surface trim (2026-07-18)
+
+- `agents/` 仅保留并内化：`architect` / `code-reviewer` / `security-reviewer`（已移除 `tdd-guide`；卡住走 `skills/tdd`）
+- `commands/` 仅保留并内化：`/tdd` / `/code-review` / `/verify`（薄入口）
+- 产品定位明确：宿主内 skills/plugin（文档 + 规格驱动进展）；通用 Agent 工具箱交用户自选或自装 ECC
+
 ### P007-task-pickup-progress-sync (2026-07-18)
 
 - 空档时自动把下一 ready 任务标为 `in_progress`（progress-sync + session-start）

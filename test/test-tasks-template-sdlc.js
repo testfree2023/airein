@@ -93,8 +93,10 @@ describe('tasks.md template — UC/Design/VS traceability', suite => {
     assertContains(tpl, '无源', 'orphan verify forbidden');
   });
 
-  suite.test('points Verify work to plan tests.md ledger', () => {
+  suite.test('tests.md ledger obligation is Implement-only', () => {
     assertContains(tpl, 'tests.md', 'ledger path');
+    assertContains(tpl, 'implement', 'implement kind');
+    assertContains(tpl, '不强制台账', 'verify not forced');
   });
 
   suite.test('coverage gate: every UC and Critical must map to a Must task', () => {

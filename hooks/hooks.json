@@ -59,6 +59,39 @@
         "description": "Approval guard: protect approval state in progress.md from unauthorized changes"
       },
       {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/tests-ledger-gate.js\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Tests ledger gate: block implement task completion without tests.md pass row"
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/roadmap-gate.js\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Roadmap gate: validate docs/roadmap.md active-section contract"
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/progress-completion-gate.js\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Progress completion gate: progress.md completion claims require tasks.md Status=completed"
+      },
+      {
         "matcher": "Write",
         "hooks": [
           {
