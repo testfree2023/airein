@@ -38,7 +38,7 @@ Communicate & clarify (grilling) → produce docs by pipeline → approve one by
 ```
 
 - **Communicate & clarify**: before acting, nail down vague requirements. Ask one question at a time, challenge assumptions, force boundaries with concrete scenarios, and turn "build me an X" into a clear scope with acceptance criteria.
-- **Produce docs by pipeline**: based on task type (s-feature / m-feature / l-feature / hotfix ...), follow the corresponding doc pipeline — a small bugfix only needs `tasks`, a mid-size feature needs `requirements → design → test-plan → tasks`, a large feature adds `deployment`. The docs are specs — contracts for the implementation that follows.
+- **Produce docs by pipeline**: based on task type (s-feature / m-feature / l-feature / hotfix ...), follow the corresponding doc pipeline — a small bugfix only needs `tasks`, a mid-size feature needs `requirements → design → test-plan → tasks`, a large feature adds `deployment`. The docs are specs — contracts for the implementation that follows. **What those docs look like** is defined by kernel templates (see “Document templates” below).
 - **Approval gates per doc**: each doc goes draft → your approval → approved, before the next one can be created. The `approval-sequence` hook enforces order; `approval-guard` protects approval state from tampering. Prevents AI from laying out all docs at once with no review.
 - **TDD implementation**: once in implementation, `test-guard` hard-blocks "source code without tests" in strict mode — a failing test must exist before implementation is allowed. `pre-commit-gate` runs build + tests + coverage before commit.
 - **Archive to close the loop**: when the plan is done, `/archive-plan` archives it so completed plans stop polluting the active context.
@@ -75,12 +75,45 @@ What it does:
 
 - **Project discovery**: `/init-project` registers the path in `~/.airein/dashboard/projects.json`; the **Tools** page (`#/tools`) supports register / unregister / prune stale entries; CC registry `~/.claude/projects/` remains a fallback.
 - **Plan management**: visualize plan progress, edit requirements/design/tasks, approve by pipeline, archive completed plans.
-- **Template management**: browse and edit airein's doc templates, language profiles, pipelines online.
+- **Template management**: sidebar **Templates** (`#/templates`) — browse and edit kernel templates online. This is the main place to keep raising AI output quality; see the next subsection.
 - **Config visualization**: render the project's `quality.json` into a structured form (toggles, thresholds, dropdowns), each field annotated with its default, persisting only the fields you changed — no hand-writing JSON.
 - **Tools page**: maintain the project registry without memorizing CLI commands.
 - **i18n**: switch between Chinese and English.
 
 The Dashboard isn't a separate system — it's the visualization layer over airein's existing capabilities. It reads the same roadmap, the same `.airein/config/quality.json`, the same plan directories. The config you change in the panel is the config the hooks actually read. See [dashboard/README.md](dashboard/README.md).
+
+### Document templates — the “molds” for AI output, tunable from the panel
+
+`/new-plan` and `/init-project` do not invent doc structure from scratch: they load structural templates from the kernel **`~/.airein/templates/`**, then fill a plan directory by complexity (s / m / l). Templates define **sections, tone, and hard “don’t write this” constraints**; the model fills in the business content. The closer templates match your engineering habits, the harder it is for AI to ship thin summaries that look like requirements but cannot be accepted.
+
+**What the template families govern:**
+
+| Family | Role (examples) |
+|--------|------------------|
+| `requirements/{s,m,l}.md` | Product Requirements Document (PRD): business flow → User Story → Use Case (UC-id), not a Problem + WHEN/THEN blurb |
+| `design/{s,m,l}.md` + subdocs | Tiered technical design: enumerate the decisions that matter; avoid empty architecture prose |
+| `test-plan/{m,l}.md` | Test **design spec**: Critical / VS / invariants — not a paste of step-by-step test cases |
+| `tasks.md` | Implement / Verify / Deploy / Accept; requires Source traceability and machine-readable `Depends on` (Dashboard Progress depends on this contract) |
+| `deployment.md` / `roadmap.md` / `tests.md` … | Release/ops, project status index, TDD ledger, and related companions |
+
+In short: a traceable chain **UC → design → test design → schedulable tasks**. When a full `l-feature` pipeline is dogfooded end-to-end, you can feel the jump from freestyle docs to UC-bound tasks and Critical/VS-bound verification — that is the templates working, not just a stronger model.
+
+**How to keep upgrading templates that fit *you*:**
+
+1. Start the Dashboard → sidebar **Templates** (`http://localhost:3456/#/templates`).
+2. Open a plan/project doc template by category, edit inline, save — writes back to **`~/.airein/templates/`** (the same tree `/new-plan` reads).
+3. Or edit `~/.airein/templates/docs/*.md` on disk; the next new plan picks it up.
+4. **Iterate from pain**: when AI output is soft (missing UCs, unparseable tasks, empty test-plan) → tighten the matching template (required sections / negative constraints / example rows) → validate on a small plan — instead of only scolding the model in chat.
+
+**On upgrade:**
+
+- `airein update` **overwrites** stock structural templates under the sync allowlist (`templates/docs/**`, etc.) so you receive upstream improvements.
+- `templates/pipelines.json` is **merged**: your custom pipeline definitions are kept.
+- If you deeply customize a template locally, back it up or diff before upgrading; lasting changes are better contributed upstream (or kept as a team patch process) so the next update does not silently wipe them.
+
+Templates are one of the highest-leverage assets to accumulate over time: **hooks enforce the red lines; templates define the writing shape** — together they turn “faster” into “controllably faster.”
+
+Chinese readers: a shorter companion note lives in [docs/templates-and-dashboard.md](docs/templates-and-dashboard.md).
 
 ---
 
@@ -414,6 +447,9 @@ A: Points to the airein **kernel root** (`~/.airein`). CC merge-hooks replaces h
 
 **Q: How do I verify self-learning is working?**
 A: Check whether `.airein/self-learning/pending.md` captured anything this round; after Stop, check whether the archive appended logs; once the same instruction hits the threshold, check whether `rules/30-self-learned.md` was generated — once promoted to L0, it auto-loads next session.
+
+**Q: How are doc templates different from CLAUDE.md? Can I customize them?**
+A: CLAUDE.md is the **always-on** operating handbook (keep it short). Doc templates are the **structural molds** `/new-plan` uses when generating plan docs (can be longer; tiered s/m/l). Yes — edit online via Dashboard sidebar **Templates** (`#/templates`), or edit `~/.airein/templates/` on disk. Note: `airein update` overwrites stock structural templates on the sync allowlist; `pipelines.json` is merged so custom pipelines survive. See “Document templates” above.
 
 ---
 

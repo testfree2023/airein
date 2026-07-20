@@ -155,6 +155,21 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; }
 /* Grid */
 .grid { display: grid; gap: 1rem; }
 .grid-2 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.grid-2-fixed {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.15rem;
+  align-items: stretch;
+}
+.grid-2-fixed > .card {
+  height: 100%;
+  min-height: 6.5rem;
+  box-sizing: border-box;
+}
+.project-home-section {
+  max-width: 840px;
+  width: 100%;
+  margin-bottom: 1.25rem;
+}
 .grid-3 { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 
 /* Badges */
@@ -382,7 +397,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; }
 /* Responsive */
 @media (max-width: 768px) {
   main { padding: 1rem; }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .grid-2, .grid-2-fixed, .grid-3 { grid-template-columns: 1fr; }
   .form-row { flex-direction: column; }
   .pipeline { flex-wrap: wrap; gap: .3rem; }
   .pipeline .arrow { display: none; }
@@ -496,6 +511,19 @@ var I18N = {
     'projectDashboard.newPlan': '+ New Plan',
     'projectDashboard.config': 'Config',
     'projectDashboard.documents': 'Documents',
+    'projectDashboard.documentsZhEn': '项目文档 / Project Documents',
+    'projectDashboard.aiBaseDocs': 'AI 基础文档 / AI Base Docs',
+    'projectDashboard.aiBaseDocsHint': 'CLAUDE.md + rules/ aggregation',
+    'projectDashboard.roadmap': 'Roadmap / 项目路线图',
+    'projectDashboard.roadmapHint': 'Project status & change log (docs/roadmap.md)',
+    'projectDashboard.coreRequirements': '项目需求说明书',
+    'projectDashboard.coreRequirementsEn': 'Product Requirements Document',
+    'projectDashboard.coreDesign': '技术方案说明书',
+    'projectDashboard.coreDesignEn': 'Technical Design Document',
+    'projectDashboard.coreTestPlan': '质量方案说明书',
+    'projectDashboard.coreTestPlanEn': 'Quality / Test Plan Document',
+    'projectDashboard.coreDeployment': '发布运维说明书',
+    'projectDashboard.coreDeploymentEn': 'Release & Operations Guide',
     'projectDashboard.newDoc': '+ New Doc',
     'projectDashboard.plans': 'Plans',
     'docs.emptyState': 'No project documents yet. Create one from a template.',
@@ -737,6 +765,19 @@ var I18N = {
     'projectDashboard.newPlan': '+ 新建计划',
     'projectDashboard.config': '配置',
     'projectDashboard.documents': '项目文档',
+    'projectDashboard.documentsZhEn': '项目文档 / Project Documents',
+    'projectDashboard.aiBaseDocs': 'AI 基础文档 / AI Base Docs',
+    'projectDashboard.aiBaseDocsHint': 'CLAUDE.md + rules/ 依赖文件聚合页面',
+    'projectDashboard.roadmap': 'Roadmap / 项目路线图',
+    'projectDashboard.roadmapHint': '项目进程与变更记录（docs/roadmap.md）',
+    'projectDashboard.coreRequirements': '项目需求说明书',
+    'projectDashboard.coreRequirementsEn': 'Product Requirements Document',
+    'projectDashboard.coreDesign': '技术方案说明书',
+    'projectDashboard.coreDesignEn': 'Technical Design Document',
+    'projectDashboard.coreTestPlan': '质量方案说明书',
+    'projectDashboard.coreTestPlanEn': 'Quality / Test Plan Document',
+    'projectDashboard.coreDeployment': '发布运维说明书',
+    'projectDashboard.coreDeploymentEn': 'Release & Operations Guide',
     'projectDashboard.newDoc': '+ 新建文档',
     'projectDashboard.plans': '计划',
     'projectDashboard.activePlan': '活跃计划',
@@ -1116,9 +1157,6 @@ function renderProjectDashboard($app, projectId) {
           '<div><h2>' + esc(project.name) + '</h2><div class="meta">' + esc(project.path) + '</div></div>' +
           '<div><a href="#/projects/' + esc(project.id) + '/config" class="btn">' + t('projectDashboard.config') + '</a></div>' +
         '</div>' +
-        '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">' +
-          '<h3 style="margin:0">' + t('projectDashboard.documents') + '</h3>' +
-        '</div>' +
         docCards +
         '<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);text-align:center">' +
           '<a href="#/projects/' + esc(project.id) + '/docs/docs/roadmap.md" class="btn" style="font-size:.85rem">📝 记录变更</a>' +
@@ -1149,57 +1187,31 @@ function setupDocGroupToggles() {
 // ── Project Docs ────────────────────────────────────────
 
 function renderDocCards(docs, projectId, adrs, plans) {
-  if (!docs.length) {
-    return '<div class="empty" style="padding:2rem"><p>' + t('docs.emptyState') + '</p></div>';
-  }
-
-  // P028: Semantic 3-category grouping (+ roadmap top card)
+  // Top: AI 基础文档 + Roadmap（固定两卡）
+  // Then: 项目文档（4 核心说明书卡，无「归档文档」折叠组）
+  // Then: 活跃/归档计划
   var groups = {
     'ai-docs': [],
-    'roadmap': [],        // docs/roadmap.md — 与 AI 基础文档并排
-    'archived-docs': [],  // 4 核心文档：需求、设计、测试、部署
-    'plan-docs': {}       // 按计划 ID 分组
+    'roadmap': [],
+    'plan-docs': {}
   };
 
-  // 4 核心文档识别规则（标准命名）
-  var isCoreDoc = function(path) {
-    var p = path.toLowerCase();
-    var filename = path.split('/').pop();
+  var docsByPath = Object.create(null);
+  (docs || []).forEach(function(d) {
+    docsByPath[String(d.path || '').replace(/\\/g, '/').toLowerCase()] = d;
+  });
 
-    // 需求文档：requirements.md（唯一）
-    if (p === 'docs/requirements.md' || filename === 'requirements.md') return true;
-
-    // 设计文档：design.md + 所有 design-*.md 子文档
-    if (p === 'docs/design.md' || filename === 'design.md') return true;
-    if (p.indexOf('docs/design-') === 0) return true;  // design-architecture.md, design-conventions.md, etc.
-
-    // 测试文档：test-plan.md（唯一）
-    if (p === 'docs/test-plan.md' || filename === 'test-plan.md') return true;
-
-    // 部署文档：deployment.md（唯一）
-    if (p === 'docs/deployment.md' || filename === 'deployment.md') return true;
-
-    return false;
-  };
-
-  docs.forEach(function(d) {
+  (docs || []).forEach(function(d) {
     var path = d.path;
     var filename = d.path.split('/').pop();
     var pathLower = path.toLowerCase();
 
-    // Category 1: AI 基础文档（用户写的项目级 AI 配置）
-    // 注意：MEMORY.md 在 CC memory 中，不在项目根目录
     if (filename === 'CLAUDE.md' ||
         filename === 'quality.json' || filename === 'pipelines.json') {
       groups['ai-docs'].push(d);
-    }
-    // Roadmap：项目进程日志，与 AI 基础文档并排卡片
-    else if (pathLower === 'docs/roadmap.md' || filename === 'roadmap.md') {
+    } else if (pathLower === 'docs/roadmap.md' || filename === 'roadmap.md') {
       groups['roadmap'].push(d);
-    }
-    // Category 3: 计划文档（docs/plans/）- 按计划 ID 分组
-    else if (pathLower.indexOf('docs/plans/') === 0) {
-      // 提取 plan ID (如 P001-airein-v2-ecc-enhancement)
+    } else if (pathLower.indexOf('docs/plans/') === 0) {
       var planId = d.path.match(/docs\/plans\/([^\/]+)/);
       if (planId) {
         var pid = planId[1];
@@ -1207,20 +1219,13 @@ function renderDocCards(docs, projectId, adrs, plans) {
           groups['plan-docs'][pid] = { docs: [], plan: null };
         }
         groups['plan-docs'][pid].docs.push(d);
-        // 查找计划信息
         if (!groups['plan-docs'][pid].plan && plans) {
           groups['plan-docs'][pid].plan = plans.find(function(p) { return p.id === pid; });
         }
       }
     }
-    // Category 2a: 4 核心文档
-    else if (isCoreDoc(path)) {
-      groups['archived-docs'].push(d);
-    }
-    // Fallback: 不显示（adr、conventions、memory 等系统文档）
   });
 
-  // P025: ADR 关系映射
   var adrMap = {};
   if (adrs) {
     adrs.forEach(function(a) {
@@ -1228,53 +1233,50 @@ function renderDocCards(docs, projectId, adrs, plans) {
     });
   }
 
-  // Category labels
-  var categoryLabels = {
-    'ai-docs': '🤖 AI 基础文档',
-    'archived-docs': '📁 归档文档',
-    'plan-docs': '📋 计划文档'
-  };
-
-  var groupCounter = 0;
   var html = '';
 
-  // AI 基础文档 + Roadmap 并排（有任一则展示）
-  if (groups['ai-docs'].length || groups['roadmap'].length) {
-    html += '<div style="margin-bottom:1rem"><div class="grid grid-2">';
-    if (groups['ai-docs'].length) {
-      html +=
-        '<a href="#/projects/' + esc(projectId) + '/ai-docs" class="card" style="text-decoration:none;color:inherit">' +
-          '<h3>🤖 AI 基础文档</h3>' +
-          '<div style="font-size:.85rem;color:var(--text-muted)">' +
-            'CLAUDE.md + rules/ 依赖文件聚合页面' +
-          '</div>' +
-        '</a>';
-    }
-    if (groups['roadmap'].length) {
-      var roadmapPath = groups['roadmap'][0].path;
-      html +=
-        '<a href="#/projects/' + esc(projectId) + '/docs/' + esc(roadmapPath) + '" class="card" style="text-decoration:none;color:inherit">' +
-          '<h3>Roadmap</h3>' +
-          '<div style="font-size:.85rem;color:var(--text-muted)">' +
-            '项目进程与变更记录（docs/roadmap.md）' +
-          '</div>' +
-        '</a>';
-    }
-    html += '</div></div>';
-  }
+  // AI 基础文档 + Roadmap — 始终展示两卡（与下方同宽同高）
+  var roadmapPath = (groups['roadmap'][0] && groups['roadmap'][0].path) || 'docs/roadmap.md';
+  html += '<div class="project-home-section"><div class="grid grid-2-fixed">';
+  html +=
+    '<a href="#/projects/' + esc(projectId) + '/ai-docs" class="card" style="text-decoration:none;color:inherit">' +
+      '<h3>' + esc(t('projectDashboard.aiBaseDocs')) + '</h3>' +
+      '<div style="font-size:.85rem;color:var(--text-muted)">' +
+        esc(t('projectDashboard.aiBaseDocsHint')) +
+      '</div>' +
+    '</a>';
+  html +=
+    '<a href="#/projects/' + esc(projectId) + '/docs/' + esc(roadmapPath) + '" class="card" style="text-decoration:none;color:inherit">' +
+      '<h3>' + esc(t('projectDashboard.roadmap')) + '</h3>' +
+      '<div style="font-size:.85rem;color:var(--text-muted)">' +
+        esc(t('projectDashboard.roadmapHint')) +
+      '</div>' +
+    '</a>';
+  html += '</div></div>';
 
-  // 归档文档（4 核心文档：需求、设计、测试、部署）
-  if (groups['archived-docs'].length) {
-    var groupId = 'doc-group-' + (groupCounter++);
-    html += '<div style="margin-bottom:1rem">' +
-      '<h4 class="doc-group-toggle" style="margin-bottom:.4rem;font-size:.85rem;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:.25rem" data-group="' + esc(groupId) + '">' +
-        '<span class="toggle-icon">▶</span> ' + categoryLabels['archived-docs'] + ' <span style="color:var(--text-muted);font-size:.75rem">(' + groups['archived-docs'].length + ')</span>' +
-      '</h4>' +
-      '<div id="' + esc(groupId) + '" class="doc-group-content" style="display:none">' +
-      '<div class="grid grid-2">' +
-      groups['archived-docs'].map(renderDocCard.bind(null, projectId, adrs, adrMap, true)).join('') +
-      '</div></div></div>';
-  }
+  // 项目文档：固定 4 核心说明书（双语标题）
+  var coreSpecs = [
+    { path: 'docs/requirements.md', titleKey: 'projectDashboard.coreRequirements', enKey: 'projectDashboard.coreRequirementsEn' },
+    { path: 'docs/design.md', titleKey: 'projectDashboard.coreDesign', enKey: 'projectDashboard.coreDesignEn' },
+    { path: 'docs/test-plan.md', titleKey: 'projectDashboard.coreTestPlan', enKey: 'projectDashboard.coreTestPlanEn' },
+    { path: 'docs/deployment.md', titleKey: 'projectDashboard.coreDeployment', enKey: 'projectDashboard.coreDeploymentEn' }
+  ];
+  html += '<div class="project-home-section">' +
+    '<h3 style="margin:0 0 .75rem;font-size:1rem">' + esc(t('projectDashboard.documentsZhEn')) + '</h3>' +
+    '<div class="grid grid-2-fixed">';
+  coreSpecs.forEach(function(spec) {
+    var existing = docsByPath[spec.path];
+    var meta = existing
+      ? t('docs.fileMeta', { size: existing.size, modified: existing.modified })
+      : spec.path;
+    html +=
+      '<a href="#/projects/' + esc(projectId) + '/docs/' + esc(spec.path) + '" class="card" style="text-decoration:none;color:inherit">' +
+        '<h3 style="margin-bottom:.15rem">' + esc(t(spec.titleKey)) + '</h3>' +
+        '<div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.35rem">' + esc(t(spec.enKey)) + '</div>' +
+        '<div class="meta">' + esc(meta) + '</div>' +
+      '</a>';
+  });
+  html += '</div></div>';
 
   // 计划文档 - 按计划分组，再按活跃/归档
   var planIds = Object.keys(groups['plan-docs']);
@@ -1295,12 +1297,12 @@ function renderDocCards(docs, projectId, adrs, plans) {
 
     // 活跃计划
     if (activePlanIds.length) {
-      html += '<div style="margin-bottom:1rem">' +
+      html += '<div class="project-home-section" style="margin-bottom:1rem">' +
         '<h4 class="doc-group-toggle" style="margin-bottom:.4rem;font-size:.85rem;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:.25rem" data-group="plan-active-group">' +
           '<span class="toggle-icon">▶</span> 活跃计划 <span style="color:var(--text-muted);font-size:.75rem">(' + activePlanIds.length + ')</span>' +
         '</h4>' +
         '<div id="plan-active-group" class="doc-group-content" style="display:none">' +
-        '<div class="grid grid-2">';
+        '<div class="grid grid-2-fixed">';
 
       activePlanIds.forEach(function(pid) {
         var planData = groups['plan-docs'][pid];
@@ -1310,7 +1312,7 @@ function renderDocCards(docs, projectId, adrs, plans) {
         var status = plan ? plan.status : 'unknown';
         var complexity = plan ? plan.complexity : '';
 
-        html += '<a href="#/projects/' + esc(projectId) + '/plans/' + esc(planId) + '" class="card" style="text-decoration:none;color:block">' +
+        html += '<a href="#/projects/' + esc(projectId) + '/plans/' + esc(planId) + '" class="card" style="text-decoration:none;color:inherit">' +
           '<div style="display:flex;justify-content:space-between;align-items:start">' +
             '<div>' +
               '<h3>' + esc(planId) + '</h3>' +
@@ -1329,12 +1331,12 @@ function renderDocCards(docs, projectId, adrs, plans) {
 
     // 归档计划
     if (archivedPlanIds.length) {
-      html += '<div style="margin-bottom:1rem">' +
+      html += '<div class="project-home-section" style="margin-bottom:1rem">' +
         '<h4 class="doc-group-toggle" style="margin-bottom:.4rem;font-size:.85rem;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:.25rem" data-group="plan-archived-group">' +
           '<span class="toggle-icon">▶</span> 归档计划 <span style="color:var(--text-muted);font-size:.75rem">(' + archivedPlanIds.length + ')</span>' +
         '</h4>' +
         '<div id="plan-archived-group" class="doc-group-content" style="display:none">' +
-        '<div class="grid grid-2">';
+        '<div class="grid grid-2-fixed">';
 
       archivedPlanIds.forEach(function(pid) {
         var planData = groups['plan-docs'][pid];
@@ -1344,7 +1346,7 @@ function renderDocCards(docs, projectId, adrs, plans) {
         var status = plan ? plan.status : 'unknown';
         var complexity = plan ? plan.complexity : '';
 
-        html += '<a href="#/projects/' + esc(projectId) + '/plans/' + esc(planId) + '" class="card" style="text-decoration:none;color:block">' +
+        html += '<a href="#/projects/' + esc(projectId) + '/plans/' + esc(planId) + '" class="card" style="text-decoration:none;color:inherit">' +
           '<div style="display:flex;justify-content:space-between;align-items:start">' +
             '<div>' +
               '<h3>' + esc(planId) + '</h3>' +
@@ -1360,6 +1362,10 @@ function renderDocCards(docs, projectId, adrs, plans) {
 
       html += '</div></div></div>';
     }
+  }
+
+  if (!html) {
+    return '<div class="empty" style="padding:2rem"><p>' + t('docs.emptyState') + '</p></div>';
   }
 
   return html;
