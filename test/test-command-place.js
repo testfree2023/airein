@@ -20,7 +20,7 @@ const { commandPlace, HOST_COMMANDS_DIR } = require('../scripts/lib/command-plac
 
 const COMMANDS_DIR = path.resolve(__dirname, '..', 'commands');
 const TARGET = '/tgt-project';
-const EXPECTED_COUNT = 16;
+const EXPECTED_COUNT = 3;
 
 describe('commandPlace: CUR（cursor）放置', (suite) => {
   suite.test(`每个源 command → {type:copy, dest 含 .cursor/commands/<name>.md}（${EXPECTED_COUNT} 个）`, () => {

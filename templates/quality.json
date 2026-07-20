@@ -10,6 +10,9 @@
     "buildFailure": true,
     "untestedSource": true
   },
+  "pipelineRoles": {
+    "enabled": true
+  },
   "flowControl": {
     "perTaskReview": false,
     "worktreeIsolation": false
@@ -18,12 +21,25 @@
     "enabled": true,
     "mode": "strict"
   },
+  "testsLedger": {
+    "enabled": false,
+    "mode": "strict"
+  },
+  "roadmapGate": {
+    "enabled": true,
+    "mode": "advisory"
+  },
   "approvalGuard": {
     "mode": "console-confirm"
   },
   "planGate": {
     "mode": "advisory",
-    "exemptPaths": ["docs/", ".claude/", "scripts/hooks/", "test/"],
+    "exemptPaths": [
+      "docs/",
+      ".claude/",
+      "scripts/hooks/",
+      "test/"
+    ],
     "requireActiveTask": true
   },
   "taskPickup": {
@@ -41,5 +57,9 @@
     "level": "info",
     "retentionDays": 7,
     "slowHookMs": 2000
+  },
+  "progressCompletionGate": {
+    "enabled": true,
+    "mode": "strict"
   }
 }

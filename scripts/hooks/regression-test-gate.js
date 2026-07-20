@@ -108,7 +108,7 @@ function main() {
   }
 
   if (warnings.length > 0) {
-    console.log(`[Regression Gate]\n${warnings.join('\n')}\nWrite a regression test before closing the issue. Use /tdd or the tdd-guide agent.`);
+    console.log(`[Regression Gate]\n${warnings.join('\n')}\nWrite a regression test before closing the issue. Use /tdd (skills/tdd).`);
   } else {
     aireinLog('info', 'regression-test-gate', 'No missing regression tests detected');
   }

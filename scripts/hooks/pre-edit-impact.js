@@ -70,7 +70,7 @@ function main() {
   // Categorize impact
   const thresholds = getImpactThresholds();
   if (totalDependents >= thresholds.high) {
-    console.log(`🔴 [Impact: HIGH] ${path.basename(filePath)} is imported by ~${totalDependents} files. Consider:\n  (1) Running full test suite after edit\n  (2) Using code-reviewer agent before committing\n  (3) Updating docs/roadmap.md or docs/adr/ if architecture changes`);
+    console.log(`🔴 [Impact: HIGH] ${path.basename(filePath)} is imported by ~${totalDependents} files. Consider:\n  (1) Running full test suite after edit\n  (2) Using tech-lead (mode: review) before committing\n  (3) Updating docs/roadmap.md or docs/adr/ if architecture changes`);
     aireinLog('warn', 'pre-edit-impact', `HIGH impact: ${path.basename(filePath)} has ~${totalDependents} dependents`);
   } else if (totalDependents >= thresholds.medium) {
     console.log(`🟡 [Impact: MEDIUM] ${path.basename(filePath)} is imported by ~${totalDependents} files. Check consumers after editing.`);

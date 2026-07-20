@@ -55,6 +55,14 @@ node ~/.airein/scripts/lib/dashboard-projects.js register "$(pwd)"
 
 Verify: `node ~/.airein/scripts/lib/dashboard-projects.js list`
 
+**Agent Teams v0 · 入口声明（P008）** — 向 `CLAUDE.md` 与 `AGENTS.md` 追加 `## Agent Teams v0`（幂等；读 `quality.json` → `pipelineRoles.enabled`，**默认 `true`**；为 `false` 则跳过写入）：
+
+```bash
+node ~/.airein/scripts/lib/pipeline-roles-banner.js apply "$(pwd)"
+```
+
+Verify: `rg -n "## Agent Teams v0" CLAUDE.md AGENTS.md`
+
 **宿主判断（必做，再决定是否创建 `.claude/`）**：
 
 | 当前宿主 | 动作 |
@@ -140,11 +148,11 @@ Review the current session's conversation history and extract:
 
 | Category | What to extract | Target |
 |----------|----------------|--------|
-| Business context | Project background, user roles, use cases | `docs/roadmap.md` → Project Overview section |
+| Business context | Project background, user roles, use cases | `docs/roadmap.md` → 项目概况 section |
 | Design decisions | Architecture choices, tech selection reasons | `docs/adr/` (create ADR file if irreversible) |
-| Code understanding | Module relationships, data flow | `docs/roadmap.md` → Project Overview section |
+| Code understanding | Module relationships, data flow | `docs/roadmap.md` → 项目概况 section |
 | User preferences | Coding style, tool, workflow preferences | `.airein/memory/memory.md` |
-| Unfinished tasks | Mentioned but undone items | `docs/roadmap.md` → Active Plans section |
+| Unfinished tasks | Mentioned but undone items | `docs/roadmap.md` → 活跃工作 section |
 
 If session just started, skip this step and note in Phase 6 report.
 
@@ -213,7 +221,7 @@ pointing at a non-existent `docs/conventions-{lang}.md` would be dead weight.
 
 ### Phase 3: Generate Project State
 
-1. **`docs/roadmap.md`** — create with full template, populate Project Overview from code analysis, infer Active Plans from recent git history
+1. **`docs/roadmap.md`** — create from `templates/docs/roadmap.md`, populate 项目概况 from code analysis, infer 活跃工作 from recent git history
 2. **Generate Recent Changes** from recent commits (append to `## Recent Changes` section in roadmap.md)
 3. Migrate `.airein/plans/` content to `docs/plans/` if applicable
 
@@ -259,42 +267,15 @@ Report:
 
 ### `docs/roadmap.md`
 
-```markdown
-# Project Roadmap: {Project Name}
+Read the authoritative skeleton from `templates/docs/roadmap.md` (install path: `~/.airein/templates/docs/roadmap.md` or repo `templates/docs/roadmap.md`).
 
-> 项目状态单一来源。新 session 首先读取此文件。
-> `/status` 查看摘要，`/next` 确定下一步。
+Copy it to `docs/roadmap.md`, then substitute:
+- `{Project Name}` → project name
+- `{YYYY-MM-DD}` → today
+- Fill **项目概况** from analysis; leave **活跃工作** empty or with inferred one-line bullets (never tables)
+- Add the Init Recent Changes entry if not already present
 
-## Project Overview
-- **Name**: {Project Name}
-- **Tech Stack**: {detected or "未确定"}
-
-## Current Priority
-- **Active plan**: {none yet}
-- **Focus**: {determine from active plans}
-
-## Active Plans
-<!-- - **[P{NNN}]** {Title} — `status` | Priority: P{N} | {complexity} -->
-
-## Issues
-> 用 `I{NNN}` 引用。状态: open / fixed / wontfix
-
-| ID | Title | Status | Priority | Related Plan | Discovered |
-|----|-------|--------|----------|-------------|------------|
-
-## Recent Changes
-> 用 `/log-change` 添加条目。最新在前。
-
-### {YYYY-MM-DD} Init: 项目初始化
-
-**Context**: 项目开始
-**Decision**: 初始化 roadmap、项目状态管理
-**Impact**: 基础设施就绪
-
-## Completed
-
-## On Hold
-```
+Do **not** embed a divergent English "Active Plans" copy — the template is the single source of shape.
 
 ### `.airein/memory/memory.md`
 

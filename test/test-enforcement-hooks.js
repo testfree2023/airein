@@ -163,6 +163,29 @@ describe('quality-config: planGate defaults', suite => {
   suite.test('taskPickup.onBlocked defaults to wait_user', () => {
     assertEqual(DEFAULTS.taskPickup.onBlocked, 'wait_user', 'onBlocked defaults wait_user');
   });
+
+  suite.test('testsLedger defaults opt-in disabled', () => {
+    assertOk('testsLedger' in DEFAULTS, 'testsLedger key exists');
+    assertEqual(DEFAULTS.testsLedger.enabled, false, 'testsLedger.enabled default false');
+    assertEqual(DEFAULTS.testsLedger.mode, 'strict', 'testsLedger.mode default strict');
+  });
+
+  suite.test('roadmapGate defaults enabled advisory', () => {
+    assertOk('roadmapGate' in DEFAULTS, 'roadmapGate key exists');
+    assertEqual(DEFAULTS.roadmapGate.enabled, true, 'roadmapGate.enabled default true');
+    assertEqual(DEFAULTS.roadmapGate.mode, 'advisory', 'roadmapGate.mode default advisory');
+  });
+
+  suite.test('progressCompletionGate defaults enabled', () => {
+    assertOk('progressCompletionGate' in DEFAULTS, 'progressCompletionGate key exists');
+    assertEqual(DEFAULTS.progressCompletionGate.enabled, true, 'progressCompletionGate.enabled default true');
+    assertEqual(DEFAULTS.progressCompletionGate.mode, 'strict', 'progressCompletionGate.mode default strict');
+  });
+
+  suite.test('pipelineRoles defaults enabled (Agent Teams ON)', () => {
+    assertOk('pipelineRoles' in DEFAULTS, 'pipelineRoles key exists');
+    assertEqual(DEFAULTS.pipelineRoles.enabled, true, 'pipelineRoles.enabled default true');
+  });
 });
 
 // ── plan-gate tests ────────────────────────────────────────────────
@@ -499,6 +522,30 @@ describe('hooks.json: enforcement hooks registered', suite => {
     assertOk(entry, 'approval-guard entry exists in PreToolUse');
     assertOk(entry.hooks[0].command.includes('approval-guard.js'), 'command references approval-guard.js');
     assertOk(!entry.hooks[0].async, 'approval-guard must not be async');
+  });
+
+  suite.test('tests-ledger-gate registered in PreToolUse', () => {
+    const preHooks = hooksJson.hooks.PreToolUse;
+    const entry = preHooks.find(h => h.description && h.description.toLowerCase().includes('tests ledger'));
+    assertOk(entry, 'tests-ledger-gate entry exists in PreToolUse');
+    assertOk(entry.hooks[0].command.includes('tests-ledger-gate.js'), 'command references tests-ledger-gate.js');
+    assertOk(!entry.hooks[0].async, 'tests-ledger-gate must not be async');
+  });
+
+  suite.test('roadmap-gate registered in PreToolUse', () => {
+    const preHooks = hooksJson.hooks.PreToolUse;
+    const entry = preHooks.find(h => h.description && h.description.toLowerCase().includes('roadmap gate'));
+    assertOk(entry, 'roadmap-gate entry exists in PreToolUse');
+    assertOk(entry.hooks[0].command.includes('roadmap-gate.js'), 'command references roadmap-gate.js');
+    assertOk(!entry.hooks[0].async, 'roadmap-gate must not be async');
+  });
+
+  suite.test('progress-completion-gate registered in PreToolUse', () => {
+    const preHooks = hooksJson.hooks.PreToolUse;
+    const entry = preHooks.find(h => h.description && h.description.toLowerCase().includes('progress completion'));
+    assertOk(entry, 'progress-completion-gate entry exists in PreToolUse');
+    assertOk(entry.hooks[0].command.includes('progress-completion-gate.js'), 'command references progress-completion-gate.js');
+    assertOk(!entry.hooks[0].async, 'progress-completion-gate must not be async');
   });
 });
 

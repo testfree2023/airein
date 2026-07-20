@@ -16,5 +16,6 @@ describe('progress stats fallback (no fake nodes)', suite => {
     );
     assertNotContains(body, 'No per-task breakdown available', 'synthetic comment gone');
     assertOk(body.includes('out.panelCompatible = true'), 'panelCompatible on fallback');
+    assertOk(body.includes('hasTasksDoc'), 'API exposes hasTasksDoc');
   });
 });

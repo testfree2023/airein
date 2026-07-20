@@ -21,7 +21,36 @@
 
 ## [Unreleased]
 
-相对 tag **`2026-07-18`** 之后、尚未打进下一 VERSION / tag 的变更。
+相对 **VERSION 2.06** 之后、尚未打进下一 VERSION / tag 的变更。
+
+## [2.06] - 2026-07-20
+
+### Dashboard 项目首页 + 文档模板说明
+
+- 项目首页：AI 基础文档 / Roadmap 两卡 + 四份双语核心说明书（含「发布运维说明书」）；固定两列与限宽留白
+- README（中/英）补充「文档模板」小节：模板作用、Dashboard `#/templates` 在线打磨、升级覆盖注意
+- 速查：[docs/templates-and-dashboard.md](docs/templates-and-dashboard.md)
+
+### P008-pipeline-roles（Agent Teams v0）
+
+- main = PM + `tech-lead` 专长角色编排；session-start banner / pipeline roles
+- 测试台账（`tests.md`）与 roadmap 契约/门禁；Dashboard 计划文档链接修正
+- 安装路径：sync 清单、`agents/` 交付到 CC、清理 legacy ECC agents
+
+### tech-lead role (2026-07-18)
+
+- 合并 `architect` / `code-reviewer` / `security-reviewer` 为单一角色 `tech-lead`（mode：design / review / security）
+- `/code-review`、铁律 perTaskReview / 安全 STOP 改为派 `tech-lead` 对应 mode
+
+### Whitelist internalization (2026-07-18)
+
+- 重写为 airein 短角色卡 / 薄命令；ECC 致谢改为「曾使用」
+- 删除 `tdd-guide`；`/verify` 对齐 Verification Before Completion、`/code-review` 仅派 `tech-lead` / 薄入口
+
+### ECC surface trim (2026-07-18)
+
+- `agents/` / `commands/` 收缩为文档与规格驱动进展主链
+- 产品定位明确：宿主内 skills/plugin；通用 Agent 工具箱交用户自选或自装 ECC
 
 ### P007-task-pickup-progress-sync (2026-07-18)
 

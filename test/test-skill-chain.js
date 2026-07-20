@@ -76,8 +76,9 @@ describe('F1: Skill chain — tdd', suite => {
     assertContains(content, '## 终止状态', 'terminal state heading');
   });
 
-  suite.test('tdd terminal state links to code-reviewer', () => {
-    assertContains(content, 'code-reviewer', 'code-reviewer reference');
+  suite.test('tdd terminal state links to tech-lead review', () => {
+    assertContains(content, 'tech-lead', 'tech-lead reference');
+    assertContains(content, 'mode: review', 'review mode');
   });
 
   suite.test('tdd terminal state forbids skipping review', () => {

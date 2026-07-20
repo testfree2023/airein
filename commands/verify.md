@@ -1,59 +1,31 @@
-# Verification Command
+---
+description: Run the airein Verification Before Completion gate — identify project commands, run them fresh, read full output, then claim. Use before declaring done or opening a PR.
+---
 
-Run comprehensive verification on current codebase state.
+# /verify
 
-## Instructions
+Align with `rules/20-workflow.md` → **Verification Before Completion**. Do not assume npm/tsc.
 
-Execute verification in this exact order:
+## Gate
 
-1. **Build Check**
-   - Run the build command for this project
-   - If it fails, report errors and STOP
+1. **IDENTIFY** — Which commands prove the claim? Prefer project `CLAUDE.md` / `docs/test-plan.md` / plan `tests.md` / existing scripts (`bash test/run-all.sh`, `node test/test-*.js`, etc.).
+2. **RUN** — Fresh full run; do not reuse “上次跑过”.
+3. **READ** — Full output + exit codes; count failures.
+4. **VERIFY** — Output actually confirms the claim? If not, report evidence and STOP claiming success.
+5. **ONLY THEN** — Make the completion claim.
 
-2. **Type Check**
-   - Run TypeScript/type checker
-   - Report all errors with file:line
-
-3. **Lint Check**
-   - Run linter
-   - Report warnings and errors
-
-4. **Test Suite**
-   - Run all tests
-   - Report pass/fail count
-   - Report coverage percentage
-
-5. **Console.log Audit**
-   - Search for console.log in source files
-   - Report locations
-
-6. **Git Status**
-   - Show uncommitted changes
-   - Show files modified since last commit
-
-## Output
-
-Produce a concise verification report:
+## Report
 
 ```
-VERIFICATION: [PASS/FAIL]
+VERIFICATION: PASS | FAIL
 
-Build:    [OK/FAIL]
-Types:    [OK/X errors]
-Lint:     [OK/X issues]
-Tests:    [X/Y passed, Z% coverage]
-Secrets:  [OK/X found]
-Logs:     [OK/X console.logs]
+Commands run:
+- <cmd> → exit N (summary)
 
-Ready for PR: [YES/NO]
+Blockers:
+- …
+
+Ready to claim done: YES | NO
 ```
 
-If any critical issues, list them with fix suggestions.
-
-## Arguments
-
-$ARGUMENTS can be:
-- `quick` - Only build + types
-- `full` - All checks (default)
-- `pre-commit` - Checks relevant for commits
-- `pre-pr` - Full checks plus security scan
+Optional `$ARGUMENTS`: `quick` (tests only if that’s the project’s smoke) | `full` (default — all identified checks).

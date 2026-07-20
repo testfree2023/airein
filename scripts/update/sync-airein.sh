@@ -61,6 +61,9 @@ CORE_FILES=(
   "scripts/hooks/test-guard.js"
   "scripts/hooks/archive-trigger.js"
   "scripts/hooks/self-learning-prompt.js"
+  "scripts/hooks/tests-ledger-gate.js"
+  "scripts/hooks/progress-completion-gate.js"
+  "scripts/hooks/roadmap-gate.js"
   # ── lib ──
   "scripts/lib/utils.js"
   "scripts/lib/quality-config.js"
@@ -86,6 +89,13 @@ CORE_FILES=(
   "scripts/lib/parse-tasks-panel.js"    # tasks.md panel parser (dashboard + pickup)
   "scripts/lib/task-pickup.js"          # auto-claim next pending → in_progress
   "scripts/lib/progress-from-tasks.js"  # progress.md Stats/Active Task from tasks.md
+  # ── P008 tests ledger / progress completion / roadmap gates ──
+  "scripts/lib/parse-tests-ledger.js"
+  "scripts/lib/tests-ledger-gate.js"
+  "scripts/lib/progress-completion-gate.js"
+  "scripts/lib/roadmap-contract.js"
+  "scripts/lib/roadmap-gate.js"
+  "scripts/lib/pipeline-roles-banner.js"
   # ── P004 unified install orchestrator ──
   "airein"
   "scripts/lib/install-orchestrator.js"
@@ -163,6 +173,8 @@ TEMPLATE_FILES=(
   "templates/docs/test-plan/m.md"
   "templates/docs/test-plan/l.md"
   "templates/docs/tests.md"            # plan-level test ledger (tdd skill)
+  "templates/docs/roadmap.md"          # project status index (roadmap contract)
+  "templates/docs/pipeline-roles-banner.md"  # Agent Teams session-start banner
   "templates/docs/deployment.md"
   "templates/docs/tasks.md"
   "templates/docs/progress.md"
@@ -215,6 +227,8 @@ VERIFY_FILES=(
   "scripts/lib/utils.js"
   "scripts/lib/plan-parser.js"
   "scripts/lib/hook-flags.js"
+  "scripts/lib/roadmap-contract.js"
+  "scripts/lib/tests-ledger-gate.js"
   "hooks/hooks.json"
   "scripts/update/clean-airein.sh"
   "scripts/update/sync-airein.sh"

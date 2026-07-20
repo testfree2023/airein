@@ -19,12 +19,35 @@
 - **计划内 `requirements.md` = 产品需求说明书（PRD）** — 按 pipeline 规模选用 `templates/docs/requirements/{s|m|l}.md`（经 `resolveRequirementsTemplate`）；禁止写成简易需求摘要。
 - **计划内 `design.md` = 工程设计说明书（概要 + 按规模详细）** — 按 pipeline 选用 `templates/docs/design/{s|m|l}.md`（经 `resolveDesignTemplate`）；Impact 必填；菜单/页面须 Permissions（否则显式 N/A）；新跨模块依赖须加厚实现细节。
 
+## Roadmap 纪律
+
+- `docs/roadmap.md` = **项目状态索引**（概况 / 活跃工作 / Issues / Recent Changes / 已完成 / 搁置）；用户向发版摘要写根 `CHANGELOG.md`。
+- 权威骨架：`templates/docs/roadmap.md`；契约校验：`scripts/lib/roadmap-contract.js`（门禁 `quality.json` → `roadmapGate`，默认 advisory）。
+- **活跃工作**只允许一行 bullet（禁止表）；摘要 ≤80 字；状态枚举见模板。Recent Changes 为过程日志（建议 ≤200 字/条，最新在前）。
+
+
+## Agent Teams v0（Pipeline Roles · 强制派角）
+
+开关：`quality.json` → **`pipelineRoles.enabled`**（**默认 `true`**）。
+
+- **`true`（多智能体）**：本仓库采用 **main = PM**（`agents/pm.md`）+ 专长角色；入口见 `CLAUDE.md` / `AGENTS.md` 的 `## Agent Teams v0`。
+- **`false`（Solo PM）**：不强制派角；主会话可一人完成 PRD / design / review，**仍须按对应文档模板**。可选派 Explore 等做检索，不视为 Teams 义务。
+
+| 节点 | 必须派（仅 `enabled: true`） | 禁止（仅 `enabled: true`） |
+|------|--------|------|
+| `requirements`（写 PRD） | `product-expert`（`agents/product-expert.md`） | 主会话独自写完整 PRD 并自批 |
+| `design`（落盘 design.md） | `tech-lead` **mode: design** | 脱离 design 模板自由发挥 |
+| review / `/code-review` / perTaskReview | `tech-lead` **mode: review** | 空 LGTM；PM 兼任唯一审查者 |
+| 安全 STOP | `tech-lead` **mode: security** | 带病推进 |
+
+`test-plan` / `tasks` / `deployment` 不强制派角；若委派撰写仍须按对应模板。Teams 开时豁免须写入活跃 plan `progress.md` Notes。
+
 ## Workflow（五步）
 
 1. **Research first** — 写新代码前先搜 GitHub 和库文档，优先成熟实现
 2. **Plan** — 复杂任务写 `IMPLEMENTATION_PLAN.md`（含阶段、成功标准、测试用例）
 3. **TDD** — 先写测试（RED）→ 实现（GREEN）→ 重构（纪律见 `00-iron-rules.md` 测试纪律）
-4. **Review** — 提交前用 `code-reviewer` agent（触发见 `00-iron-rules.md` 铁律 3；dispatch 规范见下方「dispatch 规范」）
+4. **Review** — 提交前用 `tech-lead`（**mode: review**）（触发见 `00-iron-rules.md` 铁律 3；dispatch 规范见下方「dispatch 规范」）
 5. **Verify** — 编译、跑测试、查无回归；UI 改动做 E2E（不变量见 `00-iron-rules.md` 提交不变量）。声明完成前必须过下方「Verification Before Completion」门禁；也可用 `/verify` 跑完整检查清单。
 
 ## Verification Before Completion — Gate Function
@@ -53,19 +76,19 @@
 
 ## dispatch 规范（agent 调度 · 省 token）
 
-调用 subagent（code-reviewer / architect / tdd-guide / security-reviewer / Explore 等）时遵守：
+调用 subagent（`tech-lead` / Explore 等）时遵守：
 
 **① 显式声明 model** — 不声明则静默继承 session 最贵模型（实测教训：曾出现 26 个 reviewer 全顶级）。按 agent 任务类型选 tier：
 
 | Agent | 默认 model | 理由 |
 |---|---|---|
 | Explore / general-purpose（搜索、定位） | haiku | mechanical grep 式 |
-| code-reviewer / tdd-guide | haiku | 读 diff / 引导流程，mechanical；复杂逻辑审查时 reviewer 自判上调 sonnet |
-| security-reviewer / architect / refactor-cleaner | sonnet | 需理解攻击面 / 架构 / 结构，设计判断 |
+| tech-lead · mode:review | haiku | 读 diff，mechanical；复杂逻辑审查时自判上调 sonnet |
+| tech-lead · mode:design / security | sonnet | 架构权衡 / 攻击面，设计判断 |
 
 规则：dispatch 时显式声明 model；不确定按表；**未列出的 agent 默认 haiku**；任务明显超 tier 能力时上调 sonnet 并注明理由。
 
-**② 不粘贴 diff 给 reviewer** — reviewer 是 fresh context，粘贴的 diff 永久占据最贵上下文（v6.0.0：reviewer 最大单项成本）。`code-reviewer` agent 自带第一步 `git diff --staged && git diff`（见 `agents/code-reviewer.md`），dispatch prompt 只写「审查当前 git diff 的变更」，**不粘贴 diff 内容**。
+**② 不粘贴 diff 给 review** — `tech-lead` mode:review 是 fresh context，粘贴的 diff 永久占据最贵上下文。agent 自带第一步 `git diff`（见 `agents/tech-lead.md`），dispatch prompt 只写「mode: review — 审查当前 git diff」，**不粘贴 diff 内容**。
 
 ## Development Lifecycle（按任务类型）
 
@@ -74,8 +97,8 @@
 1. `/new-plan` → 需求分析 + 架构设计（不要用 CC 原生 plan mode）
 2. **User review** → 用户确认方案后再动手
 3. TDD → `tdd` skill（Spec → Bind → Impl → Prove → Trace；bugfix 仍须复现 RED）
-4. `/code-review` → `code-reviewer` agent 独立审查
-5. `/quality-gate` → 验证通过
+4. `/code-review` → `tech-lead`（**mode: review**）独立审查
+5. `/verify` → 验证通过
 6. Commit with structured message
 
 ### Bugfix
@@ -91,7 +114,7 @@
 1. `/new-plan` → 影响范围分析
 2. **User review** → 确认范围
 3. TDD cycle → 确保不破坏行为
-4. `/refactor-clean`
+4. `/verify`
 5. `/code-review`
 6. Commit
 

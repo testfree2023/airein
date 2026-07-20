@@ -417,6 +417,39 @@ requirements: draft
   });
 });
 
+
+describe('plan-parser: setDocStatusApproved', suite => {
+  const parser = require(PLAN_PARSER_PATH);
+
+  suite.test('setDocStatusApproved is exported', () => {
+    assertOk(typeof parser.setDocStatusApproved === 'function', 'setDocStatusApproved exported');
+  });
+
+  suite.test('flips ## Status: draft to approved', () => {
+    const content = '# Requirements: Demo\n\nBody\n\n## Status: draft\n';
+    const updated = parser.setDocStatusApproved(content);
+    assertContains(updated, '## Status: approved', 'status approved');
+    assertNotContains(updated, '## Status: draft', 'draft removed');
+  });
+
+  suite.test('idempotent when already approved', () => {
+    const content = '# Design: X\n\n## Status: approved\n';
+    const updated = parser.setDocStatusApproved(content);
+    assertEqual(updated, content, 'unchanged when already approved');
+  });
+
+  suite.test('leaves content unchanged when no Status heading', () => {
+    const content = '# Tasks: X\n\nNo status footer\n';
+    assertEqual(parser.setDocStatusApproved(content), content, 'no Status → unchanged');
+  });
+
+  suite.test('handles CRLF Status line', () => {
+    const content = '# Test-plan: X\r\n\r\n## Status: draft\r\n';
+    const updated = parser.setDocStatusApproved(content);
+    assertMatch(updated, /## Status:\s*approved/, 'CRLF draft flipped');
+  });
+});
+
 describe('plan-parser: isPlanCompleted', suite => {
   const parser = require(PLAN_PARSER_PATH);
 
@@ -884,4 +917,13 @@ test-plan: none
 });
 
 // ── Run standalone ─────────────────────────────────────────────────
+
+describe('dashboard approve: syncs phase doc Status', suite => {
+  const serverSrc = fs.readFileSync(path.join(projectRoot(), 'dashboard', 'server.js'), 'utf8');
+
+  suite.test('handleApprove syncs phase doc Status via setDocStatusApproved', () => {
+    assertContains(serverSrc, 'setDocStatusApproved', 'approve path calls setDocStatusApproved');
+    assertMatch(serverSrc, /handleApprove[\s\S]*?setDocStatusApproved/, 'wired inside handleApprove');
+  });
+});
 process.exit(printSummary());

@@ -125,7 +125,7 @@ Session 启动
 
 1. **禁止无测试的生产代码** — 源文件变更必须有对应测试。
 2. **验收测试必须绑定且可证明** — 无绑定验收不得写生产代码；无绿灯不得宣称完成；bugfix 先复现 RED。
-3. **每完成 task 检查 perTaskReview** — 开启则 dispatch code-reviewer。
+3. **每完成 task 检查 perTaskReview** — 开启则 dispatch tech-lead（mode: review）。
 4. **worktreeIsolation 启用时重构必须 EnterWorktree**。
 5. **铁律不可通过用户确认豁免** — 用户要求跳过也必须拒绝。
 

@@ -15,13 +15,14 @@ const {
 
 function statsFromParsed(parsed) {
   if (!parsed || parsed.unsupported) {
-    return { total: 0, completed: 0, inProgress: 0, pending: 0 };
+    return { total: 0, completed: 0, inProgress: 0, pending: 0, blocked: 0 };
   }
   return {
     total: parsed.total || 0,
     completed: parsed.completed || 0,
     inProgress: parsed.inProgress || 0,
     pending: parsed.pending || 0,
+    blocked: parsed.blocked || 0,
   };
 }
 
@@ -46,6 +47,13 @@ function updateProgressMarkdown(content, fields) {
   }
   if (typeof stats.pending === 'number') {
     out = out.replace(/^pending:\s*\d+/m, 'pending: ' + stats.pending);
+  }
+  if (typeof stats.blocked === 'number') {
+    if (/^blocked:\s*\d+/m.test(out)) {
+      out = out.replace(/^blocked:\s*\d+/m, 'blocked: ' + stats.blocked);
+    } else if (stats.blocked > 0 && /^pending:\s*\d+/m.test(out)) {
+      out = out.replace(/^(pending:\s*\d+)/m, '$1\nblocked: ' + stats.blocked);
+    }
   }
 
   const active = stats.activeTaskPointer != null ? String(stats.activeTaskPointer) : 'none';

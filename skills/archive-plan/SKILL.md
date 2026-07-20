@@ -184,9 +184,10 @@ hook). For each language scope the plan covers:
    - Update `updated:` to current date
 
 2. Update `docs/roadmap.md`:
-   - Change the plan entry status to indicate archived
+   - Move/update the plan entry: status → `archived` (or move short summary from `### 活跃工作` into `## 已完成`)
+   - **禁止**把验收长文 / CHANGELOG 用户向摘要塞进活跃行
 
-3. Optionally update `docs/roadmap.md` ## Recent Changes section with archive note（**过程日志**；可与 CHANGELOG 分工，勿把用户向发布摘要只写在这里）
+3. Optionally update `docs/roadmap.md` ## Recent Changes section with a **short** archive note（过程日志 ≤200 字；可与 CHANGELOG 分工，勿把用户向发布摘要只写在这里）
 
 4. **必做 — 根目录 `CHANGELOG.md`（用户向发布摘要）**
    - 路径：项目根 `CHANGELOG.md`（`doc-file-warning` 白名单标准名；允许创建或更新）

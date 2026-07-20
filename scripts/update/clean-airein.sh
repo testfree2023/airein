@@ -28,6 +28,32 @@ STALE_FILES=(
   # P004: 统一入口 airein CLI，旧顶层安装脚本退役
   "setup-airein.sh"
   "update-airein.sh"
+  # P008 Agent Teams v0: 收敛为 pm / product-expert / tech-lead
+  "agents/airein-optimizer.md"
+  "agents/architect.md"
+  "agents/build-error-resolver.md"
+  "agents/chief-of-staff.md"
+  "agents/code-reviewer.md"
+  "agents/cpp-build-resolver.md"
+  "agents/cpp-reviewer.md"
+  "agents/database-reviewer.md"
+  "agents/doc-updater.md"
+  "agents/docs-lookup.md"
+  "agents/e2e-runner.md"
+  "agents/go-build-resolver.md"
+  "agents/go-reviewer.md"
+  "agents/java-build-resolver.md"
+  "agents/java-reviewer.md"
+  "agents/kotlin-build-resolver.md"
+  "agents/kotlin-reviewer.md"
+  "agents/loop-operator.md"
+  "agents/planner.md"
+  "agents/python-reviewer.md"
+  "agents/refactor-cleaner.md"
+  "agents/rust-build-resolver.md"
+  "agents/rust-reviewer.md"
+  "agents/security-reviewer.md"
+  "agents/tdd-guide.md"
 )
 
 STALE_DIRS=(

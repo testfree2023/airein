@@ -70,7 +70,7 @@ describe('F3: Per-task review switch', suite => {
     const content = readSkill('tdd');
     if (!content) return;
     assertContains(content, 'perTaskReview', 'references perTaskReview config');
-    assertContains(content, 'code-reviewer', 'mentions code-reviewer subagent');
+    assertContains(content, 'tech-lead', 'mentions tech-lead subagent');
   });
 
   suite.test('Step 7.5 mentions default behavior (disabled)', () => {

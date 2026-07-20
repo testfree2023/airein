@@ -18,6 +18,11 @@ Airein's thesis is direct: **abstract the enterprise development process into a 
 
 The core idea in one line: **Prompt is advice, Hook is law.** Rules written in CLAUDE.md are "advice" — the model reads them, mostly follows them, but can be overwhelmed by context, bypassed, or forgotten; a hook's `exit 2` is "law" — guaranteed by code, blocking on violation, not relying on the model's self-discipline. What can be hook-enforced shouldn't rely on prompt alone.
 
+### Positioning (important)
+
+Airein is **not** a full-stack manager of your AI coding tool. It is a **skills / plugin layer** inside the host (Claude Code / Cursor / ...). We own **project docs + progress** (init-project / 
+ew-plan / approval + hooks / Dashboard) — not a kitchen-sink of generic Agents/commands. Leave those to your own stack or install [ECC](https://github.com/affaan-m/everything-claude-code) separately.
+
 ---
 
 ## Three Core Capabilities
@@ -33,7 +38,7 @@ Communicate & clarify (grilling) → produce docs by pipeline → approve one by
 ```
 
 - **Communicate & clarify**: before acting, nail down vague requirements. Ask one question at a time, challenge assumptions, force boundaries with concrete scenarios, and turn "build me an X" into a clear scope with acceptance criteria.
-- **Produce docs by pipeline**: based on task type (s-feature / m-feature / l-feature / hotfix ...), follow the corresponding doc pipeline — a small bugfix only needs `tasks`, a mid-size feature needs `requirements → design → test-plan → tasks`, a large feature adds `deployment`. The docs are specs — contracts for the implementation that follows.
+- **Produce docs by pipeline**: based on task type (s-feature / m-feature / l-feature / hotfix ...), follow the corresponding doc pipeline — a small bugfix only needs `tasks`, a mid-size feature needs `requirements → design → test-plan → tasks`, a large feature adds `deployment`. The docs are specs — contracts for the implementation that follows. **What those docs look like** is defined by kernel templates (see “Document templates” below).
 - **Approval gates per doc**: each doc goes draft → your approval → approved, before the next one can be created. The `approval-sequence` hook enforces order; `approval-guard` protects approval state from tampering. Prevents AI from laying out all docs at once with no review.
 - **TDD implementation**: once in implementation, `test-guard` hard-blocks "source code without tests" in strict mode — a failing test must exist before implementation is allowed. `pre-commit-gate` runs build + tests + coverage before commit.
 - **Archive to close the loop**: when the plan is done, `/archive-plan` archives it so completed plans stop polluting the active context.
@@ -70,12 +75,45 @@ What it does:
 
 - **Project discovery**: `/init-project` registers the path in `~/.airein/dashboard/projects.json`; the **Tools** page (`#/tools`) supports register / unregister / prune stale entries; CC registry `~/.claude/projects/` remains a fallback.
 - **Plan management**: visualize plan progress, edit requirements/design/tasks, approve by pipeline, archive completed plans.
-- **Template management**: browse and edit airein's doc templates, language profiles, pipelines online.
+- **Template management**: sidebar **Templates** (`#/templates`) — browse and edit kernel templates online. This is the main place to keep raising AI output quality; see the next subsection.
 - **Config visualization**: render the project's `quality.json` into a structured form (toggles, thresholds, dropdowns), each field annotated with its default, persisting only the fields you changed — no hand-writing JSON.
 - **Tools page**: maintain the project registry without memorizing CLI commands.
 - **i18n**: switch between Chinese and English.
 
 The Dashboard isn't a separate system — it's the visualization layer over airein's existing capabilities. It reads the same roadmap, the same `.airein/config/quality.json`, the same plan directories. The config you change in the panel is the config the hooks actually read. See [dashboard/README.md](dashboard/README.md).
+
+### Document templates — the “molds” for AI output, tunable from the panel
+
+`/new-plan` and `/init-project` do not invent doc structure from scratch: they load structural templates from the kernel **`~/.airein/templates/`**, then fill a plan directory by complexity (s / m / l). Templates define **sections, tone, and hard “don’t write this” constraints**; the model fills in the business content. The closer templates match your engineering habits, the harder it is for AI to ship thin summaries that look like requirements but cannot be accepted.
+
+**What the template families govern:**
+
+| Family | Role (examples) |
+|--------|------------------|
+| `requirements/{s,m,l}.md` | Product Requirements Document (PRD): business flow → User Story → Use Case (UC-id), not a Problem + WHEN/THEN blurb |
+| `design/{s,m,l}.md` + subdocs | Tiered technical design: enumerate the decisions that matter; avoid empty architecture prose |
+| `test-plan/{m,l}.md` | Test **design spec**: Critical / VS / invariants — not a paste of step-by-step test cases |
+| `tasks.md` | Implement / Verify / Deploy / Accept; requires Source traceability and machine-readable `Depends on` (Dashboard Progress depends on this contract) |
+| `deployment.md` / `roadmap.md` / `tests.md` … | Release/ops, project status index, TDD ledger, and related companions |
+
+In short: a traceable chain **UC → design → test design → schedulable tasks**. When a full `l-feature` pipeline is dogfooded end-to-end, you can feel the jump from freestyle docs to UC-bound tasks and Critical/VS-bound verification — that is the templates working, not just a stronger model.
+
+**How to keep upgrading templates that fit *you*:**
+
+1. Start the Dashboard → sidebar **Templates** (`http://localhost:3456/#/templates`).
+2. Open a plan/project doc template by category, edit inline, save — writes back to **`~/.airein/templates/`** (the same tree `/new-plan` reads).
+3. Or edit `~/.airein/templates/docs/*.md` on disk; the next new plan picks it up.
+4. **Iterate from pain**: when AI output is soft (missing UCs, unparseable tasks, empty test-plan) → tighten the matching template (required sections / negative constraints / example rows) → validate on a small plan — instead of only scolding the model in chat.
+
+**On upgrade:**
+
+- `airein update` **overwrites** stock structural templates under the sync allowlist (`templates/docs/**`, etc.) so you receive upstream improvements.
+- `templates/pipelines.json` is **merged**: your custom pipeline definitions are kept.
+- If you deeply customize a template locally, back it up or diff before upgrading; lasting changes are better contributed upstream (or kept as a team patch process) so the next update does not silently wipe them.
+
+Templates are one of the highest-leverage assets to accumulate over time: **hooks enforce the red lines; templates define the writing shape** — together they turn “faster” into “controllably faster.”
+
+Chinese readers: a shorter companion note lives in [docs/templates-and-dashboard.md](docs/templates-and-dashboard.md).
 
 ---
 
@@ -128,10 +166,11 @@ claude
 | Command | Purpose |
 |---------|---------|
 | `/init-project` | Project initialization (auto-distinguishes empty/existing) |
+| `/new-plan` | Start a plan: clarify → docs pipeline → approval |
 | `/next` | Recommend the most important next step |
 | `/status` | See overall project status and progress |
 | `/tdd` | Enter the RED → GREEN → REFACTOR TDD flow |
-| `/code-review` `/quality-gate` `/refactor-clean` `/plan` `/verify` | Workflow shortcuts |
+| `/code-review` `/verify` | Spec-bound review / verify shortcuts |
 
 > This repo is **Airein's source code**, not the install target. Daily use is in your project directory, driven by the deployed kernel at `~/.airein` plus host registration layers.
 
@@ -409,11 +448,14 @@ A: Points to the airein **kernel root** (`~/.airein`). CC merge-hooks replaces h
 **Q: How do I verify self-learning is working?**
 A: Check whether `.airein/self-learning/pending.md` captured anything this round; after Stop, check whether the archive appended logs; once the same instruction hits the threshold, check whether `rules/30-self-learned.md` was generated — once promoted to L0, it auto-loads next session.
 
+**Q: How are doc templates different from CLAUDE.md? Can I customize them?**
+A: CLAUDE.md is the **always-on** operating handbook (keep it short). Doc templates are the **structural molds** `/new-plan` uses when generating plan docs (can be longer; tiered s/m/l). Yes — edit online via Dashboard sidebar **Templates** (`#/templates`), or edit `~/.airein/templates/` on disk. Note: `airein update` overwrites stock structural templates on the sync allowlist; `pipelines.json` is merged so custom pipelines survive. See “Document templates” above.
+
 ---
 
 ## Credits
 
-Three relationship kinds — so we neither claim “all original” nor “inspiration only”:
+Three relationship kinds — so we neither claim "all original" nor "inspiration only":
 
 | Kind | Meaning |
 |------|---------|
@@ -423,8 +465,8 @@ Three relationship kinds — so we neither claim “all original” nor “inspi
 
 | Project | Kind | Notes | Link |
 |---------|------|-------|------|
-| **Everything Claude Code (ECC)** | **Formerly used** + references | **Formerly used**: early bundled `tdd-workflow` / `verification-loop` adapted from ECC; now replaced by airein-owned skill `tdd` (spec-bound flow + plan `tests.md` ledger) and the completion gate in `rules/20-workflow.md`. **References**: overall architecture and hook event model. | [github.com/affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) |
-| **Superpowers** | **Formerly used** | Early adaptation of `writing-plans`; planning is now airein’s `new-plan`. That skill is retired (`clean-airein.sh` removes leftovers). | [github.com/obra/superpowers](https://github.com/obra/superpowers) |
+| **Everything Claude Code (ECC)** | **Formerly used** + references | **Formerly used**: early adapted agents/commands (including `tdd-guide`, `/plan`, `/quality-gate`, language reviewers) removed or internalized; `tdd-workflow` / `verification-loop` became `skills/tdd` and `rules/20-workflow.md`. Current surface is a single role agent `tech-lead` (modes: design / review / security) plus commands `tdd` / `code-review` / `verify` — **airein-owned**, consolidated from earlier ECC capability slices. **References**: architecture and hook event model. Planning stays on `/new-plan`; users may install full ECC separately. | [github.com/affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) |
+| **Superpowers** | **Formerly used** | Early adaptation of `writing-plans`; planning is now airein's `new-plan`. That skill is retired (`clean-airein.sh` removes leftovers). | [github.com/obra/superpowers](https://github.com/obra/superpowers) |
 | **Claude Code (Anthropic)** | **References** | Hook protocol stdin/stdout JSON, native conditional rules (paths + @include), Session/Compact/Stop events | [claude.ai/code](https://claude.ai/code) |
 | **TDD (Test-Driven Development)** | **References** | RED → GREEN → REFACTOR, test-first discipline | [Agile Manifesto](https://agilemanifesto.org) |
 | **DDD (Domain-Driven Design)** | **References** | Domain model template, aggregate/entity/value-object patterns | [domainlanguage.com/ddd](https://domainlanguage.com/ddd/) |
@@ -434,4 +476,4 @@ Three relationship kinds — so we neither claim “all original” nor “inspi
 
 **Special note**: An early version referenced a community skill's self-learning mechanism (heartbeat/reflections/corrections), later refactored into buffer/archive/promotion with external dependencies removed.
 
-**Boundary**: hooks / scripts / all current skills (including `tdd`, `new-plan`) are airein-authored or internalized text; runtime has **zero npm dependencies** (Node.js builtins only). “Formerly used” credits history — not a live dependency on those repos or npm packages.
+**Boundary**: hooks / scripts / airein-owned skill core (`new-plan`, `tdd`, `init-project`, `archive-plan`, self-learning, etc.) and the Dashboard are airein-authored or internalized. Whitelist agent/command bodies are now airein-owned; ECC is credited as **Formerly used** / references only — do **not** describe historical adaptations as current ECC verbatim text. Users may install full ECC separately; later upgrades aim to shrink to the docs/progress core under the skills/plugin positioning, and reduce clashes with a user-installed ECC.

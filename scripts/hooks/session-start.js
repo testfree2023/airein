@@ -165,7 +165,7 @@ async function main() {
   if (aliases.length > 0) {
     const aliasNames = aliases.map(a => a.name).join(', ');
     log(`[SessionStart] ${aliases.length} session alias(es) available: ${aliasNames}`);
-    log(`[SessionStart] Use /sessions load <alias> to continue a previous session`);
+    log(`[SessionStart] Resume via host session history or project docs (roadmap / active plan); /sessions removed from airein surface`);
   }
 
   // --- MINIMAL OUTPUT (~200 tokens) ---
@@ -298,6 +298,20 @@ async function main() {
 
   if (pickupHint) {
     output(pickupHint);
+  }
+
+  // Agent Teams mode (pipelineRoles.enabled; default true)
+  try {
+    const { loadQualityConfig } = require('../lib/quality-config');
+    const cfg = loadQualityConfig();
+    const teamsOn = !(cfg.pipelineRoles && cfg.pipelineRoles.enabled === false);
+    if (teamsOn) {
+      output('Agent Teams ON — 强制节点派专长（product-expert / tech-lead）');
+    } else {
+      output('Agent Teams OFF — Solo PM，可一人完成 PRD/design/review');
+    }
+  } catch (err) {
+    aireinLog('error', 'session-start', `pipelineRoles inject failed: ${err.message}`);
   }
 
   // Consolidate and clean up old chat logs (>7 days)

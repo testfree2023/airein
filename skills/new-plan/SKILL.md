@@ -99,7 +99,7 @@ Read `quality.json` → `planWorkflow.pipelines.{complexity}` and create documen
 2. Mark its approval state as `draft` in `progress.md`
 3. Present it to the user for approval
 4. Wait for approval-guard / user approval
-5. After approval, update that document's approval state to `approved`
+5. After approval, update that document's approval state to `approved` in `progress.md`, and set the phase doc footer `## Status: approved` (replacing `draft`)
 6. Only then create the next document
 
 Examples:
@@ -192,10 +192,10 @@ Every generated `tasks.md` follows `~/.airein/templates/docs/tasks.md`.
 1. **Global Constraints** — version floors, dependency limits, naming, exact values. Bind ALL tasks.
 2. **Traceability Index** — UC / Critical / VS / INV → task IDs（上游规格总表；供 Coverage Gate）.
 3. **Entry Coverage** — PRD Story→UC + 入口；每行 ≥1 Must Implement. **禁止**入口降为 Should；**禁止**「前端收口」.
-4. **Lifecycle Phases** — Implement / Verify / Deploy / Accept; Kind: `implement` | `verify` | `deploy` | `accept`.
+4. **Lifecycle Phases** — Implement / Verify / Deploy / Accept; Kind: `implement` | `verify` | `deploy` | `accept`（**每条任务 Kind 必填**；仅 implement 强制 `tests.md`）.
 5. **per-task Interfaces** — `consume` / `produce`.
 6. **Implement fields** — `UC-id`, **Design refs**（API / 表|模型 / INV- / DD）, Persona, UI Entry, dual Acceptance.
-7. **Verify fields** — **Source**（Critical- | VS-{UC}-{维} | Exit- | INV- | PRD-UC-）必填；**禁止无源**；Ledger 对齐 `tests.md`.
+7. **Verify fields** — **Source**（Critical- | VS-{UC}-{维} | Exit- | INV- | PRD-UC-）必填；**禁止无源**；`Ledger:` 可选指向 Implement 台账行（Verify **不**强制 `tests.md` 行）.
 8. **Coverage Gate** — every UC + Critical（及关键 VS）mapped；自检清单保留在 tasks.md.
 
 ### Slicing rules（vertical only for product capabilities）
@@ -263,6 +263,11 @@ Read structural templates from `~/.airein/templates/docs/{doc-type}.md` for guid
 ### Requirements = 产品需求说明书（PRD）
 
 When the pipeline includes `requirements`, the plan file is still named `requirements.md`, but content MUST be a **产品需求说明书（PRD）**, not a thin summary of Problem + WHEN/THEN.
+
+**Agent Teams v0:** Check `quality.json` → **`pipelineRoles.enabled`** (default `true`).
+
+- **`true`:** Before writing `requirements.md`, dispatch **`product-expert`** (`agents/product-expert.md`) to author the PRD + lightweight prototype per the requirements template. PM (`agents/pm.md`) only orchestrates and presents for approval — do not solo-author the full PRD unless the user explicitly exempts and Notes record it. **Before writing `design.md`**, prefer dispatch **`tech-lead`** with **mode: design** (template-aligned).
+- **`false` (Solo PM):** PM may author `requirements.md` / `design.md` directly (still template-aligned). No Notes exemption required for skipping specialists.
 
 **Before writing `requirements.md`**, resolve the tier template via the kernel lib (after sync: `~/.airein/scripts/lib/requirements-template.js`; in-repo: `scripts/lib/requirements-template.js`):
 
@@ -362,11 +367,14 @@ Each template contains section headings with HTML comment guidance — replace t
 
 ## Roadmap Entry Format
 
-Append to the `## 活跃工作` section of `docs/roadmap.md`:
+Append to the `### 活跃工作` (or `## 活跃工作`) section of `docs/roadmap.md`.
+Canonical template: `templates/docs/roadmap.md`. Prefer `formatActiveEntry` from `scripts/lib/roadmap-contract.js`.
 
 ```markdown
-- **[P{NNN}]** {Title} — `status` | Priority: P{N} | {complexity}
+- **[P{NNN}-{slug}](plans/P{NNN}-{slug}/)** — {≤80 字摘要}。状态：`{status}` | Priority: P{N} | {complexity}
 ```
+
+Rules: one-line bullets only; **no Markdown tables** in the active section; summary ≤80 chars; status ∈ `planning` | `in_progress` | `completed` | `archived` | `on_hold`. Also add a short Recent Changes process note (not user-facing CHANGELOG).
 
 ## Compound Documents
 
@@ -415,7 +423,7 @@ For l-feature and l-bugfix pipelines, the `design` step can be split into multip
 
 Pipeline 全部文档审批通过后，唯一允许的下一步：
 
-- **直接进入 `tdd` skill** 开始规格绑定实现（并维护计划 `tests.md` 台账）
+- **直接进入 `tdd` skill** 开始规格绑定实现（**Implement** 任务维护计划 `tests.md` 台账；`testsLedger.enabled` 开启时完成门禁强制）
 - **如果计划被否决** → 终止，不进入任何 skill
 
 禁止：跳过计划阶段直接编码。禁止：创建计划后不做任何后续动作。

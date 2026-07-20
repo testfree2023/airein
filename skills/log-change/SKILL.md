@@ -50,8 +50,9 @@ Insert into `docs/roadmap.md` under `## Recent Changes`, directly after the head
 
 ## Rules
 
-- One entry per event, keep it under 10 lines
+- One entry per event; keep the whole entry short（建议正文合计 ≤200 字；门禁 `roadmapGate` 会检查过长行）
 - Always include the date and category
 - Always link to related plan/issue IDs
 - This is for significant changes, not every commit
 - Insert new entries directly under the `## Recent Changes` heading, above existing entries (newest first)
+- Do not paste user-facing release bullets here — those go to root `CHANGELOG.md`

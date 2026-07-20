@@ -154,6 +154,34 @@ none
     assertContains(tasks, 'in_progress', 'tasks advanced on session-start');
     fs.rmSync(cwd, { recursive: true, force: true });
   });
+
+  suite.test('injects Agent Teams ON by default', () => {
+    const cwd = makeTempProject();
+    const { stdout, status } = runHook(
+      { hook_event_name: 'SessionStart', session_id: 'test-ss-teams-on', cwd },
+      { cwd }
+    );
+    assertEqual(status, 0, 'exit 0');
+    assertContains(stdout, 'Agent Teams ON', 'default teams on');
+    fs.rmSync(cwd, { recursive: true, force: true });
+  });
+
+  suite.test('injects Agent Teams OFF when pipelineRoles.enabled=false', () => {
+    const cwd = makeTempProject();
+    fs.mkdirSync(path.join(cwd, '.airein', 'config'), { recursive: true });
+    fs.writeFileSync(
+      path.join(cwd, '.airein', 'config', 'quality.json'),
+      JSON.stringify({ pipelineRoles: { enabled: false } })
+    );
+    const { stdout, status } = runHook(
+      { hook_event_name: 'SessionStart', session_id: 'test-ss-teams-off', cwd },
+      { cwd }
+    );
+    assertEqual(status, 0, 'exit 0');
+    assertContains(stdout, 'Agent Teams OFF', 'teams off');
+    assertContains(stdout, 'Solo PM', 'solo pm hint');
+    fs.rmSync(cwd, { recursive: true, force: true });
+  });
 });
 
 process.exit(printSummary());
