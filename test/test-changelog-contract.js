@@ -30,8 +30,10 @@ describe('CHANGELOG.md seed', suite => {
     assertContains(body, '2026-07-18', 'checkpoint tag 2026-07-18');
     assertContains(body, 'P006-dashboard-progress-panel', 'P006');
     assertContains(body, 'P007-task-pickup-progress-sync', 'P007');
+    assertContains(body, '## [2.06]', '2.06');
     assertContains(body, '## [2.05]', '2.05');
     assertContains(body, '## [2.03]', '2.03');
+    assertContains(body, 'P008-pipeline-roles', 'P008');
     assertContains(body, 'P001-cross-platform', 'P001');
     assertContains(body, 'P002-local-source-install', 'P002');
     assertContains(body, 'P003-multi-host-commands', 'P003');
