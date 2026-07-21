@@ -34,6 +34,14 @@
 - **Hook**：`progressCompletionGate`（默认开启）— progress 新增完成声明时，若 `tasks.md` 仍非 completed → exit 2
 - 改 `tasks.md` 后由 `progress-sync` 回写 progress 统计数字
 
+## 文档审批同步（phase doc → `progress.md` Approval State）
+
+> 审批以 phase 文档文末 `## Status` 为权威；**只在审批时**强制，不在每次改 `tasks.md` 时解析。
+
+- **顺序**：先把 phase 文档 `## Status` 改为 `approved`，再写 `progress.md` 对应 `phase: approved`
+- **tasks 额外**：审批 `tasks` 时 `tasks.md` 必须符合面板契约（可被 `parseTasksMarkdown` 解析且有节点）
+- **Hook**：`progressApprovalGate`（默认开启）— 违反 → exit 2；Dashboard Approve 同一前提
+
 ## 计划测试台账（`tests.md`）
 
 > 义务只绑 **开发任务**；由 `quality.json` → `testsLedger.enabled` 决定是否 hook 强制（默认关闭）。

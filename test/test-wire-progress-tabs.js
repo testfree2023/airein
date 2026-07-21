@@ -22,7 +22,23 @@ describe('progress tabs wired', suite => {
     assertOk(body.includes('/tests-ledger'), 'fetches tests-ledger API');
     assertOk(body.includes('progress.tabTestsLedger'), 'ledger tab i18n');
     assertOk(body.includes('shouldShowTaskProgress'), 'gates task tabs on tasks.md');
+    assertOk(body.includes('shouldShowTestsLedger'), 'gates ledger tab on tasks.md');
     assertOk(body.includes('progress.tasksNotReady'), 'empty-state i18n key');
+    assertOk(
+      !/tasksNotReady[\s\S]{0,280}progress-tab-ledger-btn/.test(body),
+      'no ledger-only fallback when tasks not ready (standalone)'
+    );
+    assertOk(
+      body.includes("id=\"plan-progress-tab-md-btn\">progress.md</button>' +\n      '</div>')"),
+      'embedded else branch is progress.md only'
+    );
+    assertOk(
+      !body.includes(
+        "plan-progress-tab-ledger-btn\">' + t('progress.tabTestsLedger') + '</button>' +\n" +
+        "        '<button type=\"button\" class=\"tab\" id=\"plan-progress-tab-md-btn\""
+      ),
+      'embedded else no longer pairs ledger then md'
+    );
     assertOk(body.includes('scheduleMermaid(panelEl)') || body.includes("scheduleMermaid(document.getElementById('plan-progress-tab-panel'))"), 'schedules mermaid on progress panel');
     assertOk(
       /plan-progress-tab-md-btn[\s\S]{0,400}scheduleMermaid\(document\.getElementById\('plan-progress-tab-panel'\)\)/.test(body),

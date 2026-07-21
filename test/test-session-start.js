@@ -36,6 +36,7 @@ function runHook(stdinPayload, options = {}) {
     timeout: 15000,
     windowsHide: true,
     cwd: options.cwd,
+    env: options.env ? { ...process.env, ...options.env } : process.env,
   });
   return { stdout: res.stdout || '', stderr: res.stderr || '', status: res.status };
 }
@@ -181,6 +182,38 @@ none
     assertContains(stdout, 'Agent Teams OFF', 'teams off');
     assertContains(stdout, 'Solo PM', 'solo pm hint');
     fs.rmSync(cwd, { recursive: true, force: true });
+  });
+
+  suite.test('P009: warns when kernel missing (AIREIN_TEST_HOME empty)', () => {
+    const cwd = makeTempProject();
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'ss-no-kernel-'));
+    const { stdout, status } = runHook(
+      { hook_event_name: 'SessionStart', session_id: 'test-ss-kr-miss', cwd },
+      { cwd, env: { AIREIN_TEST_HOME: fakeHome } }
+    );
+    assertEqual(status, 0, 'exit 0');
+    assertContains(stdout, 'kernel not ready', 'warns incomplete');
+    assertContains(stdout, 'airein setup', 'points at setup');
+    fs.rmSync(cwd, { recursive: true, force: true });
+    fs.rmSync(fakeHome, { recursive: true, force: true });
+  });
+
+  suite.test('P009: silent when kernel ready under AIREIN_TEST_HOME', () => {
+    const cwd = makeTempProject();
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'ss-has-kernel-'));
+    const kernel = path.join(fakeHome, '.airein');
+    fs.mkdirSync(path.join(kernel, 'hooks'), { recursive: true });
+    fs.mkdirSync(path.join(kernel, 'scripts', 'lib'), { recursive: true });
+    fs.writeFileSync(path.join(kernel, 'VERSION'), '2.06\n');
+    fs.writeFileSync(path.join(kernel, 'hooks', 'hooks.json'), '{"hooks":{}}\n');
+    const { stdout, status } = runHook(
+      { hook_event_name: 'SessionStart', session_id: 'test-ss-kr-ok', cwd },
+      { cwd, env: { AIREIN_TEST_HOME: fakeHome } }
+    );
+    assertEqual(status, 0, 'exit 0');
+    assertNotContains(stdout, 'kernel not ready', 'no warning when ready');
+    fs.rmSync(cwd, { recursive: true, force: true });
+    fs.rmSync(fakeHome, { recursive: true, force: true });
   });
 });
 

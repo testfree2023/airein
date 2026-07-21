@@ -425,6 +425,11 @@ describe('plan-parser: setDocStatusApproved', suite => {
     assertOk(typeof parser.setDocStatusApproved === 'function', 'setDocStatusApproved exported');
   });
 
+  suite.test('getDocStatus is exported', () => {
+    assertOk(typeof parser.getDocStatus === 'function', 'getDocStatus exported');
+    assertEqual(parser.getDocStatus('## Status: draft\n'), 'draft');
+  });
+
   suite.test('flips ## Status: draft to approved', () => {
     const content = '# Requirements: Demo\n\nBody\n\n## Status: draft\n';
     const updated = parser.setDocStatusApproved(content);

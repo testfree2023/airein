@@ -10,6 +10,24 @@ disable-model-invocation: false
 
 Create a new plan directory and register it in the roadmap. The process is interactive: first complete a unified communication/brainstorming phase, then create each configured document one at a time with approval between documents.
 
+## Preflight: main worktree check
+
+Planning belongs in the **primary project checkout** (Dashboard / roadmap / approval all assume that path). Linked worktrees are for coding isolation after tasks are approved — not for `/new-plan`.
+
+**Before Phase 0 / Phase 1 / creating any plan files**, run:
+
+```bash
+node ~/.airein/scripts/lib/git-worktree-context.js
+```
+
+(Or from this repo: `node scripts/lib/git-worktree-context.js`.)
+
+Inspect the JSON:
+- If `isLinkedWorktree` is `true`: **stop writing plan files**. Show the user the `warning` string (and `mainWorktree` path). Ask them to switch to the main worktree and re-run `/new-plan` there. Only continue in the linked worktree if the user **explicitly** overrides after the reminder.
+- If `isLinkedWorktree` is `false` (or `ok` is `false` / non-git): proceed normally.
+
+Do **not** implement Dashboard aggregation of plans across worktrees as a workaround.
+
 ## Global template root (P004 — kernel only)
 
 Airein **global** templates live in the install **kernel**, not under `~/.claude/`:
@@ -99,7 +117,7 @@ Read `quality.json` → `planWorkflow.pipelines.{complexity}` and create documen
 2. Mark its approval state as `draft` in `progress.md`
 3. Present it to the user for approval
 4. Wait for approval-guard / user approval
-5. After approval, update that document's approval state to `approved` in `progress.md`, and set the phase doc footer `## Status: approved` (replacing `draft`)
+5. After approval: **first** set the phase doc footer `## Status: approved` (replacing `draft`), **then** set that phase to `approved` in `progress.md` Approval State. For `tasks`, the panel contract must parse (format gate runs at approval only — not on every tasks edit). Hook `progressApprovalGate` / Dashboard Approve both require Status-first.
 6. Only then create the next document
 
 Examples:

@@ -41,6 +41,17 @@
     return flattenTasks(taskData).length > 0;
   }
 
+  /**
+   * Tests-ledger tab: only when project opted into testsLedger.enabled,
+   * and tasks.md is ready (same base gate as the task panel).
+   * @param {object} taskData
+   * @returns {boolean}
+   */
+  function shouldShowTestsLedger(taskData) {
+    if (!taskData || taskData.testsLedgerEnabled !== true) return false;
+    return shouldShowTaskProgress(taskData);
+  }
+
 
   /**
    * Mermaid-safe node id from task id (e.g. 1.1 → T1_1).
@@ -379,6 +390,7 @@
     esc: esc,
     flattenTasks: flattenTasks,
     shouldShowTaskProgress: shouldShowTaskProgress,
+    shouldShowTestsLedger: shouldShowTestsLedger,
     mermaidNodeId: mermaidNodeId,
     buildDependencyMermaid: buildDependencyMermaid,
     renderPanelBoard: renderPanelBoard,

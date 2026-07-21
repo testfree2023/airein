@@ -133,8 +133,12 @@
 
 ## 分支策略（worktree 隔离）
 
+**阶段划分（规划 ≠ 编码）：**
+- **`/new-plan`（讨论 / requirements / design / tasks）** → 必须在工程**主工作区**；若当前 cwd 是 git linked worktree，先提醒用户切回主目录，勿把 plan 文档写进隔离检出
+- **开始编码之后** → 才按下方规则考虑 `EnterWorktree`
+
 当 `quality.json` 中 `flowControl.worktreeIsolation` 启用时：
-- **新功能** → 先用 `EnterWorktree` 创建隔离分支，完成后合并回 main
+- **新功能** → tasks 批准、开始实现时再用 `EnterWorktree` 创建隔离分支，完成后合并回 main
 - **Bugfix** → 小改动可直接在 main 上修；大改动用 worktree 隔离
 - **重构** → 必须用 worktree 隔离
 

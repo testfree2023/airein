@@ -188,6 +188,18 @@ rust / kotlin）。
 **模板选择**：读 `quality.json` → `language.primary` → `templates/language-profiles/{lang}.json`
 → `role`；role 是 backend / fullstack 用对应语言模板，否则回退通用版。
 
+## 分发与货架（P009）
+
+完整产品路径只有 **`airein setup` → `~/.airein` 内核**。发现面与完整面必须拆开写，避免「半残当全装」：
+
+| 车道 | 入口 | 交付 | 不变量 |
+|------|------|------|--------|
+| L2 完整 | `airein setup --hosts …` | skills + hooks + 模板 + Dashboard | 唯一完整产品 |
+| L1 发现 | `.claude-plugin/`（CC Plugin Directory） | skills/commands + **thin** SessionStart bridge（`hooks/plugin-bridge.json` → `plugin-kernel-bridge.js`） | **禁止**在 L1 再声明全量铁律 hooks（双注册风险）；缺核时硬提示跑 setup（`kernel-ready` / B-post） |
+| L0 发现 | skills.sh / `npx skills` | 最多 skills 正文 | **≠** 完整产品；README 必须明示 |
+
+**B→C 默认 B-post**：挂在 SessionStart（及 L1 bridge）做缺核警告，不依赖未验证的「安装时同步」。
+
 ## 强制力分层（贯穿全系统）
 
 | 层 | 机制 | 性质 |

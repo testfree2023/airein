@@ -4,6 +4,58 @@
 
 English | [简体中文](README.md)
 
+**Current version: [2.06](CHANGELOG.md)** · [30-second install](#30-second-install) · [Demo walkthrough](docs/demo.md) · [Security](docs/SECURITY.md) · [Support & known limits](SUPPORT.md)
+
+**Airein** blends **AI** and **rein**. The name is the thesis: put reins on AI coding—specs and hooks steer complex delivery so the model does not bolt off the trail.
+
+---
+
+## 30-second install
+
+One-liner: **spec-driven docs & progress + code-enforced hook gates** (Prompt is advice, Hook is law).
+
+One command for a **full install** (clone → `airein setup --yes` → `~/.airein` kernel + detected hosts; **not** skills-only / plugin markdown):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/testfree2023/airein/main/scripts/install.sh | bash
+```
+
+```powershell
+irm https://raw.githubusercontent.com/testfree2023/airein/main/scripts/install.ps1 | iex
+```
+
+Optional: Unix `curl … | bash -s -- --hosts claude-code`; Windows set `$env:AIREIN_HOSTS='claude-code'` then `irm … | iex`.
+
+Verify: `bash ~/.airein/scripts/update/verify-airein.sh --full` (recommended). CC-only / Cursor-only flags: see “5-Minute Quickstart” below.
+
+> **Supply-chain note:** the one-liner downloads and runs a bootstrap from GitHub (`curl | bash` / `irm | iex`). If your org requires review, use the auditable path below or open [`scripts/install.sh`](scripts/install.sh) / [`scripts/install.ps1`](scripts/install.ps1) first.
+
+<details>
+<summary>Auditable install (clone then setup)</summary>
+
+```bash
+git clone https://github.com/testfree2023/airein.git /tmp/airein && \
+bash /tmp/airein/airein setup --yes; rm -rf /tmp/airein
+```
+
+</details>
+
+> **Do not treat `npx skills add …` as a full install.** It usually copies skill markdown only and does **not** deploy hooks or the `~/.airein` kernel. Use the one-liner or `airein setup` for the real product.
+
+### Three install lanes (do not mix)
+
+| Lane | Channel | What you get |
+|------|---------|--------------|
+| **Full (recommended)** | `airein setup` | `~/.airein` kernel + host hooks (only complete product) |
+| **CC store discovery** | Claude Code `/plugin install` (repo `.claude-plugin/`) | skills/commands + missing-kernel hint; **still run `airein setup` after** |
+| **Discovery only** | `npx skills add` / skills.sh | **Incomplete** skill markdown — not a full install |
+
+Cursor is **not** the Claude Code plugin channel: use `airein setup --hosts cursor`. Do **not** assume one CC plugin enables every host.
+
+**Trust notes:** Install registers host hooks and runs local kernel `scripts/` (**zero npm deps**, still review if your org requires it). Local-by-default, no telemetry upload. See [SECURITY](docs/SECURITY.md) and [SUPPORT](SUPPORT.md). Walkthrough: [docs/demo.md](docs/demo.md) (add `docs/assets/demo.gif` when you record it).
+
+**Uninstall:** `airein uninstall` (see [SUPPORT](SUPPORT.md) · [deployment](docs/deployment.md)). Cold-start SLA ledger template: [sla-ledger](docs/plans/P009-marketplace-readiness/sla-ledger.md).
+
 ---
 
 ## The Problem It Solves
@@ -20,8 +72,7 @@ The core idea in one line: **Prompt is advice, Hook is law.** Rules written in C
 
 ### Positioning (important)
 
-Airein is **not** a full-stack manager of your AI coding tool. It is a **skills / plugin layer** inside the host (Claude Code / Cursor / ...). We own **project docs + progress** (init-project / 
-ew-plan / approval + hooks / Dashboard) — not a kitchen-sink of generic Agents/commands. Leave those to your own stack or install [ECC](https://github.com/affaan-m/everything-claude-code) separately.
+Airein is **not** a full-stack manager of your AI coding tool. It is a **skills / plugin layer** inside the host (Claude Code / Cursor / ...). We own **project docs + progress** (init-project / new-plan / approval + hooks / Dashboard) — not a kitchen-sink of generic Agents/commands. Leave those to your own stack or install [ECC](https://github.com/affaan-m/everything-claude-code) separately.
 
 ---
 
@@ -134,7 +185,7 @@ CC projects also get an **L1 shim**: `<project>/.claude/rules` → symlink to `<
 Prerequisites: git, Node.js ≥ 18, bash ≥ 4 (Git Bash on Windows).
 
 ```bash
-git clone git@github.com:testfree2023/airein.git /tmp/airein && \
+git clone https://github.com/testfree2023/airein.git /tmp/airein && \
 bash /tmp/airein/airein setup --yes; rm -rf /tmp/airein
 ```
 
@@ -426,6 +477,9 @@ CC registration `~/.claude/` symlinks back to the kernel; user `CLAUDE.md` / `se
 ---
 
 ## FAQ
+
+**Q: What are the known limitations? Are all hosts production-ready?**
+A: First-class support is **Claude Code + Cursor**; Codex / CodeBuddy / OpenCode are preview. On Windows use Git Bash. Trust model & security reporting: [SUPPORT.md](SUPPORT.md) / [docs/SECURITY.md](docs/SECURITY.md). Walkthrough: [docs/demo.md](docs/demo.md).
 
 **Q: I already have cursor rules / spec tools / my own well-written CLAUDE.md. Why do I need Airein?**
 A: Most of those are "prompt-level" constraints — written in rule files, relying on model self-discipline, bypassable under context bloat or instruction conflict. Airein's differentiator is **making non-negotiable constraints into hooks (`exit 2` code enforcement)**, plus cross-session project memory and a spec-driven planning flow. You can run it alongside existing rules: hard constraints to Airein's hooks, soft preferences in your CLAUDE.md.

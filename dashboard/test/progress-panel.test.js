@@ -40,6 +40,22 @@ describe('progress-panel helpers', suite => {
     }), true, 'real tasks');
   });
 
+  suite.test('shouldShowTestsLedger: requires testsLedgerEnabled + tasks ready', () => {
+    assertEqual(panel.shouldShowTestsLedger(null), false, 'null');
+    assertEqual(panel.shouldShowTestsLedger({ hasTasksDoc: false, testsLedgerEnabled: true }), false, 'no tasks.md');
+    assertEqual(panel.shouldShowTestsLedger({ hasTasksDoc: true, tasks: [], testsLedgerEnabled: true }), false, 'empty');
+    assertEqual(panel.shouldShowTestsLedger({
+      hasTasksDoc: true,
+      testsLedgerEnabled: false,
+      tasks: [{ num: 1, name: 'I', tasks: [{ id: '1.1', name: 'A', status: 'pending', dependsOn: [] }] }],
+    }), false, 'opt-in off');
+    assertEqual(panel.shouldShowTestsLedger({
+      hasTasksDoc: true,
+      testsLedgerEnabled: true,
+      tasks: [{ num: 1, name: 'I', tasks: [{ id: '1.1', name: 'A', status: 'pending', dependsOn: [] }] }],
+    }), true, 'opt-in on with tasks');
+  });
+
   suite.test('unsupported message for legacy', () => {
     const html = panel.renderPanelBoard({
       unsupported: true,

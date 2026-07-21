@@ -30,6 +30,7 @@ const projectPaths = require(path.join(SCRIPTS_LIB, 'project-paths'));
 const dashboardProjects = require(path.join(SCRIPTS_LIB, 'dashboard-projects'));
 const parseTasksPanel = require(path.join(SCRIPTS_LIB, 'parse-tasks-panel'));
 const parseTestsLedger = require(path.join(SCRIPTS_LIB, 'parse-tests-ledger'));
+const progressApprovalGate = require(path.join(SCRIPTS_LIB, 'progress-approval-gate'));
 
 const loadGlobalPipelines = qualityConfig.loadGlobalPipelines;
 const loadGlobalLanguageProfiles = qualityConfig.loadGlobalLanguageProfiles;
@@ -1065,6 +1066,23 @@ async function handleApprove(projectPath, planId, req, res) {
   const errors = validateApproval(phase, approval, pipeline);
   if (errors.length > 0) return json(res, 400, { error: errors.join('; ') });
 
+  // Doc-first: phase ## Status must already be approved; tasks also need panel format.
+  // Do not parse tasks.md on every edit — only at approve time.
+  const docRaw = fs.readFileSync(docPath, 'utf-8');
+  const phaseDocs = {};
+  phaseDocs[phase] = docRaw;
+  const gate = progressApprovalGate.evaluateProgressApprovalGate({
+    enabled: true,
+    mode: 'strict',
+    filePath: progressPath.replace(/\\/g, '/'),
+    oldContent: content,
+    newContent: planParser.setApprovalState(content, phase),
+    phaseDocs: phaseDocs,
+  });
+  if (!gate.allow) {
+    return json(res, 400, { error: gate.message || 'Approval prerequisites not met' });
+  }
+
   // 用 plan-parser 的 setApprovalState 写入，兼容纯文本与 "- key: value" 列表前缀
   const updated = planParser.setApprovalState(content, phase);
   const today = utils.getDateString();
@@ -1072,8 +1090,7 @@ async function handleApprove(projectPath, planId, req, res) {
 
   utils.writeFile(progressPath, finalContent);
 
-  // Sync phase doc footer ## Status with Approval State
-  const docRaw = fs.readFileSync(docPath, 'utf-8');
+  // Idempotent Status sync (already approved by gate)
   const docSynced = planParser.setDocStatusApproved(docRaw);
   if (docSynced !== docRaw) {
     utils.writeFile(docPath, docSynced);
@@ -1381,13 +1398,25 @@ function parseTasksMarkdown(content) {
   return parseTasksPanel.parseTasksMarkdown(content);
 }
 
+function readTestsLedgerEnabled(projectPath) {
+  try {
+    const raw = readQualityConfig(projectPath);
+    const effective = qualityConfig.deepMerge(qualityConfig.DEFAULTS, raw);
+    return !!(effective.testsLedger && effective.testsLedger.enabled === true);
+  } catch {
+    return false;
+  }
+}
+
 function handleGetPlanTasks(projectPath, planId, res) {
   if (!validatePlanId(planId)) return json(res, 400, { error: 'Invalid plan ID' });
+  const testsLedgerEnabled = readTestsLedgerEnabled(projectPath);
   const tasksPath = path.join(projectPath, 'docs', 'plans', planId, 'tasks.md');
   if (fs.existsSync(tasksPath)) {
     const content = fs.readFileSync(tasksPath, 'utf-8');
     let parsed = parseTasksMarkdown(content);
     parsed.hasTasksDoc = true;
+    parsed.testsLedgerEnabled = testsLedgerEnabled;
     const progressPathForStatus = path.join(projectPath, 'docs', 'plans', planId, 'progress.md');
     if (!parsed.unsupported && fs.existsSync(progressPathForStatus)) {
       parsed = parseTasksPanel.applyProgressTaskStatuses(
@@ -1395,6 +1424,7 @@ function handleGetPlanTasks(projectPath, planId, res) {
         fs.readFileSync(progressPathForStatus, 'utf-8')
       );
       parsed.hasTasksDoc = true;
+      parsed.testsLedgerEnabled = testsLedgerEnabled;
     }
     json(res, 200, parsed);
     return;
@@ -1403,11 +1433,16 @@ function handleGetPlanTasks(projectPath, planId, res) {
   // Fallback: no tasks.md, derive stats from progress.md (## Task Stats)
   const progressPath = path.join(projectPath, 'docs', 'plans', planId, 'progress.md');
   if (!fs.existsSync(progressPath)) {
-    json(res, 200, { tasks: [], total: 0, completed: 0, inProgress: 0, pending: 0, blocked: 0, hasTasksDoc: false, panelCompatible: true, unsupported: false, unsupportedMessage: null });
+    json(res, 200, {
+      tasks: [], total: 0, completed: 0, inProgress: 0, pending: 0, blocked: 0,
+      hasTasksDoc: false, panelCompatible: true, unsupported: false, unsupportedMessage: null,
+      testsLedgerEnabled: testsLedgerEnabled,
+    });
     return;
   }
 
   const stats = parseProgressStats(fs.readFileSync(progressPath, 'utf-8'));
+  stats.testsLedgerEnabled = testsLedgerEnabled;
   json(res, 200, stats);
 }
 

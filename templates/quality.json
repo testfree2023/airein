@@ -61,5 +61,9 @@
   "progressCompletionGate": {
     "enabled": true,
     "mode": "strict"
+  },
+  "progressApprovalGate": {
+    "enabled": true,
+    "mode": "strict"
   }
 }

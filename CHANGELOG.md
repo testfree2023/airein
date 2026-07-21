@@ -13,15 +13,42 @@
 
 | Tag | 日期 | 含义 |
 |-----|------|------|
+| [`v2.07`](https://github.com/testfree2023/airein/releases/tag/v2.07) | 2026-07-21 | **Release**：VERSION 2.07（progress 审批门禁 + 货架/安装 UX + P009 L1 plugin） |
+| [`v2.06`](https://github.com/testfree2023/airein/releases/tag/v2.06) | 2026-07-20 | **Release**：VERSION 2.06（Dashboard 首页 + 文档模板说明 + P008 Agent Teams v0）；货架用 SemVer tag |
 | [`2026-07-18`](https://github.com/testfree2023/airein/releases/tag/2026-07-18) | 2026-07-18 | 检查点：合并 P006/P007 前的 `main`（`63dfd08`，含 VERSION 2.03–2.05） |
 | [`2026-07-13`](https://github.com/testfree2023/airein/releases/tag/2026-07-13) | 2026-07-13 | **Release**：P004 统一安装编排（`airein setup/update`、内核 `.airein`、Dashboard） |
 | [`pre-p004-2026-07-11`](https://github.com/testfree2023/airein/releases/tag/pre-p004-2026-07-11) | 2026-07-11 | **回滚锚点**：P004 合入前的稳定 `main`（已含 P001–P003） |
 
-回滚示例：`git checkout pre-p004-2026-07-11` 后 `airein update --source <该 tag 的 archive>`（详见 deployment）。
+回滚示例：`git checkout pre-p004-2026-07-11` 后 `airein update --source <该 tag 的 archive>`（详见 deployment）。版本发布优先用 **`vX.YY`** tag（与根 `VERSION` 对齐）。
 
 ## [Unreleased]
 
-相对 **VERSION 2.06** 之后、尚未打进下一 VERSION / tag 的变更。
+相对 **VERSION 2.07** 之后、尚未打进下一 VERSION / tag 的变更。
+
+## [2.07] - 2026-07-21
+
+### Progress 审批门禁（文档 Status 先行）
+
+- `progressApprovalGate`：progress 将 phase 标 `approved` 前，要求对应文档 `## Status: approved`（只卡审批，不解析每次 tasks 编辑）
+- 审批 `tasks` 时额外要求面板契约格式正确；Dashboard Approve 共用同一前提
+- `testsLedger` 默认关闭；未 `enabled` 时 Progress 不显示测试台账 Tab
+- `templates/docs/tasks.md` 补 `## Status: draft` 页脚，减少 Status 漂移
+
+### Docs / install UX
+
+- README 名称释义：AI + rein（缰绳）= 用规格与 hook 驾驭 AI 编程
+- 一键完整安装：`scripts/install.sh`（curl|bash）与 `scripts/install.ps1`（irm|iex）→ `airein setup --yes`
+
+### P009-marketplace-readiness
+
+- R1 三车道文案（README 中/英）：完整=`airein setup`；CC plugin=发现；skills≠完整
+- `.claude-plugin/` L1 包装（thin SessionStart bridge，不含全量铁律 hooks）
+- `kernel-ready` 检测 + SessionStart / plugin-bridge 缺核硬提示（INV-NO-HALVES）
+- SUPPORT 链冷启动 SLA；Anthropic Plugin Directory 已提交（pending review；macOS E3 未跑 → 不标硬上架）
+
+### 货架与信任基建
+
+- README 顶部 30 秒安装 / 信任要点；SUPPORT.md；docs/demo.md；SECURITY 版本表对齐；topics/Release 脚本 `scripts/update/publish-storefront-meta.sh`
 
 ## [2.06] - 2026-07-20
 

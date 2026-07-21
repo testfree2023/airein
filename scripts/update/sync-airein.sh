@@ -34,10 +34,12 @@ CORE_FILES=(
   "rules/10-architecture.md"
   "rules/20-workflow.md"
   "hooks/hooks.json"
+  "hooks/plugin-bridge.json"   # P009 L1 SessionStart bridge only (not full iron-law)
   "hooks/README.md"
   # ── hooks ──
   "scripts/hooks/pre-compact.js"
   "scripts/hooks/session-start.js"
+  "scripts/hooks/plugin-kernel-bridge.js"  # P009 L1 thin SessionStart for plugin cache
   "scripts/hooks/session-end.js"
   "scripts/hooks/stop-test-gate.js"
   "scripts/hooks/pre-commit-gate.js"
@@ -63,6 +65,7 @@ CORE_FILES=(
   "scripts/hooks/self-learning-prompt.js"
   "scripts/hooks/tests-ledger-gate.js"
   "scripts/hooks/progress-completion-gate.js"
+  "scripts/hooks/progress-approval-gate.js"
   "scripts/hooks/roadmap-gate.js"
   # ── lib ──
   "scripts/lib/utils.js"
@@ -75,6 +78,8 @@ CORE_FILES=(
   "scripts/lib/package-manager.js"
   "scripts/lib/session-aliases.js"
   "scripts/lib/design-doc-resolver.js"
+  "scripts/lib/git-worktree-context.js"  # /new-plan preflight: warn if linked worktree
+  "scripts/lib/kernel-ready.js"          # P009 B→C: detect ~/.airein kernel ready
   "scripts/lib/requirements-template.js"  # P005: resolve s/m/l PRD template by pipeline
   "scripts/lib/design-template.js"        # resolve s/m/l design template by pipeline
   "scripts/lib/test-plan-template.js"     # resolve m/l test-plan template by pipeline
@@ -93,6 +98,7 @@ CORE_FILES=(
   "scripts/lib/parse-tests-ledger.js"
   "scripts/lib/tests-ledger-gate.js"
   "scripts/lib/progress-completion-gate.js"
+  "scripts/lib/progress-approval-gate.js"
   "scripts/lib/roadmap-contract.js"
   "scripts/lib/roadmap-gate.js"
   "scripts/lib/pipeline-roles-banner.js"
