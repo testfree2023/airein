@@ -23,6 +23,10 @@
  *     "enabled": true,
  *     "mode": "strict"
  *   },
+ *   "progressApprovalGate": {
+ *     "enabled": true,
+ *     "mode": "strict"
+ *   },
  *   "approvalGuard": {
  *     "mode": "console-confirm"     // "advisory" | "console-confirm" | "manual-only"
  *   },
@@ -94,7 +98,8 @@ const DEFAULTS = {
   },
   flowControl: {
     perTaskReview: false,       // dispatch tech-lead (mode: review) after each task
-    worktreeIsolation: false    // suggest worktree isolation for features/refactors
+    // coding-phase isolation only; /new-plan stays on main worktree
+    worktreeIsolation: false
   },
   testGuard: {
     enabled: true,              // false = completely disabled (no check at all)
@@ -111,6 +116,10 @@ const DEFAULTS = {
   progressCompletionGate: {
     enabled: true,              // progress.md completion claims require tasks.md Status=completed
     mode: 'strict'              // 'strict' = exit 2 | 'advisory' = warn + allow
+  },
+  progressApprovalGate: {
+    enabled: true,              // progress phase→approved requires phase doc ## Status=approved first
+    mode: 'strict'              // tasks also requires panel-contract format; approval-time only
   },
   approvalGuard: {
     mode: 'console-confirm'

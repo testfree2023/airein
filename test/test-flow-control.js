@@ -95,6 +95,8 @@ describe('F4: Worktree isolation switch', suite => {
   suite.test('20-workflow.md has 分支策略 section', () => {
     assertContains(RULES_20, '分支策略', 'branch strategy heading');
     assertContains(RULES_20, 'worktreeIsolation', 'references worktreeIsolation');
+    assertContains(RULES_20, '主工作区', 'planning stays on main worktree');
+    assertContains(RULES_20, '开始编码', 'worktree only after coding starts');
   });
 
   suite.test('20-workflow.md has 流程豁免 section', () => {

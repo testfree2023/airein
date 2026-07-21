@@ -1,0 +1,17 @@
+{
+  "name": "airein-marketplace",
+  "owner": {
+    "name": "testfree2023"
+  },
+  "metadata": {
+    "description": "Airein self-hosted marketplace entry (L1 discovery). Full install still requires airein setup.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "airein",
+      "source": "./",
+      "description": "Airein engineering framework — run airein setup after install for ~/.airein kernel"
+    }
+  ]
+}

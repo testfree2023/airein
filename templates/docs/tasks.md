@@ -158,3 +158,5 @@
 - **Must**：挡归档 — Entry Coverage 全行、Traceability 中适用的 UC/Critical/VS、必要 Deploy/Accept。
 - **Should**：非门禁增强。
 - **禁止**：入口/Critical/VS 门禁降为 Should；「前端收口」；无源 Verify；只写 Implement 不写 Verify。
+
+## Status: draft

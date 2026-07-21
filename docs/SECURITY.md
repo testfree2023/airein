@@ -2,12 +2,12 @@
 
 ## Supported versions
 
-airein is pre-1.0 (`v0.x`). Only the latest minor line receives security fixes.
+Only the **latest published `VERSION` line** receives security fixes. Check the repo root [`VERSION`](../VERSION) file and [CHANGELOG.md](../CHANGELOG.md) / GitHub Release tag (e.g. `v2.06`).
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x   | ✅ |
-| < 0.1   | ❌ |
+| Latest `VERSION` (currently 2.06.x) | ✅ |
+| Older minor / checkpoint tags | ❌ (upgrade; see CHANGELOG) |
 
 ## Reporting a vulnerability
 
@@ -36,6 +36,14 @@ airein is a **local-only** engineering framework: zero external runtime dependen
 **Out of scope:**
 - Vulnerabilities in Claude Code or host AI tools (Cursor/Codex/CodeBuddy/OpenCode) themselves — report upstream
 - Issues that require network access to exploit — airein has none by design
+
+## Trust notes for installers
+
+Remote bootstrap (`scripts/install.sh` / `scripts/install.ps1` via `curl | bash` or `irm | iex`) clones this repository and runs `airein setup --yes`. Treat it like any other remote installer: prefer an auditable clone when policy requires it.
+
+`airein setup` / `update` installs a local kernel under `~/.airein/`, registers **host hooks**, and runs **local scripts**. There is no npm install tree, but you should still review `scripts/` if your organization requires supply-chain review. See [SUPPORT.md](../SUPPORT.md).
+
+Skills-only market installers (`npx skills add …`) typically copy skill markdown only and **do not** deploy hooks — they are not a substitute for `airein setup`.
 
 ## Hardening already in place
 

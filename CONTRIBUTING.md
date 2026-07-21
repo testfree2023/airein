@@ -2,6 +2,8 @@
 
 感谢你对 Airein 的兴趣！Airein 是套在 Claude Code 之上的工程化框架，遵循「**Prompt 是建议，Hook 是法律**」。
 
+用户支持 / 已知限制 / 安全上报入口见 [SUPPORT.md](SUPPORT.md) 与 [docs/SECURITY.md](docs/SECURITY.md)。
+
 ## 开发环境
 
 | 依赖 | 版本 | 说明 |
@@ -12,7 +14,7 @@
 | `shellcheck` / `shfmt` | 可选 | 编辑 `.sh` 时的静态检查与格式化 |
 
 ```bash
-git clone git@github.com:testfree2023/airein.git
+git clone https://github.com/testfree2023/airein.git
 cd airein
 bash test/run-all.sh   # 确认全绿
 ```

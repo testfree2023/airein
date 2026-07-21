@@ -314,6 +314,19 @@ async function main() {
     aireinLog('error', 'session-start', `pipelineRoles inject failed: ${err.message}`);
   }
 
+  // P009 B→C: hard hint when L2 kernel (~/.airein) is missing (INV-NO-HALVES).
+  // Only when not ready — silent if ok. stdout context (not stderr) to avoid red noise.
+  try {
+    const { detectKernelReady, formatKernelReadyWarning } = require('../lib/kernel-ready');
+    const krOpts = {};
+    if (process.env.AIREIN_TEST_HOME) krOpts.homeDir = process.env.AIREIN_TEST_HOME;
+    if (process.env.AIREIN_KERNEL) krOpts.kernelRoot = process.env.AIREIN_KERNEL;
+    const warning = formatKernelReadyWarning(detectKernelReady(krOpts));
+    if (warning) output(warning);
+  } catch (err) {
+    aireinLog('error', 'session-start', `kernel-ready inject failed: ${err.message}`);
+  }
+
   // Consolidate and clean up old chat logs (>7 days)
   consolidateOldChatLogs();
 

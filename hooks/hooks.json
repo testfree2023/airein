@@ -92,6 +92,17 @@
         "description": "Progress completion gate: progress.md completion claims require tasks.md Status=completed"
       },
       {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/progress-approval-gate.js\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Progress approval gate: phase→approved requires doc ## Status=approved first (tasks: panel format)"
+      },
+      {
         "matcher": "Write",
         "hooks": [
           {

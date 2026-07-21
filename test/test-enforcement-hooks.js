@@ -182,6 +182,12 @@ describe('quality-config: planGate defaults', suite => {
     assertEqual(DEFAULTS.progressCompletionGate.mode, 'strict', 'progressCompletionGate.mode default strict');
   });
 
+  suite.test('progressApprovalGate defaults enabled', () => {
+    assertOk('progressApprovalGate' in DEFAULTS, 'progressApprovalGate key exists');
+    assertEqual(DEFAULTS.progressApprovalGate.enabled, true, 'progressApprovalGate.enabled default true');
+    assertEqual(DEFAULTS.progressApprovalGate.mode, 'strict', 'progressApprovalGate.mode default strict');
+  });
+
   suite.test('pipelineRoles defaults enabled (Agent Teams ON)', () => {
     assertOk('pipelineRoles' in DEFAULTS, 'pipelineRoles key exists');
     assertEqual(DEFAULTS.pipelineRoles.enabled, true, 'pipelineRoles.enabled default true');
@@ -530,6 +536,14 @@ describe('hooks.json: enforcement hooks registered', suite => {
     assertOk(entry, 'tests-ledger-gate entry exists in PreToolUse');
     assertOk(entry.hooks[0].command.includes('tests-ledger-gate.js'), 'command references tests-ledger-gate.js');
     assertOk(!entry.hooks[0].async, 'tests-ledger-gate must not be async');
+  });
+
+  suite.test('progress-approval-gate registered in PreToolUse', () => {
+    const preHooks = hooksJson.hooks.PreToolUse;
+    const entry = preHooks.find(h => h.description && h.description.toLowerCase().includes('progress approval'));
+    assertOk(entry, 'progress-approval-gate entry exists in PreToolUse');
+    assertOk(entry.hooks[0].command.includes('progress-approval-gate.js'), 'command references progress-approval-gate.js');
+    assertOk(!entry.hooks[0].async, 'progress-approval-gate must not be async');
   });
 
   suite.test('roadmap-gate registered in PreToolUse', () => {

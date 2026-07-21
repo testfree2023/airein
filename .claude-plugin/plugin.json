@@ -1,0 +1,15 @@
+{
+  "name": "airein",
+  "version": "2.06",
+  "description": "Airein — Prompt is advice, Hook is law. This Claude Code plugin is a discovery surface (skills/commands + kernel check). Full product requires: airein setup --hosts claude-code (syncs ~/.airein). Skills-only / plugin-only installs are incomplete.",
+  "author": {
+    "name": "testfree2023"
+  },
+  "homepage": "https://github.com/testfree2023/airein",
+  "repository": "https://github.com/testfree2023/airein",
+  "license": "Apache-2.0",
+  "keywords": ["airein", "hooks", "skills", "engineering"],
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "hooks": "./hooks/plugin-bridge.json"
+}

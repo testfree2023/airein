@@ -595,6 +595,7 @@ var I18N = {
     'config.testsLedger': 'Tests ledger',
     'config.roadmapGate': 'Roadmap gate',
     'config.progressCompletionGate': 'Progress completion gate',
+    'config.progressApprovalGate': 'Progress approval gate',
     'config.approvalGuard': 'Approval Guard',
     'config.planGate': 'Plan Gate',
     'config.testCoverage': 'Test Coverage',
@@ -852,6 +853,7 @@ var I18N = {
     'config.testsLedger': '测试台账',
     'config.roadmapGate': 'Roadmap 门禁',
     'config.progressCompletionGate': '进度完成门禁',
+    'config.progressApprovalGate': '进度审批门禁',
     'config.approvalGuard': '审批守卫',
     'config.planGate': '计划门禁',
     'config.testCoverage': '测试覆盖',
@@ -1855,6 +1857,9 @@ function renderPlanProgressEmbedded(plan, planId, projectId) {
     var pending = taskData.pending || 0;
     var pct = total ? Math.round(completed / total * 100) : 0;
     var showTasks = window.ProgressPanel && window.ProgressPanel.shouldShowTaskProgress(taskData);
+    var showLedger = window.ProgressPanel && window.ProgressPanel.shouldShowTestsLedger
+      ? window.ProgressPanel.shouldShowTestsLedger(taskData)
+      : showTasks;
     var panelHtml = showTasks
       ? window.ProgressPanel.renderPanelBoard(taskData, t)
       : '';
@@ -1867,7 +1872,7 @@ function renderPlanProgressEmbedded(plan, planId, projectId) {
         if (node && node.id) taskNameById[node.id] = node.name || '';
       });
     }
-    var ledgerHtml = window.ProgressPanel && window.ProgressPanel.renderTestsLedger
+    var ledgerHtml = showLedger && window.ProgressPanel && window.ProgressPanel.renderTestsLedger
       ? window.ProgressPanel.renderTestsLedger(ledgerData, t, esc, { taskNameById: taskNameById })
       : '';
     var mdContent = plan.progress || '';
@@ -1893,20 +1898,19 @@ function renderPlanProgressEmbedded(plan, planId, projectId) {
       ? ('<div class="tabs" style="margin-bottom:1rem">' +
         '<button type="button" class="tab active" id="plan-progress-tab-panel-btn">' + t('progress.tabPanel') + '</button>' +
         '<button type="button" class="tab" id="plan-progress-tab-text-btn">' + t('progress.tabText') + '</button>' +
-        '<button type="button" class="tab" id="plan-progress-tab-ledger-btn">' + t('progress.tabTestsLedger') + '</button>' +
+        (showLedger ? ('<button type="button" class="tab" id="plan-progress-tab-ledger-btn">' + t('progress.tabTestsLedger') + '</button>') : '') +
         '<button type="button" class="tab" id="plan-progress-tab-md-btn">progress.md</button>' +
       '</div>')
       : ('<div class="tabs" style="margin-bottom:1rem">' +
-        '<button type="button" class="tab active" id="plan-progress-tab-ledger-btn">' + t('progress.tabTestsLedger') + '</button>' +
-        '<button type="button" class="tab" id="plan-progress-tab-md-btn">progress.md</button>' +
+        '<button type="button" class="tab active" id="plan-progress-tab-md-btn">progress.md</button>' +
       '</div>');
     cont.innerHTML =
       summaryHtml +
       tabsHtml +
       (showTasks ? ('<div id="plan-progress-tab-panel">' + panelHtml + '</div>' +
       '<div id="plan-progress-tab-text" style="display:none">' + textHtml + '</div>') : '') +
-      '<div id="plan-progress-tab-ledger"' + (showTasks ? ' style="display:none"' : '') + '>' + ledgerHtml + '</div>' +
-      '<div id="plan-progress-tab-md" style="display:none">' +
+      (showLedger ? ('<div id="plan-progress-tab-ledger" style="display:none">' + ledgerHtml + '</div>') : '') +
+      '<div id="plan-progress-tab-md"' + (showTasks ? ' style="display:none"' : '') + '>' +
         '<div style="display:flex;gap:.5rem;margin-bottom:.5rem">' +
           '<button class="btn btn-sm btn-primary" id="btn-view">' + t('common.view') + '</button>' +
           '<button class="btn btn-sm" id="btn-edit">' + t('common.edit') + '</button>' +
@@ -2168,13 +2172,16 @@ function renderProgress($app, progressRef) {
         var pending = taskData.pending || 0;
         var pct = total ? Math.round(completed / total * 100) : 0;
         var showTasks = window.ProgressPanel && window.ProgressPanel.shouldShowTaskProgress(taskData);
+        var showLedger = window.ProgressPanel && window.ProgressPanel.shouldShowTestsLedger
+          ? window.ProgressPanel.shouldShowTestsLedger(taskData)
+          : showTasks;
         var taskNameById = {};
         if (window.ProgressPanel && window.ProgressPanel.flattenTasks) {
           window.ProgressPanel.flattenTasks(taskData).forEach(function (node) {
             if (node && node.id) taskNameById[node.id] = node.name || '';
           });
         }
-        var ledgerHtml = window.ProgressPanel && window.ProgressPanel.renderTestsLedger
+        var ledgerHtml = showLedger && window.ProgressPanel && window.ProgressPanel.renderTestsLedger
           ? window.ProgressPanel.renderTestsLedger(ledgerData, t, esc, { taskNameById: taskNameById })
           : '';
 
@@ -2202,7 +2209,7 @@ function renderProgress($app, progressRef) {
           '<div class="tabs" style="margin-bottom:1rem">' +
             '<button type="button" class="tab active" id="progress-tab-panel-btn" data-progress-tab="panel">' + t('progress.tabPanel') + '</button>' +
             '<button type="button" class="tab" id="progress-tab-text-btn" data-progress-tab="text">' + t('progress.tabText') + '</button>' +
-            '<button type="button" class="tab" id="progress-tab-ledger-btn" data-progress-tab="ledger">' + t('progress.tabTestsLedger') + '</button>' +
+            (showLedger ? ('<button type="button" class="tab" id="progress-tab-ledger-btn" data-progress-tab="ledger">' + t('progress.tabTestsLedger') + '</button>') : '') +
           '</div>' +
           '<div id="progress-tab-panel">' +
             window.ProgressPanel.renderPanelBoard(taskData, t) +
@@ -2210,14 +2217,10 @@ function renderProgress($app, progressRef) {
           '<div id="progress-tab-text" style="display:none">' +
             window.ProgressPanel.renderTextList(taskData, t, esc) +
           '</div>' +
-          '<div id="progress-tab-ledger" style="display:none">' + ledgerHtml + '</div>';
+          (showLedger ? ('<div id="progress-tab-ledger" style="display:none">' + ledgerHtml + '</div>') : '');
         } else {
           html +=
-          '<div class="empty" style="margin-bottom:1rem"><p>' + t('progress.tasksNotReady') + '</p></div>' +
-          '<div class="tabs" style="margin-bottom:1rem">' +
-            '<button type="button" class="tab active" id="progress-tab-ledger-btn" data-progress-tab="ledger">' + t('progress.tabTestsLedger') + '</button>' +
-          '</div>' +
-          '<div id="progress-tab-ledger">' + ledgerHtml + '</div>';
+          '<div class="empty" style="margin-bottom:1rem"><p>' + t('progress.tasksNotReady') + '</p></div>';
         }
         $app.innerHTML = html;
 
@@ -2228,7 +2231,7 @@ function renderProgress($app, progressRef) {
           var panelEl = document.getElementById('progress-tab-panel');
           var textEl = document.getElementById('progress-tab-text');
           var ledgerEl = document.getElementById('progress-tab-ledger');
-          if (!ledgerBtn || !ledgerEl) return;
+          if (!panelBtn && !textBtn && !ledgerBtn) return;
           function show(tab) {
             if (panelEl) panelEl.style.display = tab === 'panel' ? '' : 'none';
             if (textEl) textEl.style.display = tab === 'text' ? '' : 'none';
@@ -2242,7 +2245,7 @@ function renderProgress($app, progressRef) {
           }
           if (panelBtn) panelBtn.onclick = function () { show('panel'); };
           if (textBtn) textBtn.onclick = function () { show('text'); };
-          ledgerBtn.onclick = function () { show('ledger'); };
+          if (ledgerBtn) ledgerBtn.onclick = function () { show('ledger'); };
           if (showTasks && panelEl && typeof scheduleMermaid === 'function') scheduleMermaid(panelEl);
         })();
 
@@ -2806,6 +2809,10 @@ function configForm(raw, defaults, eff) {
     { key: 'progressCompletionGate', label: t('config.progressCompletionGate'), fields: [
       { name: 'progressCompletionGate.enabled', label: t('config.enabled'), type: 'toggle', 'default': true },
       { name: 'progressCompletionGate.mode', label: t('config.mode'), type: 'select', options: ['strict', 'advisory'], 'default': 'strict' },
+    ]},
+    { key: 'progressApprovalGate', label: t('config.progressApprovalGate'), fields: [
+      { name: 'progressApprovalGate.enabled', label: t('config.enabled'), type: 'toggle', 'default': true },
+      { name: 'progressApprovalGate.mode', label: t('config.mode'), type: 'select', options: ['strict', 'advisory'], 'default': 'strict' },
     ]},
     { key: 'approvalGuard', label: t('config.approvalGuard'), fields: [
       { name: 'approvalGuard.mode', label: t('config.mode'), type: 'select', options: ['advisory', 'console-confirm', 'manual-only'], 'default': 'console-confirm' },
